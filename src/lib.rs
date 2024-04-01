@@ -4,5 +4,6 @@
 
 pub use py32_metapac as pac;
 
+pub mod time;
 
 pub mod rcc;
