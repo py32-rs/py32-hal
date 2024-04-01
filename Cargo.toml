@@ -1,0 +1,43 @@
+[package]
+name = "py32-hal"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+cortex-m = { version = "0.7.7", features = [
+    "critical-section-single-core",
+    "critical-section",
+] }
+cortex-m-rt = "0.7.3"
+
+embedded-hal-02 = { package = "embedded-hal", version = "0.2.6", features = [
+    "unproven",
+] }
+embedded-hal-1 = { package = "embedded-hal", version = "1.0" }
+embedded-hal-async = { version = "1.0" }
+embedded-hal-nb = { version = "1.0" }
+embedded-can = "0.4"
+
+defmt = { version = "0.3", optional = true }
+log = { version = "0.4.14", optional = true }
+
+
+py32-metapac = { path = "../py32-data/build/py32-metapac" }
+
+
+[build-dependencies]
+proc-macro2 = "1.0.36"
+quote = "1.0.15"
+py32-metapac = { path = "../py32-data/build/py32-metapac", default-features = false, features = [
+    "metadata",
+] }
+
+[features]
+default = ["rt", "py32f030k28", "memory-x"]
+
+rt = ["py32-metapac/rt"]
+
+memory-x = ["py32-metapac/memory-x"]
+
+py32f030k28 = ["py32-metapac/py32f030k28"]
+

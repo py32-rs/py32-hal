@@ -1,0 +1,12 @@
+[target.thumbv6m-none-eabi]
+# probe-rs chip list | grep -i PY32
+runner = 'probe-rs run --chip PY32F030x8'
+
+[build]
+target = "thumbv6m-none-eabi"
+
+[env]
+DEFMT_LOG = "trace"
+
+
+# rustflags = ["-C", "link-arg=-Tlink.x"]
