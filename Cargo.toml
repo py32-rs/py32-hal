@@ -20,9 +20,11 @@ embedded-can = "0.4"
 
 defmt = { version = "0.3", optional = true }
 log = { version = "0.4.14", optional = true }
-
+critical-section = "1.2"
 
 py32-metapac = { path = "../py32-data/build/py32-metapac" }
+
+embassy-hal-internal = "0.2.0"
 
 
 [build-dependencies]
@@ -33,11 +35,15 @@ py32-metapac = { path = "../py32-data/build/py32-metapac", default-features = fa
 ] }
 
 [features]
-default = ["rt", "py32f030k28", "memory-x"]
+default = ["rt", "py32f030k28", "memory-x", "time-driver-any"]
 
 rt = ["py32-metapac/rt"]
 
 memory-x = ["py32-metapac/memory-x"]
 
 py32f030k28 = ["py32-metapac/py32f030k28"]
+
+py32f030f16 = ["py32-metapac/py32f030f16"]
+
+time-driver-any = []
 
