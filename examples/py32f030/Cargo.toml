@@ -10,14 +10,30 @@ cortex-m = { version = "0.7.7", features = [
     "critical-section",
 ] }
 cortex-m-rt = "0.7.3"
+cortex-m-semihosting = { version = "0.5" }
+panic-probe = { version = "0.3", features = ["print-defmt"] }
 
 py32-hal = { path = "../../"}
 
 defmt = "0.3"
 defmt-rtt = "0.4"
 
+# cargo build/run
+[profile.dev]
+codegen-units = 1
+debug = 2
+debug-assertions = true # <-
+incremental = false
+opt-level = 'z'         # <-
+overflow-checks = true  # <-
+
+# cargo build/run --release
 [profile.release]
-codegen-units = 1 # better optimizations
-debug = true      # symbols are nice and they don't increase the size on Flash
-lto = true        # better optimizations
+codegen-units = 1
+debug = 2
+debug-assertions = false # <-
+incremental = false
+lto = 'fat'
+opt-level = 3            # <-
+overflow-checks = false  # <-
 
