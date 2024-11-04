@@ -586,7 +586,7 @@ pub(crate) trait SealedPin {
     #[inline]
     fn set_low(&self) {
         let n = self._pin() as _;
-        self.block().bsrr().write(|w| w.set_br(n, true));
+        self.block().brr().write(|w| w.set_br(n, true));
     }
 
     #[inline]
