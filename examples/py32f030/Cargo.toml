@@ -13,7 +13,7 @@ cortex-m-rt = "0.7.3"
 cortex-m-semihosting = { version = "0.5" }
 panic-probe = { version = "0.3", features = ["print-defmt"] }
 
-py32-hal = { path = "../../"}
+py32-hal = { path = "../../", default-features = false , features = ["rt", "py32f030f16", "time-driver-any"]}
 
 defmt = "0.3"
 defmt-rtt = "0.4"
