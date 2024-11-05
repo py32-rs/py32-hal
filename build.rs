@@ -199,29 +199,39 @@ fn main() {
     let time_driver_singleton = match time_driver.as_ref().map(|x| x.as_ref()) {
         None => "",
         Some("tim1") => "TIM1",
-        Some("tim2") => "TIM2",
+        // Some("tim2") => "TIM2",
         Some("tim3") => "TIM3",
-        Some("tim4") => "TIM4",
-        Some("tim5") => "TIM5",
-        Some("tim8") => "TIM8",
-        Some("tim9") => "TIM9",
-        Some("tim12") => "TIM12",
-        Some("tim15") => "TIM15",
-        Some("tim20") => "TIM20",
-        Some("tim21") => "TIM21",
-        Some("tim22") => "TIM22",
-        Some("tim23") => "TIM23",
-        Some("tim24") => "TIM24",
+        // Some("tim4") => "TIM4",
+        // Some("tim5") => "TIM5",
+        // Some("tim8") => "TIM8",
+        // Some("tim9") => "TIM9",
+        // Some("tim12") => "TIM12",
+        Some("tim14") => "TIM14",
+        // Some("tim15") => "TIM15",
+        Some("tim16") => "TIM16",
+        Some("tim17") => "TIM17",
+        // Some("tim20") => "TIM20",
+        // Some("tim21") => "TIM21",
+        // Some("tim22") => "TIM22",
+        // Some("tim23") => "TIM23",
+        // Some("tim24") => "TIM24",
         Some("any") => {
             // Order of TIM candidators:
             // 1. 2CH -> 2CH_CMP -> GP16 -> GP32 -> ADV
             // 2. In same catagory: larger TIM number first
+            // [
+            //     "TIM22", "TIM21", "TIM12", "TIM9",  // 2CH
+            //     "TIM15", // 2CH_CMP
+            //     "TIM19", "TIM4", "TIM3", // GP16
+            //     "TIM24", "TIM23", "TIM5", "TIM2", // GP32
+            //     "TIM20", "TIM8", "TIM1", //ADV
+            // ]
             [
-                "TIM22", "TIM21", "TIM12", "TIM9",  // 2CH
-                "TIM15", // 2CH_CMP
-                "TIM19", "TIM4", "TIM3", // GP16
-                "TIM24", "TIM23", "TIM5", "TIM2", // GP32
-                "TIM20", "TIM8", "TIM1", //ADV
+                // 2CH
+                // 2CH_CMP
+                "TIM17","TIM16", "TIM14", "TIM3", // GP16
+                // GP32
+                "TIM1", //ADV
             ]
             .iter()
             .find(|tim| singletons.contains(&tim.to_string())).expect("time-driver-any requested, but the chip doesn't have TIM1, TIM2, TIM3, TIM4, TIM5, TIM8, TIM9, TIM12, TIM15, TIM20, TIM21, TIM22, TIM23 or TIM24.")
@@ -233,7 +243,7 @@ fn main() {
         cfgs.enable(format!("time_driver_{}", time_driver_singleton.to_lowercase()));
     }
     for tim in [
-        "tim1", "tim2", "tim3", "tim4", "tim5", "tim8", "tim9", "tim12", "tim15", "tim20", "tim21", "tim22", "tim23",
+        "tim1", "tim2", "tim3", "tim4", "tim5", "tim8", "tim9", "tim12","tim14", "tim15", "tim16", "tim17", "tim20", "tim21", "tim22", "tim23",
         "tim24",
     ] {
         cfgs.declare(format!("time_driver_{}", tim));
@@ -263,18 +273,18 @@ fn main() {
     // ========
     // Generate interrupt declarations
 
-    // let mut irqs = Vec::new();
-    // for irq in METADATA.interrupts {
-    //     irqs.push(format_ident!("{}", irq.name));
-    // }
+    let mut irqs = Vec::new();
+    for irq in METADATA.interrupts {
+        irqs.push(format_ident!("{}", irq.name));
+    }
 
-    // g.extend(quote! {
-    //     embassy_hal_internal::interrupt_mod!(
-    //         #(
-    //             #irqs,
-    //         )*
-    //     );
-    // });
+    g.extend(quote! {
+        embassy_hal_internal::interrupt_mod!(
+            #(
+                #irqs,
+            )*
+        );
+    });
 
     // ========
     // Generate FLASH regions
@@ -1382,20 +1392,20 @@ fn main() {
 
     // // ========
     // // Write peripheral_interrupts module.
-    // let mut mt = TokenStream::new();
-    // for p in METADATA.peripherals {
-    //     let mut pt = TokenStream::new();
+    let mut mt = TokenStream::new();
+    for p in METADATA.peripherals {
+        let mut pt = TokenStream::new();
 
-    //     for irq in p.interrupts {
-    //         let iname = format_ident!("{}", irq.interrupt);
-    //         let sname = format_ident!("{}", irq.signal);
-    //         pt.extend(quote!(pub type #sname = crate::interrupt::typelevel::#iname;));
-    //     }
+        for irq in p.interrupts {
+            let iname = format_ident!("{}", irq.interrupt);
+            let sname = format_ident!("{}", irq.signal);
+            pt.extend(quote!(pub type #sname = crate::interrupt::typelevel::#iname;));
+        }
 
-    //     let pname = format_ident!("{}", p.name);
-    //     mt.extend(quote!(pub mod #pname { #pt }));
-    // }
-    // g.extend(quote!(#[allow(non_camel_case_types)] pub mod peripheral_interrupts { #mt }));
+        let pname = format_ident!("{}", p.name);
+        mt.extend(quote!(pub mod #pname { #pt }));
+    }
+    g.extend(quote!(#[allow(non_camel_case_types)] pub mod peripheral_interrupts { #mt }));
 
     // ========
     // Write foreach_foo! macrotables
