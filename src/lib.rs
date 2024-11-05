@@ -19,13 +19,17 @@ pub(crate) mod _generated {
     include!(concat!(env!("OUT_DIR"), "/_generated.rs"));
 }
 
-// pub use crate::_generated::interrupt;
+pub use crate::_generated::interrupt;
 
 pub use _generated::{peripherals, Peripherals};
 pub use embassy_hal_internal::{into_ref, Peripheral, PeripheralRef};
 
 pub mod time;
 pub mod rcc;
+pub mod dma;
+pub mod timer;
+#[cfg(feature = "_time-driver")]
+pub mod time_driver;
 pub mod gpio;
 
 /// `py32-hal` global configuration.
@@ -90,6 +94,10 @@ pub fn init(config: Config) -> Peripherals {
         unsafe {
             rcc::init(config.rcc);
             gpio::init(cs);
+
+            #[cfg(feature = "_time-driver")]
+            // must be after rcc init
+            time_driver::init(cs);
         };
         p
     })

@@ -1,13 +1,16 @@
 #![no_std]
 #![no_main]
+#![feature(impl_trait_in_assoc_type)]
 
 use defmt::*;
 use py32_hal::gpio::{Level, Output, Speed};
+use embassy_executor::Spawner;
+use embassy_time::Timer;
 use {defmt_rtt as _, panic_halt as _};
-use cortex_m_rt::entry;
 
-#[entry]
-fn main() -> ! {
+// main is itself an async function.
+#[embassy_executor::main]
+async fn main(_spawner: Spawner) {
     let p = py32_hal::init(Default::default());
     info!("Hello World!");
 
@@ -16,11 +19,10 @@ fn main() -> ! {
     loop {
         info!("high");
         led.set_high();
-        cortex_m::asm::delay(8_000_000);
+        Timer::after_millis(300).await;
 
         info!("low");
         led.set_low();
-
-        cortex_m::asm::delay(8_000_000);
+        Timer::after_millis(300).await;
     }
 }
