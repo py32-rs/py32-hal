@@ -19,6 +19,7 @@ embedded-hal-nb = { version = "1.0" }
 embedded-can = "0.4"
 
 defmt = { version = "0.3", optional = true }
+defmt-rtt = { version = "0.4", optional = true }
 log = { version = "0.4.14", optional = true }
 critical-section = "1.2"
 
@@ -35,9 +36,11 @@ py32-metapac = { path = "../py32-data/build/py32-metapac", default-features = fa
 ] }
 
 [features]
-default = ["rt", "py32f030k28", "memory-x", "time-driver-any"]
+default = ["rt", "py32f030k28", "memory-x", "time-driver-any", "defmt"]
 
 rt = ["py32-metapac/rt"]
+
+defmt = ["dep:defmt", "dep:defmt-rtt"]
 
 memory-x = ["py32-metapac/memory-x"]
 
