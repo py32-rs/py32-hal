@@ -13,7 +13,12 @@ cortex-m-rt = "0.7.3"
 cortex-m-semihosting = { version = "0.5" }
 panic-probe = { version = "0.3", features = ["print-defmt"] }
 
-py32-hal = { path = "../../", default-features = false , features = ["rt", "py32f030f16", "time-driver-any", "defmt"]}
+embassy-sync = { version = "0.6.0", features = ["defmt"] }
+embassy-executor = { version = "0.6.1", features = ["arch-cortex-m", "executor-thread", "executor-interrupt", "defmt", "integrated-timers"] }
+embassy-time = { version = "0.3.2", features = ["defmt", "defmt-timestamp-uptime", "tick-hz-1_000"] }
+
+
+py32-hal = { path = "../../", features = [ "time-driver-tim3", "py32f030f16"]}
 
 defmt = "0.3"
 defmt-rtt = "0.4"
