@@ -5,12 +5,12 @@ use core::marker::PhantomData;
 use embassy_hal_internal::Peripheral;
 use embassy_sync::waitqueue::AtomicWaker;
 
-// pub mod complementary_pwm;
-// pub mod input_capture;
-// pub mod low_level;
-// pub mod pwm_input;
-// pub mod qei;
-// pub mod simple_pwm;
+pub mod complementary_pwm;
+pub mod input_capture;
+pub mod low_level;
+pub mod pwm_input;
+pub mod qei;
+pub mod simple_pwm;
 
 use crate::interrupt;
 use crate::rcc::RccPeripheral;
@@ -46,8 +46,9 @@ impl Channel {
 pub enum TimerBits {
     /// 16 bits.
     Bits16,
-    // /// 32 bits.
-    // Bits32,
+    /// 32 bits.
+    #[cfg(timer32bits)]
+    Bits32,
 }
 
 struct State {
@@ -158,13 +159,13 @@ pin_trait!(BreakInputComparator2Pin, AdvancedInstance4Channel);
 pin_trait!(BreakInput2Comparator1Pin, AdvancedInstance4Channel);
 pin_trait!(BreakInput2Comparator2Pin, AdvancedInstance4Channel);
 
-// Update Event trigger DMA for every timer
-dma_trait!(UpDma, BasicInstance);
+// // Update Event trigger DMA for every timer
+// dma_trait!(UpDma, BasicInstance);
 
-dma_trait!(Ch1Dma, GeneralInstance4Channel);
-dma_trait!(Ch2Dma, GeneralInstance4Channel);
-dma_trait!(Ch3Dma, GeneralInstance4Channel);
-dma_trait!(Ch4Dma, GeneralInstance4Channel);
+// dma_trait!(Ch1Dma, GeneralInstance4Channel);
+// dma_trait!(Ch2Dma, GeneralInstance4Channel);
+// dma_trait!(Ch3Dma, GeneralInstance4Channel);
+// dma_trait!(Ch4Dma, GeneralInstance4Channel);
 
 #[allow(unused)]
 macro_rules! impl_core_timer {
@@ -326,8 +327,8 @@ pub struct UpdateInterruptHandler<T: CoreInstance> {
 
 impl<T: CoreInstance> interrupt::typelevel::Handler<T::UpdateInterrupt> for UpdateInterruptHandler<T> {
     unsafe fn on_interrupt() {
-        // #[cfg(feature = "low-power")]
-        // crate::low_power::on_wakeup_irq();
+        #[cfg(feature = "low-power")]
+        crate::low_power::on_wakeup_irq();
 
         let regs = crate::pac::timer::TimCore::from_ptr(T::regs());
 
@@ -356,8 +357,8 @@ impl<T: GeneralInstance1Channel> interrupt::typelevel::Handler<T::CaptureCompare
     for CaptureCompareInterruptHandler<T>
 {
     unsafe fn on_interrupt() {
-        // #[cfg(feature = "low-power")]
-        // crate::low_power::on_wakeup_irq();
+        #[cfg(feature = "low-power")]
+        crate::low_power::on_wakeup_irq();
 
         let regs = crate::pac::timer::TimGp16::from_ptr(T::regs());
 

@@ -782,419 +782,419 @@ fn main() {
     // ========
     // Generate pin_trait_impl!
 
-    // #[rustfmt::skip]
-    // let signals: HashMap<_, _> = [
-    //     // (kind, signal) => trait
-    //     (("ucpd", "CC1"), quote!(crate::ucpd::Cc1Pin)),
-    //     (("ucpd", "CC2"), quote!(crate::ucpd::Cc2Pin)),
-    //     (("usart", "TX"), quote!(crate::usart::TxPin)),
-    //     (("usart", "RX"), quote!(crate::usart::RxPin)),
-    //     (("usart", "CTS"), quote!(crate::usart::CtsPin)),
-    //     (("usart", "RTS"), quote!(crate::usart::RtsPin)),
-    //     (("usart", "CK"), quote!(crate::usart::CkPin)),
-    //     (("usart", "DE"), quote!(crate::usart::DePin)),
-    //     (("lpuart", "TX"), quote!(crate::usart::TxPin)),
-    //     (("lpuart", "RX"), quote!(crate::usart::RxPin)),
-    //     (("lpuart", "CTS"), quote!(crate::usart::CtsPin)),
-    //     (("lpuart", "RTS"), quote!(crate::usart::RtsPin)),
-    //     (("lpuart", "CK"), quote!(crate::usart::CkPin)),
-    //     (("lpuart", "DE"), quote!(crate::usart::DePin)),
-    //     (("sai", "SCK_A"), quote!(crate::sai::SckPin<A>)),
-    //     (("sai", "SCK_B"), quote!(crate::sai::SckPin<B>)),
-    //     (("sai", "FS_A"), quote!(crate::sai::FsPin<A>)),
-    //     (("sai", "FS_B"), quote!(crate::sai::FsPin<B>)),
-    //     (("sai", "SD_A"), quote!(crate::sai::SdPin<A>)),
-    //     (("sai", "SD_B"), quote!(crate::sai::SdPin<B>)),
-    //     (("sai", "MCLK_A"), quote!(crate::sai::MclkPin<A>)),
-    //     (("sai", "MCLK_B"), quote!(crate::sai::MclkPin<B>)),
-    //     (("sai", "WS"), quote!(crate::sai::WsPin)),
-    //     (("spi", "SCK"), quote!(crate::spi::SckPin)),
-    //     (("spi", "MOSI"), quote!(crate::spi::MosiPin)),
-    //     (("spi", "MISO"), quote!(crate::spi::MisoPin)),
-    //     (("spi", "NSS"), quote!(crate::spi::CsPin)),
-    //     (("spi", "I2S_MCK"), quote!(crate::spi::MckPin)),
-    //     (("spi", "I2S_CK"), quote!(crate::spi::CkPin)),
-    //     (("spi", "I2S_WS"), quote!(crate::spi::WsPin)),
-    //     (("i2c", "SDA"), quote!(crate::i2c::SdaPin)),
-    //     (("i2c", "SCL"), quote!(crate::i2c::SclPin)),
-    //     (("rcc", "MCO_1"), quote!(crate::rcc::McoPin)),
-    //     (("rcc", "MCO_2"), quote!(crate::rcc::McoPin)),
-    //     (("rcc", "MCO"), quote!(crate::rcc::McoPin)),
-    //     (("dcmi", "D0"), quote!(crate::dcmi::D0Pin)),
-    //     (("dcmi", "D1"), quote!(crate::dcmi::D1Pin)),
-    //     (("dcmi", "D2"), quote!(crate::dcmi::D2Pin)),
-    //     (("dcmi", "D3"), quote!(crate::dcmi::D3Pin)),
-    //     (("dcmi", "D4"), quote!(crate::dcmi::D4Pin)),
-    //     (("dcmi", "D5"), quote!(crate::dcmi::D5Pin)),
-    //     (("dcmi", "D6"), quote!(crate::dcmi::D6Pin)),
-    //     (("dcmi", "D7"), quote!(crate::dcmi::D7Pin)),
-    //     (("dcmi", "D8"), quote!(crate::dcmi::D8Pin)),
-    //     (("dcmi", "D9"), quote!(crate::dcmi::D9Pin)),
-    //     (("dcmi", "D10"), quote!(crate::dcmi::D10Pin)),
-    //     (("dcmi", "D11"), quote!(crate::dcmi::D11Pin)),
-    //     (("dcmi", "D12"), quote!(crate::dcmi::D12Pin)),
-    //     (("dcmi", "D13"), quote!(crate::dcmi::D13Pin)),
-    //     (("dcmi", "HSYNC"), quote!(crate::dcmi::HSyncPin)),
-    //     (("dcmi", "VSYNC"), quote!(crate::dcmi::VSyncPin)),
-    //     (("dcmi", "PIXCLK"), quote!(crate::dcmi::PixClkPin)),
-    //     (("dsihost", "TE"), quote!(crate::dsihost::TePin)),
-    //     (("ltdc", "CLK"), quote!(crate::ltdc::ClkPin)),
-    //     (("ltdc", "HSYNC"), quote!(crate::ltdc::HsyncPin)),
-    //     (("ltdc", "VSYNC"), quote!(crate::ltdc::VsyncPin)),
-    //     (("ltdc", "DE"), quote!(crate::ltdc::DePin)),
-    //     (("ltdc", "R0"), quote!(crate::ltdc::R0Pin)),
-    //     (("ltdc", "R1"), quote!(crate::ltdc::R1Pin)),
-    //     (("ltdc", "R2"), quote!(crate::ltdc::R2Pin)),
-    //     (("ltdc", "R3"), quote!(crate::ltdc::R3Pin)),
-    //     (("ltdc", "R4"), quote!(crate::ltdc::R4Pin)),
-    //     (("ltdc", "R5"), quote!(crate::ltdc::R5Pin)),
-    //     (("ltdc", "R6"), quote!(crate::ltdc::R6Pin)),
-    //     (("ltdc", "R7"), quote!(crate::ltdc::R7Pin)),
-    //     (("ltdc", "G0"), quote!(crate::ltdc::G0Pin)),
-    //     (("ltdc", "G1"), quote!(crate::ltdc::G1Pin)),
-    //     (("ltdc", "G2"), quote!(crate::ltdc::G2Pin)),
-    //     (("ltdc", "G3"), quote!(crate::ltdc::G3Pin)),
-    //     (("ltdc", "G4"), quote!(crate::ltdc::G4Pin)),
-    //     (("ltdc", "G5"), quote!(crate::ltdc::G5Pin)),
-    //     (("ltdc", "G6"), quote!(crate::ltdc::G6Pin)),
-    //     (("ltdc", "G7"), quote!(crate::ltdc::G7Pin)),
-    //     (("ltdc", "B0"), quote!(crate::ltdc::B0Pin)),
-    //     (("ltdc", "B1"), quote!(crate::ltdc::B1Pin)),
-    //     (("ltdc", "B2"), quote!(crate::ltdc::B2Pin)),
-    //     (("ltdc", "B3"), quote!(crate::ltdc::B3Pin)),
-    //     (("ltdc", "B4"), quote!(crate::ltdc::B4Pin)),
-    //     (("ltdc", "B5"), quote!(crate::ltdc::B5Pin)),
-    //     (("ltdc", "B6"), quote!(crate::ltdc::B6Pin)),
-    //     (("ltdc", "B7"), quote!(crate::ltdc::B7Pin)),
-    //     (("usb", "DP"), quote!(crate::usb::DpPin)),
-    //     (("usb", "DM"), quote!(crate::usb::DmPin)),
-    //     (("otg", "DP"), quote!(crate::usb::DpPin)),
-    //     (("otg", "DM"), quote!(crate::usb::DmPin)),
-    //     (("otg", "ULPI_CK"), quote!(crate::usb::UlpiClkPin)),
-    //     (("otg", "ULPI_DIR"), quote!(crate::usb::UlpiDirPin)),
-    //     (("otg", "ULPI_NXT"), quote!(crate::usb::UlpiNxtPin)),
-    //     (("otg", "ULPI_STP"), quote!(crate::usb::UlpiStpPin)),
-    //     (("otg", "ULPI_D0"), quote!(crate::usb::UlpiD0Pin)),
-    //     (("otg", "ULPI_D1"), quote!(crate::usb::UlpiD1Pin)),
-    //     (("otg", "ULPI_D2"), quote!(crate::usb::UlpiD2Pin)),
-    //     (("otg", "ULPI_D3"), quote!(crate::usb::UlpiD3Pin)),
-    //     (("otg", "ULPI_D4"), quote!(crate::usb::UlpiD4Pin)),
-    //     (("otg", "ULPI_D5"), quote!(crate::usb::UlpiD5Pin)),
-    //     (("otg", "ULPI_D6"), quote!(crate::usb::UlpiD6Pin)),
-    //     (("otg", "ULPI_D7"), quote!(crate::usb::UlpiD7Pin)),
-    //     (("can", "TX"), quote!(crate::can::TxPin)),
-    //     (("can", "RX"), quote!(crate::can::RxPin)),
-    //     (("eth", "REF_CLK"), quote!(crate::eth::RefClkPin)),
-    //     (("eth", "RX_CLK"), quote!(crate::eth::RXClkPin)),
-    //     (("eth", "TX_CLK"), quote!(crate::eth::TXClkPin)),
-    //     (("eth", "MDIO"), quote!(crate::eth::MDIOPin)),
-    //     (("eth", "MDC"), quote!(crate::eth::MDCPin)),
-    //     (("eth", "CRS_DV"), quote!(crate::eth::CRSPin)),
-    //     (("eth", "RX_DV"), quote!(crate::eth::RXDVPin)),
-    //     (("eth", "RXD0"), quote!(crate::eth::RXD0Pin)),
-    //     (("eth", "RXD1"), quote!(crate::eth::RXD1Pin)),
-    //     (("eth", "RXD2"), quote!(crate::eth::RXD2Pin)),
-    //     (("eth", "RXD3"), quote!(crate::eth::RXD3Pin)),
-    //     (("eth", "TXD0"), quote!(crate::eth::TXD0Pin)),
-    //     (("eth", "TXD1"), quote!(crate::eth::TXD1Pin)),
-    //     (("eth", "TXD2"), quote!(crate::eth::TXD2Pin)),
-    //     (("eth", "TXD3"), quote!(crate::eth::TXD3Pin)),
-    //     (("eth", "TX_EN"), quote!(crate::eth::TXEnPin)),
-    //     (("fmc", "A0"), quote!(crate::fmc::A0Pin)),
-    //     (("fmc", "A1"), quote!(crate::fmc::A1Pin)),
-    //     (("fmc", "A2"), quote!(crate::fmc::A2Pin)),
-    //     (("fmc", "A3"), quote!(crate::fmc::A3Pin)),
-    //     (("fmc", "A4"), quote!(crate::fmc::A4Pin)),
-    //     (("fmc", "A5"), quote!(crate::fmc::A5Pin)),
-    //     (("fmc", "A6"), quote!(crate::fmc::A6Pin)),
-    //     (("fmc", "A7"), quote!(crate::fmc::A7Pin)),
-    //     (("fmc", "A8"), quote!(crate::fmc::A8Pin)),
-    //     (("fmc", "A9"), quote!(crate::fmc::A9Pin)),
-    //     (("fmc", "A10"), quote!(crate::fmc::A10Pin)),
-    //     (("fmc", "A11"), quote!(crate::fmc::A11Pin)),
-    //     (("fmc", "A12"), quote!(crate::fmc::A12Pin)),
-    //     (("fmc", "A13"), quote!(crate::fmc::A13Pin)),
-    //     (("fmc", "A14"), quote!(crate::fmc::A14Pin)),
-    //     (("fmc", "A15"), quote!(crate::fmc::A15Pin)),
-    //     (("fmc", "A16"), quote!(crate::fmc::A16Pin)),
-    //     (("fmc", "A17"), quote!(crate::fmc::A17Pin)),
-    //     (("fmc", "A18"), quote!(crate::fmc::A18Pin)),
-    //     (("fmc", "A19"), quote!(crate::fmc::A19Pin)),
-    //     (("fmc", "A20"), quote!(crate::fmc::A20Pin)),
-    //     (("fmc", "A21"), quote!(crate::fmc::A21Pin)),
-    //     (("fmc", "A22"), quote!(crate::fmc::A22Pin)),
-    //     (("fmc", "A23"), quote!(crate::fmc::A23Pin)),
-    //     (("fmc", "A24"), quote!(crate::fmc::A24Pin)),
-    //     (("fmc", "A25"), quote!(crate::fmc::A25Pin)),
-    //     (("fmc", "D0"), quote!(crate::fmc::D0Pin)),
-    //     (("fmc", "D1"), quote!(crate::fmc::D1Pin)),
-    //     (("fmc", "D2"), quote!(crate::fmc::D2Pin)),
-    //     (("fmc", "D3"), quote!(crate::fmc::D3Pin)),
-    //     (("fmc", "D4"), quote!(crate::fmc::D4Pin)),
-    //     (("fmc", "D5"), quote!(crate::fmc::D5Pin)),
-    //     (("fmc", "D6"), quote!(crate::fmc::D6Pin)),
-    //     (("fmc", "D7"), quote!(crate::fmc::D7Pin)),
-    //     (("fmc", "D8"), quote!(crate::fmc::D8Pin)),
-    //     (("fmc", "D9"), quote!(crate::fmc::D9Pin)),
-    //     (("fmc", "D10"), quote!(crate::fmc::D10Pin)),
-    //     (("fmc", "D11"), quote!(crate::fmc::D11Pin)),
-    //     (("fmc", "D12"), quote!(crate::fmc::D12Pin)),
-    //     (("fmc", "D13"), quote!(crate::fmc::D13Pin)),
-    //     (("fmc", "D14"), quote!(crate::fmc::D14Pin)),
-    //     (("fmc", "D15"), quote!(crate::fmc::D15Pin)),
-    //     (("fmc", "D16"), quote!(crate::fmc::D16Pin)),
-    //     (("fmc", "D17"), quote!(crate::fmc::D17Pin)),
-    //     (("fmc", "D18"), quote!(crate::fmc::D18Pin)),
-    //     (("fmc", "D19"), quote!(crate::fmc::D19Pin)),
-    //     (("fmc", "D20"), quote!(crate::fmc::D20Pin)),
-    //     (("fmc", "D21"), quote!(crate::fmc::D21Pin)),
-    //     (("fmc", "D22"), quote!(crate::fmc::D22Pin)),
-    //     (("fmc", "D23"), quote!(crate::fmc::D23Pin)),
-    //     (("fmc", "D24"), quote!(crate::fmc::D24Pin)),
-    //     (("fmc", "D25"), quote!(crate::fmc::D25Pin)),
-    //     (("fmc", "D26"), quote!(crate::fmc::D26Pin)),
-    //     (("fmc", "D27"), quote!(crate::fmc::D27Pin)),
-    //     (("fmc", "D28"), quote!(crate::fmc::D28Pin)),
-    //     (("fmc", "D29"), quote!(crate::fmc::D29Pin)),
-    //     (("fmc", "D30"), quote!(crate::fmc::D30Pin)),
-    //     (("fmc", "D31"), quote!(crate::fmc::D31Pin)),
-    //     (("fmc", "DA0"), quote!(crate::fmc::DA0Pin)),
-    //     (("fmc", "DA1"), quote!(crate::fmc::DA1Pin)),
-    //     (("fmc", "DA2"), quote!(crate::fmc::DA2Pin)),
-    //     (("fmc", "DA3"), quote!(crate::fmc::DA3Pin)),
-    //     (("fmc", "DA4"), quote!(crate::fmc::DA4Pin)),
-    //     (("fmc", "DA5"), quote!(crate::fmc::DA5Pin)),
-    //     (("fmc", "DA6"), quote!(crate::fmc::DA6Pin)),
-    //     (("fmc", "DA7"), quote!(crate::fmc::DA7Pin)),
-    //     (("fmc", "DA8"), quote!(crate::fmc::DA8Pin)),
-    //     (("fmc", "DA9"), quote!(crate::fmc::DA9Pin)),
-    //     (("fmc", "DA10"), quote!(crate::fmc::DA10Pin)),
-    //     (("fmc", "DA11"), quote!(crate::fmc::DA11Pin)),
-    //     (("fmc", "DA12"), quote!(crate::fmc::DA12Pin)),
-    //     (("fmc", "DA13"), quote!(crate::fmc::DA13Pin)),
-    //     (("fmc", "DA14"), quote!(crate::fmc::DA14Pin)),
-    //     (("fmc", "DA15"), quote!(crate::fmc::DA15Pin)),
-    //     (("fmc", "SDNWE"), quote!(crate::fmc::SDNWEPin)),
-    //     (("fmc", "SDNCAS"), quote!(crate::fmc::SDNCASPin)),
-    //     (("fmc", "SDNRAS"), quote!(crate::fmc::SDNRASPin)),
-    //     (("fmc", "SDNE0"), quote!(crate::fmc::SDNE0Pin)),
-    //     (("fmc", "SDNE1"), quote!(crate::fmc::SDNE1Pin)),
-    //     (("fmc", "SDCKE0"), quote!(crate::fmc::SDCKE0Pin)),
-    //     (("fmc", "SDCKE1"), quote!(crate::fmc::SDCKE1Pin)),
-    //     (("fmc", "SDCLK"), quote!(crate::fmc::SDCLKPin)),
-    //     (("fmc", "NBL0"), quote!(crate::fmc::NBL0Pin)),
-    //     (("fmc", "NBL1"), quote!(crate::fmc::NBL1Pin)),
-    //     (("fmc", "NBL2"), quote!(crate::fmc::NBL2Pin)),
-    //     (("fmc", "NBL3"), quote!(crate::fmc::NBL3Pin)),
-    //     (("fmc", "INT"), quote!(crate::fmc::INTPin)),
-    //     (("fmc", "NL"), quote!(crate::fmc::NLPin)),
-    //     (("fmc", "NWAIT"), quote!(crate::fmc::NWaitPin)),
-    //     (("fmc", "NE1"), quote!(crate::fmc::NE1Pin)),
-    //     (("fmc", "NE2"), quote!(crate::fmc::NE2Pin)),
-    //     (("fmc", "NE3"), quote!(crate::fmc::NE3Pin)),
-    //     (("fmc", "NE4"), quote!(crate::fmc::NE4Pin)),
-    //     (("fmc", "NCE"), quote!(crate::fmc::NCEPin)),
-    //     (("fmc", "NOE"), quote!(crate::fmc::NOEPin)),
-    //     (("fmc", "NWE"), quote!(crate::fmc::NWEPin)),
-    //     (("fmc", "CLK"), quote!(crate::fmc::ClkPin)),
-    //     (("fmc", "BA0"), quote!(crate::fmc::BA0Pin)),
-    //     (("fmc", "BA1"), quote!(crate::fmc::BA1Pin)),
-    //     (("timer", "CH1"), quote!(crate::timer::Channel1Pin)),
-    //     (("timer", "CH1N"), quote!(crate::timer::Channel1ComplementaryPin)),
-    //     (("timer", "CH2"), quote!(crate::timer::Channel2Pin)),
-    //     (("timer", "CH2N"), quote!(crate::timer::Channel2ComplementaryPin)),
-    //     (("timer", "CH3"), quote!(crate::timer::Channel3Pin)),
-    //     (("timer", "CH3N"), quote!(crate::timer::Channel3ComplementaryPin)),
-    //     (("timer", "CH4"), quote!(crate::timer::Channel4Pin)),
-    //     (("timer", "CH4N"), quote!(crate::timer::Channel4ComplementaryPin)),
-    //     (("timer", "ETR"), quote!(crate::timer::ExternalTriggerPin)),
-    //     (("timer", "BKIN"), quote!(crate::timer::BreakInputPin)),
-    //     (("timer", "BKIN_COMP1"), quote!(crate::timer::BreakInputComparator1Pin)),
-    //     (("timer", "BKIN_COMP2"), quote!(crate::timer::BreakInputComparator2Pin)),
-    //     (("timer", "BKIN2"), quote!(crate::timer::BreakInput2Pin)),
-    //     (("timer", "BKIN2_COMP1"), quote!(crate::timer::BreakInput2Comparator1Pin)),
-    //     (("timer", "BKIN2_COMP2"), quote!(crate::timer::BreakInput2Comparator2Pin)),
-    //     (("hrtim", "CHA1"), quote!(crate::hrtim::ChannelAPin)),
-    //     (("hrtim", "CHA2"), quote!(crate::hrtim::ChannelAComplementaryPin)),
-    //     (("hrtim", "CHB1"), quote!(crate::hrtim::ChannelBPin)),
-    //     (("hrtim", "CHB2"), quote!(crate::hrtim::ChannelBComplementaryPin)),
-    //     (("hrtim", "CHC1"), quote!(crate::hrtim::ChannelCPin)),
-    //     (("hrtim", "CHC2"), quote!(crate::hrtim::ChannelCComplementaryPin)),
-    //     (("hrtim", "CHD1"), quote!(crate::hrtim::ChannelDPin)),
-    //     (("hrtim", "CHD2"), quote!(crate::hrtim::ChannelDComplementaryPin)),
-    //     (("hrtim", "CHE1"), quote!(crate::hrtim::ChannelEPin)),
-    //     (("hrtim", "CHE2"), quote!(crate::hrtim::ChannelEComplementaryPin)),
-    //     (("hrtim", "CHF1"), quote!(crate::hrtim::ChannelFPin)),
-    //     (("hrtim", "CHF2"), quote!(crate::hrtim::ChannelFComplementaryPin)),
-    //     (("lptim", "CH1"), quote!(crate::lptim::Channel1Pin)),
-    //     (("lptim", "CH2"), quote!(crate::lptim::Channel2Pin)),
-    //     (("lptim", "OUT"), quote!(crate::lptim::OutputPin)),
-    //     (("sdmmc", "CK"), quote!(crate::sdmmc::CkPin)),
-    //     (("sdmmc", "CMD"), quote!(crate::sdmmc::CmdPin)),
-    //     (("sdmmc", "D0"), quote!(crate::sdmmc::D0Pin)),
-    //     (("sdmmc", "D1"), quote!(crate::sdmmc::D1Pin)),
-    //     (("sdmmc", "D2"), quote!(crate::sdmmc::D2Pin)),
-    //     (("sdmmc", "D3"), quote!(crate::sdmmc::D3Pin)),
-    //     (("sdmmc", "D4"), quote!(crate::sdmmc::D4Pin)),
-    //     (("sdmmc", "D5"), quote!(crate::sdmmc::D5Pin)),
-    //     (("sdmmc", "D6"), quote!(crate::sdmmc::D6Pin)),
-    //     (("sdmmc", "D6"), quote!(crate::sdmmc::D7Pin)),
-    //     (("sdmmc", "D8"), quote!(crate::sdmmc::D8Pin)),
-    //     (("quadspi", "BK1_IO0"), quote!(crate::qspi::BK1D0Pin)),
-    //     (("quadspi", "BK1_IO1"), quote!(crate::qspi::BK1D1Pin)),
-    //     (("quadspi", "BK1_IO2"), quote!(crate::qspi::BK1D2Pin)),
-    //     (("quadspi", "BK1_IO3"), quote!(crate::qspi::BK1D3Pin)),
-    //     (("quadspi", "BK1_NCS"), quote!(crate::qspi::BK1NSSPin)),
-    //     (("quadspi", "BK2_IO0"), quote!(crate::qspi::BK2D0Pin)),
-    //     (("quadspi", "BK2_IO1"), quote!(crate::qspi::BK2D1Pin)),
-    //     (("quadspi", "BK2_IO2"), quote!(crate::qspi::BK2D2Pin)),
-    //     (("quadspi", "BK2_IO3"), quote!(crate::qspi::BK2D3Pin)),
-    //     (("quadspi", "BK2_NCS"), quote!(crate::qspi::BK2NSSPin)),
-    //     (("quadspi", "CLK"), quote!(crate::qspi::SckPin)),
-    //     (("octospi", "IO0"), quote!(crate::ospi::D0Pin)),
-    //     (("octospi", "IO1"), quote!(crate::ospi::D1Pin)),
-    //     (("octospi", "IO2"), quote!(crate::ospi::D2Pin)),
-    //     (("octospi", "IO3"), quote!(crate::ospi::D3Pin)),
-    //     (("octospi", "IO4"), quote!(crate::ospi::D4Pin)),
-    //     (("octospi", "IO5"), quote!(crate::ospi::D5Pin)),
-    //     (("octospi", "IO6"), quote!(crate::ospi::D6Pin)),
-    //     (("octospi", "IO7"), quote!(crate::ospi::D7Pin)),
-    //     (("octospi", "DQS"), quote!(crate::ospi::DQSPin)),
-    //     (("octospi", "NCS"), quote!(crate::ospi::NSSPin)),
-    //     (("octospi", "CLK"), quote!(crate::ospi::SckPin)),
-    //     (("octospi", "NCLK"), quote!(crate::ospi::NckPin)),
-    //     (("tsc", "G1_IO1"), quote!(crate::tsc::G1IO1Pin)),
-    //     (("tsc", "G1_IO2"), quote!(crate::tsc::G1IO2Pin)),
-    //     (("tsc", "G1_IO3"), quote!(crate::tsc::G1IO3Pin)),
-    //     (("tsc", "G1_IO4"), quote!(crate::tsc::G1IO4Pin)),
-    //     (("tsc", "G2_IO1"), quote!(crate::tsc::G2IO1Pin)),
-    //     (("tsc", "G2_IO2"), quote!(crate::tsc::G2IO2Pin)),
-    //     (("tsc", "G2_IO3"), quote!(crate::tsc::G2IO3Pin)),
-    //     (("tsc", "G2_IO4"), quote!(crate::tsc::G2IO4Pin)),
-    //     (("tsc", "G3_IO1"), quote!(crate::tsc::G3IO1Pin)),
-    //     (("tsc", "G3_IO2"), quote!(crate::tsc::G3IO2Pin)),
-    //     (("tsc", "G3_IO3"), quote!(crate::tsc::G3IO3Pin)),
-    //     (("tsc", "G3_IO4"), quote!(crate::tsc::G3IO4Pin)),
-    //     (("tsc", "G4_IO1"), quote!(crate::tsc::G4IO1Pin)),
-    //     (("tsc", "G4_IO2"), quote!(crate::tsc::G4IO2Pin)),
-    //     (("tsc", "G4_IO3"), quote!(crate::tsc::G4IO3Pin)),
-    //     (("tsc", "G4_IO4"), quote!(crate::tsc::G4IO4Pin)),
-    //     (("tsc", "G5_IO1"), quote!(crate::tsc::G5IO1Pin)),
-    //     (("tsc", "G5_IO2"), quote!(crate::tsc::G5IO2Pin)),
-    //     (("tsc", "G5_IO3"), quote!(crate::tsc::G5IO3Pin)),
-    //     (("tsc", "G5_IO4"), quote!(crate::tsc::G5IO4Pin)),
-    //     (("tsc", "G6_IO1"), quote!(crate::tsc::G6IO1Pin)),
-    //     (("tsc", "G6_IO2"), quote!(crate::tsc::G6IO2Pin)),
-    //     (("tsc", "G6_IO3"), quote!(crate::tsc::G6IO3Pin)),
-    //     (("tsc", "G6_IO4"), quote!(crate::tsc::G6IO4Pin)),
-    //     (("tsc", "G7_IO1"), quote!(crate::tsc::G7IO1Pin)),
-    //     (("tsc", "G7_IO2"), quote!(crate::tsc::G7IO2Pin)),
-    //     (("tsc", "G7_IO3"), quote!(crate::tsc::G7IO3Pin)),
-    //     (("tsc", "G7_IO4"), quote!(crate::tsc::G7IO4Pin)),
-    //     (("tsc", "G8_IO1"), quote!(crate::tsc::G8IO1Pin)),
-    //     (("tsc", "G8_IO2"), quote!(crate::tsc::G8IO2Pin)),
-    //     (("tsc", "G8_IO3"), quote!(crate::tsc::G8IO3Pin)),
-    //     (("tsc", "G8_IO4"), quote!(crate::tsc::G8IO4Pin)),
-    // ].into();
+    #[rustfmt::skip]
+    let signals: HashMap<_, _> = [
+        // (kind, signal) => trait
+        (("ucpd", "CC1"), quote!(crate::ucpd::Cc1Pin)),
+        (("ucpd", "CC2"), quote!(crate::ucpd::Cc2Pin)),
+        (("usart", "TX"), quote!(crate::usart::TxPin)),
+        (("usart", "RX"), quote!(crate::usart::RxPin)),
+        (("usart", "CTS"), quote!(crate::usart::CtsPin)),
+        (("usart", "RTS"), quote!(crate::usart::RtsPin)),
+        (("usart", "CK"), quote!(crate::usart::CkPin)),
+        (("usart", "DE"), quote!(crate::usart::DePin)),
+        (("lpuart", "TX"), quote!(crate::usart::TxPin)),
+        (("lpuart", "RX"), quote!(crate::usart::RxPin)),
+        (("lpuart", "CTS"), quote!(crate::usart::CtsPin)),
+        (("lpuart", "RTS"), quote!(crate::usart::RtsPin)),
+        (("lpuart", "CK"), quote!(crate::usart::CkPin)),
+        (("lpuart", "DE"), quote!(crate::usart::DePin)),
+        (("sai", "SCK_A"), quote!(crate::sai::SckPin<A>)),
+        (("sai", "SCK_B"), quote!(crate::sai::SckPin<B>)),
+        (("sai", "FS_A"), quote!(crate::sai::FsPin<A>)),
+        (("sai", "FS_B"), quote!(crate::sai::FsPin<B>)),
+        (("sai", "SD_A"), quote!(crate::sai::SdPin<A>)),
+        (("sai", "SD_B"), quote!(crate::sai::SdPin<B>)),
+        (("sai", "MCLK_A"), quote!(crate::sai::MclkPin<A>)),
+        (("sai", "MCLK_B"), quote!(crate::sai::MclkPin<B>)),
+        (("sai", "WS"), quote!(crate::sai::WsPin)),
+        (("spi", "SCK"), quote!(crate::spi::SckPin)),
+        (("spi", "MOSI"), quote!(crate::spi::MosiPin)),
+        (("spi", "MISO"), quote!(crate::spi::MisoPin)),
+        (("spi", "NSS"), quote!(crate::spi::CsPin)),
+        (("spi", "I2S_MCK"), quote!(crate::spi::MckPin)),
+        (("spi", "I2S_CK"), quote!(crate::spi::CkPin)),
+        (("spi", "I2S_WS"), quote!(crate::spi::WsPin)),
+        (("i2c", "SDA"), quote!(crate::i2c::SdaPin)),
+        (("i2c", "SCL"), quote!(crate::i2c::SclPin)),
+        // (("rcc", "MCO_1"), quote!(crate::rcc::McoPin)),
+        // (("rcc", "MCO_2"), quote!(crate::rcc::McoPin)),
+        // (("rcc", "MCO"), quote!(crate::rcc::McoPin)),
+        (("dcmi", "D0"), quote!(crate::dcmi::D0Pin)),
+        (("dcmi", "D1"), quote!(crate::dcmi::D1Pin)),
+        (("dcmi", "D2"), quote!(crate::dcmi::D2Pin)),
+        (("dcmi", "D3"), quote!(crate::dcmi::D3Pin)),
+        (("dcmi", "D4"), quote!(crate::dcmi::D4Pin)),
+        (("dcmi", "D5"), quote!(crate::dcmi::D5Pin)),
+        (("dcmi", "D6"), quote!(crate::dcmi::D6Pin)),
+        (("dcmi", "D7"), quote!(crate::dcmi::D7Pin)),
+        (("dcmi", "D8"), quote!(crate::dcmi::D8Pin)),
+        (("dcmi", "D9"), quote!(crate::dcmi::D9Pin)),
+        (("dcmi", "D10"), quote!(crate::dcmi::D10Pin)),
+        (("dcmi", "D11"), quote!(crate::dcmi::D11Pin)),
+        (("dcmi", "D12"), quote!(crate::dcmi::D12Pin)),
+        (("dcmi", "D13"), quote!(crate::dcmi::D13Pin)),
+        (("dcmi", "HSYNC"), quote!(crate::dcmi::HSyncPin)),
+        (("dcmi", "VSYNC"), quote!(crate::dcmi::VSyncPin)),
+        (("dcmi", "PIXCLK"), quote!(crate::dcmi::PixClkPin)),
+        (("dsihost", "TE"), quote!(crate::dsihost::TePin)),
+        (("ltdc", "CLK"), quote!(crate::ltdc::ClkPin)),
+        (("ltdc", "HSYNC"), quote!(crate::ltdc::HsyncPin)),
+        (("ltdc", "VSYNC"), quote!(crate::ltdc::VsyncPin)),
+        (("ltdc", "DE"), quote!(crate::ltdc::DePin)),
+        (("ltdc", "R0"), quote!(crate::ltdc::R0Pin)),
+        (("ltdc", "R1"), quote!(crate::ltdc::R1Pin)),
+        (("ltdc", "R2"), quote!(crate::ltdc::R2Pin)),
+        (("ltdc", "R3"), quote!(crate::ltdc::R3Pin)),
+        (("ltdc", "R4"), quote!(crate::ltdc::R4Pin)),
+        (("ltdc", "R5"), quote!(crate::ltdc::R5Pin)),
+        (("ltdc", "R6"), quote!(crate::ltdc::R6Pin)),
+        (("ltdc", "R7"), quote!(crate::ltdc::R7Pin)),
+        (("ltdc", "G0"), quote!(crate::ltdc::G0Pin)),
+        (("ltdc", "G1"), quote!(crate::ltdc::G1Pin)),
+        (("ltdc", "G2"), quote!(crate::ltdc::G2Pin)),
+        (("ltdc", "G3"), quote!(crate::ltdc::G3Pin)),
+        (("ltdc", "G4"), quote!(crate::ltdc::G4Pin)),
+        (("ltdc", "G5"), quote!(crate::ltdc::G5Pin)),
+        (("ltdc", "G6"), quote!(crate::ltdc::G6Pin)),
+        (("ltdc", "G7"), quote!(crate::ltdc::G7Pin)),
+        (("ltdc", "B0"), quote!(crate::ltdc::B0Pin)),
+        (("ltdc", "B1"), quote!(crate::ltdc::B1Pin)),
+        (("ltdc", "B2"), quote!(crate::ltdc::B2Pin)),
+        (("ltdc", "B3"), quote!(crate::ltdc::B3Pin)),
+        (("ltdc", "B4"), quote!(crate::ltdc::B4Pin)),
+        (("ltdc", "B5"), quote!(crate::ltdc::B5Pin)),
+        (("ltdc", "B6"), quote!(crate::ltdc::B6Pin)),
+        (("ltdc", "B7"), quote!(crate::ltdc::B7Pin)),
+        (("usb", "DP"), quote!(crate::usb::DpPin)),
+        (("usb", "DM"), quote!(crate::usb::DmPin)),
+        (("otg", "DP"), quote!(crate::usb::DpPin)),
+        (("otg", "DM"), quote!(crate::usb::DmPin)),
+        (("otg", "ULPI_CK"), quote!(crate::usb::UlpiClkPin)),
+        (("otg", "ULPI_DIR"), quote!(crate::usb::UlpiDirPin)),
+        (("otg", "ULPI_NXT"), quote!(crate::usb::UlpiNxtPin)),
+        (("otg", "ULPI_STP"), quote!(crate::usb::UlpiStpPin)),
+        (("otg", "ULPI_D0"), quote!(crate::usb::UlpiD0Pin)),
+        (("otg", "ULPI_D1"), quote!(crate::usb::UlpiD1Pin)),
+        (("otg", "ULPI_D2"), quote!(crate::usb::UlpiD2Pin)),
+        (("otg", "ULPI_D3"), quote!(crate::usb::UlpiD3Pin)),
+        (("otg", "ULPI_D4"), quote!(crate::usb::UlpiD4Pin)),
+        (("otg", "ULPI_D5"), quote!(crate::usb::UlpiD5Pin)),
+        (("otg", "ULPI_D6"), quote!(crate::usb::UlpiD6Pin)),
+        (("otg", "ULPI_D7"), quote!(crate::usb::UlpiD7Pin)),
+        (("can", "TX"), quote!(crate::can::TxPin)),
+        (("can", "RX"), quote!(crate::can::RxPin)),
+        (("eth", "REF_CLK"), quote!(crate::eth::RefClkPin)),
+        (("eth", "RX_CLK"), quote!(crate::eth::RXClkPin)),
+        (("eth", "TX_CLK"), quote!(crate::eth::TXClkPin)),
+        (("eth", "MDIO"), quote!(crate::eth::MDIOPin)),
+        (("eth", "MDC"), quote!(crate::eth::MDCPin)),
+        (("eth", "CRS_DV"), quote!(crate::eth::CRSPin)),
+        (("eth", "RX_DV"), quote!(crate::eth::RXDVPin)),
+        (("eth", "RXD0"), quote!(crate::eth::RXD0Pin)),
+        (("eth", "RXD1"), quote!(crate::eth::RXD1Pin)),
+        (("eth", "RXD2"), quote!(crate::eth::RXD2Pin)),
+        (("eth", "RXD3"), quote!(crate::eth::RXD3Pin)),
+        (("eth", "TXD0"), quote!(crate::eth::TXD0Pin)),
+        (("eth", "TXD1"), quote!(crate::eth::TXD1Pin)),
+        (("eth", "TXD2"), quote!(crate::eth::TXD2Pin)),
+        (("eth", "TXD3"), quote!(crate::eth::TXD3Pin)),
+        (("eth", "TX_EN"), quote!(crate::eth::TXEnPin)),
+        (("fmc", "A0"), quote!(crate::fmc::A0Pin)),
+        (("fmc", "A1"), quote!(crate::fmc::A1Pin)),
+        (("fmc", "A2"), quote!(crate::fmc::A2Pin)),
+        (("fmc", "A3"), quote!(crate::fmc::A3Pin)),
+        (("fmc", "A4"), quote!(crate::fmc::A4Pin)),
+        (("fmc", "A5"), quote!(crate::fmc::A5Pin)),
+        (("fmc", "A6"), quote!(crate::fmc::A6Pin)),
+        (("fmc", "A7"), quote!(crate::fmc::A7Pin)),
+        (("fmc", "A8"), quote!(crate::fmc::A8Pin)),
+        (("fmc", "A9"), quote!(crate::fmc::A9Pin)),
+        (("fmc", "A10"), quote!(crate::fmc::A10Pin)),
+        (("fmc", "A11"), quote!(crate::fmc::A11Pin)),
+        (("fmc", "A12"), quote!(crate::fmc::A12Pin)),
+        (("fmc", "A13"), quote!(crate::fmc::A13Pin)),
+        (("fmc", "A14"), quote!(crate::fmc::A14Pin)),
+        (("fmc", "A15"), quote!(crate::fmc::A15Pin)),
+        (("fmc", "A16"), quote!(crate::fmc::A16Pin)),
+        (("fmc", "A17"), quote!(crate::fmc::A17Pin)),
+        (("fmc", "A18"), quote!(crate::fmc::A18Pin)),
+        (("fmc", "A19"), quote!(crate::fmc::A19Pin)),
+        (("fmc", "A20"), quote!(crate::fmc::A20Pin)),
+        (("fmc", "A21"), quote!(crate::fmc::A21Pin)),
+        (("fmc", "A22"), quote!(crate::fmc::A22Pin)),
+        (("fmc", "A23"), quote!(crate::fmc::A23Pin)),
+        (("fmc", "A24"), quote!(crate::fmc::A24Pin)),
+        (("fmc", "A25"), quote!(crate::fmc::A25Pin)),
+        (("fmc", "D0"), quote!(crate::fmc::D0Pin)),
+        (("fmc", "D1"), quote!(crate::fmc::D1Pin)),
+        (("fmc", "D2"), quote!(crate::fmc::D2Pin)),
+        (("fmc", "D3"), quote!(crate::fmc::D3Pin)),
+        (("fmc", "D4"), quote!(crate::fmc::D4Pin)),
+        (("fmc", "D5"), quote!(crate::fmc::D5Pin)),
+        (("fmc", "D6"), quote!(crate::fmc::D6Pin)),
+        (("fmc", "D7"), quote!(crate::fmc::D7Pin)),
+        (("fmc", "D8"), quote!(crate::fmc::D8Pin)),
+        (("fmc", "D9"), quote!(crate::fmc::D9Pin)),
+        (("fmc", "D10"), quote!(crate::fmc::D10Pin)),
+        (("fmc", "D11"), quote!(crate::fmc::D11Pin)),
+        (("fmc", "D12"), quote!(crate::fmc::D12Pin)),
+        (("fmc", "D13"), quote!(crate::fmc::D13Pin)),
+        (("fmc", "D14"), quote!(crate::fmc::D14Pin)),
+        (("fmc", "D15"), quote!(crate::fmc::D15Pin)),
+        (("fmc", "D16"), quote!(crate::fmc::D16Pin)),
+        (("fmc", "D17"), quote!(crate::fmc::D17Pin)),
+        (("fmc", "D18"), quote!(crate::fmc::D18Pin)),
+        (("fmc", "D19"), quote!(crate::fmc::D19Pin)),
+        (("fmc", "D20"), quote!(crate::fmc::D20Pin)),
+        (("fmc", "D21"), quote!(crate::fmc::D21Pin)),
+        (("fmc", "D22"), quote!(crate::fmc::D22Pin)),
+        (("fmc", "D23"), quote!(crate::fmc::D23Pin)),
+        (("fmc", "D24"), quote!(crate::fmc::D24Pin)),
+        (("fmc", "D25"), quote!(crate::fmc::D25Pin)),
+        (("fmc", "D26"), quote!(crate::fmc::D26Pin)),
+        (("fmc", "D27"), quote!(crate::fmc::D27Pin)),
+        (("fmc", "D28"), quote!(crate::fmc::D28Pin)),
+        (("fmc", "D29"), quote!(crate::fmc::D29Pin)),
+        (("fmc", "D30"), quote!(crate::fmc::D30Pin)),
+        (("fmc", "D31"), quote!(crate::fmc::D31Pin)),
+        (("fmc", "DA0"), quote!(crate::fmc::DA0Pin)),
+        (("fmc", "DA1"), quote!(crate::fmc::DA1Pin)),
+        (("fmc", "DA2"), quote!(crate::fmc::DA2Pin)),
+        (("fmc", "DA3"), quote!(crate::fmc::DA3Pin)),
+        (("fmc", "DA4"), quote!(crate::fmc::DA4Pin)),
+        (("fmc", "DA5"), quote!(crate::fmc::DA5Pin)),
+        (("fmc", "DA6"), quote!(crate::fmc::DA6Pin)),
+        (("fmc", "DA7"), quote!(crate::fmc::DA7Pin)),
+        (("fmc", "DA8"), quote!(crate::fmc::DA8Pin)),
+        (("fmc", "DA9"), quote!(crate::fmc::DA9Pin)),
+        (("fmc", "DA10"), quote!(crate::fmc::DA10Pin)),
+        (("fmc", "DA11"), quote!(crate::fmc::DA11Pin)),
+        (("fmc", "DA12"), quote!(crate::fmc::DA12Pin)),
+        (("fmc", "DA13"), quote!(crate::fmc::DA13Pin)),
+        (("fmc", "DA14"), quote!(crate::fmc::DA14Pin)),
+        (("fmc", "DA15"), quote!(crate::fmc::DA15Pin)),
+        (("fmc", "SDNWE"), quote!(crate::fmc::SDNWEPin)),
+        (("fmc", "SDNCAS"), quote!(crate::fmc::SDNCASPin)),
+        (("fmc", "SDNRAS"), quote!(crate::fmc::SDNRASPin)),
+        (("fmc", "SDNE0"), quote!(crate::fmc::SDNE0Pin)),
+        (("fmc", "SDNE1"), quote!(crate::fmc::SDNE1Pin)),
+        (("fmc", "SDCKE0"), quote!(crate::fmc::SDCKE0Pin)),
+        (("fmc", "SDCKE1"), quote!(crate::fmc::SDCKE1Pin)),
+        (("fmc", "SDCLK"), quote!(crate::fmc::SDCLKPin)),
+        (("fmc", "NBL0"), quote!(crate::fmc::NBL0Pin)),
+        (("fmc", "NBL1"), quote!(crate::fmc::NBL1Pin)),
+        (("fmc", "NBL2"), quote!(crate::fmc::NBL2Pin)),
+        (("fmc", "NBL3"), quote!(crate::fmc::NBL3Pin)),
+        (("fmc", "INT"), quote!(crate::fmc::INTPin)),
+        (("fmc", "NL"), quote!(crate::fmc::NLPin)),
+        (("fmc", "NWAIT"), quote!(crate::fmc::NWaitPin)),
+        (("fmc", "NE1"), quote!(crate::fmc::NE1Pin)),
+        (("fmc", "NE2"), quote!(crate::fmc::NE2Pin)),
+        (("fmc", "NE3"), quote!(crate::fmc::NE3Pin)),
+        (("fmc", "NE4"), quote!(crate::fmc::NE4Pin)),
+        (("fmc", "NCE"), quote!(crate::fmc::NCEPin)),
+        (("fmc", "NOE"), quote!(crate::fmc::NOEPin)),
+        (("fmc", "NWE"), quote!(crate::fmc::NWEPin)),
+        (("fmc", "CLK"), quote!(crate::fmc::ClkPin)),
+        (("fmc", "BA0"), quote!(crate::fmc::BA0Pin)),
+        (("fmc", "BA1"), quote!(crate::fmc::BA1Pin)),
+        (("timer", "CH1"), quote!(crate::timer::Channel1Pin)),
+        (("timer", "CH1N"), quote!(crate::timer::Channel1ComplementaryPin)),
+        (("timer", "CH2"), quote!(crate::timer::Channel2Pin)),
+        (("timer", "CH2N"), quote!(crate::timer::Channel2ComplementaryPin)),
+        (("timer", "CH3"), quote!(crate::timer::Channel3Pin)),
+        (("timer", "CH3N"), quote!(crate::timer::Channel3ComplementaryPin)),
+        (("timer", "CH4"), quote!(crate::timer::Channel4Pin)),
+        (("timer", "CH4N"), quote!(crate::timer::Channel4ComplementaryPin)),
+        (("timer", "ETR"), quote!(crate::timer::ExternalTriggerPin)),
+        (("timer", "BKIN"), quote!(crate::timer::BreakInputPin)),
+        (("timer", "BKIN_COMP1"), quote!(crate::timer::BreakInputComparator1Pin)),
+        (("timer", "BKIN_COMP2"), quote!(crate::timer::BreakInputComparator2Pin)),
+        (("timer", "BKIN2"), quote!(crate::timer::BreakInput2Pin)),
+        (("timer", "BKIN2_COMP1"), quote!(crate::timer::BreakInput2Comparator1Pin)),
+        (("timer", "BKIN2_COMP2"), quote!(crate::timer::BreakInput2Comparator2Pin)),
+        (("hrtim", "CHA1"), quote!(crate::hrtim::ChannelAPin)),
+        (("hrtim", "CHA2"), quote!(crate::hrtim::ChannelAComplementaryPin)),
+        (("hrtim", "CHB1"), quote!(crate::hrtim::ChannelBPin)),
+        (("hrtim", "CHB2"), quote!(crate::hrtim::ChannelBComplementaryPin)),
+        (("hrtim", "CHC1"), quote!(crate::hrtim::ChannelCPin)),
+        (("hrtim", "CHC2"), quote!(crate::hrtim::ChannelCComplementaryPin)),
+        (("hrtim", "CHD1"), quote!(crate::hrtim::ChannelDPin)),
+        (("hrtim", "CHD2"), quote!(crate::hrtim::ChannelDComplementaryPin)),
+        (("hrtim", "CHE1"), quote!(crate::hrtim::ChannelEPin)),
+        (("hrtim", "CHE2"), quote!(crate::hrtim::ChannelEComplementaryPin)),
+        (("hrtim", "CHF1"), quote!(crate::hrtim::ChannelFPin)),
+        (("hrtim", "CHF2"), quote!(crate::hrtim::ChannelFComplementaryPin)),
+        (("lptim", "CH1"), quote!(crate::lptim::Channel1Pin)),
+        (("lptim", "CH2"), quote!(crate::lptim::Channel2Pin)),
+        (("lptim", "OUT"), quote!(crate::lptim::OutputPin)),
+        (("sdmmc", "CK"), quote!(crate::sdmmc::CkPin)),
+        (("sdmmc", "CMD"), quote!(crate::sdmmc::CmdPin)),
+        (("sdmmc", "D0"), quote!(crate::sdmmc::D0Pin)),
+        (("sdmmc", "D1"), quote!(crate::sdmmc::D1Pin)),
+        (("sdmmc", "D2"), quote!(crate::sdmmc::D2Pin)),
+        (("sdmmc", "D3"), quote!(crate::sdmmc::D3Pin)),
+        (("sdmmc", "D4"), quote!(crate::sdmmc::D4Pin)),
+        (("sdmmc", "D5"), quote!(crate::sdmmc::D5Pin)),
+        (("sdmmc", "D6"), quote!(crate::sdmmc::D6Pin)),
+        (("sdmmc", "D6"), quote!(crate::sdmmc::D7Pin)),
+        (("sdmmc", "D8"), quote!(crate::sdmmc::D8Pin)),
+        (("quadspi", "BK1_IO0"), quote!(crate::qspi::BK1D0Pin)),
+        (("quadspi", "BK1_IO1"), quote!(crate::qspi::BK1D1Pin)),
+        (("quadspi", "BK1_IO2"), quote!(crate::qspi::BK1D2Pin)),
+        (("quadspi", "BK1_IO3"), quote!(crate::qspi::BK1D3Pin)),
+        (("quadspi", "BK1_NCS"), quote!(crate::qspi::BK1NSSPin)),
+        (("quadspi", "BK2_IO0"), quote!(crate::qspi::BK2D0Pin)),
+        (("quadspi", "BK2_IO1"), quote!(crate::qspi::BK2D1Pin)),
+        (("quadspi", "BK2_IO2"), quote!(crate::qspi::BK2D2Pin)),
+        (("quadspi", "BK2_IO3"), quote!(crate::qspi::BK2D3Pin)),
+        (("quadspi", "BK2_NCS"), quote!(crate::qspi::BK2NSSPin)),
+        (("quadspi", "CLK"), quote!(crate::qspi::SckPin)),
+        (("octospi", "IO0"), quote!(crate::ospi::D0Pin)),
+        (("octospi", "IO1"), quote!(crate::ospi::D1Pin)),
+        (("octospi", "IO2"), quote!(crate::ospi::D2Pin)),
+        (("octospi", "IO3"), quote!(crate::ospi::D3Pin)),
+        (("octospi", "IO4"), quote!(crate::ospi::D4Pin)),
+        (("octospi", "IO5"), quote!(crate::ospi::D5Pin)),
+        (("octospi", "IO6"), quote!(crate::ospi::D6Pin)),
+        (("octospi", "IO7"), quote!(crate::ospi::D7Pin)),
+        (("octospi", "DQS"), quote!(crate::ospi::DQSPin)),
+        (("octospi", "NCS"), quote!(crate::ospi::NSSPin)),
+        (("octospi", "CLK"), quote!(crate::ospi::SckPin)),
+        (("octospi", "NCLK"), quote!(crate::ospi::NckPin)),
+        (("tsc", "G1_IO1"), quote!(crate::tsc::G1IO1Pin)),
+        (("tsc", "G1_IO2"), quote!(crate::tsc::G1IO2Pin)),
+        (("tsc", "G1_IO3"), quote!(crate::tsc::G1IO3Pin)),
+        (("tsc", "G1_IO4"), quote!(crate::tsc::G1IO4Pin)),
+        (("tsc", "G2_IO1"), quote!(crate::tsc::G2IO1Pin)),
+        (("tsc", "G2_IO2"), quote!(crate::tsc::G2IO2Pin)),
+        (("tsc", "G2_IO3"), quote!(crate::tsc::G2IO3Pin)),
+        (("tsc", "G2_IO4"), quote!(crate::tsc::G2IO4Pin)),
+        (("tsc", "G3_IO1"), quote!(crate::tsc::G3IO1Pin)),
+        (("tsc", "G3_IO2"), quote!(crate::tsc::G3IO2Pin)),
+        (("tsc", "G3_IO3"), quote!(crate::tsc::G3IO3Pin)),
+        (("tsc", "G3_IO4"), quote!(crate::tsc::G3IO4Pin)),
+        (("tsc", "G4_IO1"), quote!(crate::tsc::G4IO1Pin)),
+        (("tsc", "G4_IO2"), quote!(crate::tsc::G4IO2Pin)),
+        (("tsc", "G4_IO3"), quote!(crate::tsc::G4IO3Pin)),
+        (("tsc", "G4_IO4"), quote!(crate::tsc::G4IO4Pin)),
+        (("tsc", "G5_IO1"), quote!(crate::tsc::G5IO1Pin)),
+        (("tsc", "G5_IO2"), quote!(crate::tsc::G5IO2Pin)),
+        (("tsc", "G5_IO3"), quote!(crate::tsc::G5IO3Pin)),
+        (("tsc", "G5_IO4"), quote!(crate::tsc::G5IO4Pin)),
+        (("tsc", "G6_IO1"), quote!(crate::tsc::G6IO1Pin)),
+        (("tsc", "G6_IO2"), quote!(crate::tsc::G6IO2Pin)),
+        (("tsc", "G6_IO3"), quote!(crate::tsc::G6IO3Pin)),
+        (("tsc", "G6_IO4"), quote!(crate::tsc::G6IO4Pin)),
+        (("tsc", "G7_IO1"), quote!(crate::tsc::G7IO1Pin)),
+        (("tsc", "G7_IO2"), quote!(crate::tsc::G7IO2Pin)),
+        (("tsc", "G7_IO3"), quote!(crate::tsc::G7IO3Pin)),
+        (("tsc", "G7_IO4"), quote!(crate::tsc::G7IO4Pin)),
+        (("tsc", "G8_IO1"), quote!(crate::tsc::G8IO1Pin)),
+        (("tsc", "G8_IO2"), quote!(crate::tsc::G8IO2Pin)),
+        (("tsc", "G8_IO3"), quote!(crate::tsc::G8IO3Pin)),
+        (("tsc", "G8_IO4"), quote!(crate::tsc::G8IO4Pin)),
+    ].into();
 
-    // for p in METADATA.peripherals {
-    //     if let Some(regs) = &p.registers {
-    //         for pin in p.pins {
-    //             let key = (regs.kind, pin.signal);
-    //             if let Some(tr) = signals.get(&key) {
-    //                 let mut peri = format_ident!("{}", p.name);
+    for p in METADATA.peripherals {
+        if let Some(regs) = &p.registers {
+            for pin in p.pins {
+                let key = (regs.kind, pin.signal);
+                if let Some(tr) = signals.get(&key) {
+                    let mut peri = format_ident!("{}", p.name);
 
-    //                 let pin_name = {
-    //                     // If we encounter a _C pin but the split_feature for this pin is not enabled, skip it
-    //                     if pin.pin.ends_with("_C") && !split_features.iter().any(|x| x.pin_name_with_c == pin.pin) {
-    //                         continue;
-    //                     }
+                    let pin_name = {
+                        // If we encounter a _C pin but the split_feature for this pin is not enabled, skip it
+                        if pin.pin.ends_with("_C") && !split_features.iter().any(|x| x.pin_name_with_c == pin.pin) {
+                            continue;
+                        }
 
-    //                     format_ident!("{}", pin.pin)
-    //                 };
+                        format_ident!("{}", pin.pin)
+                    };
 
-    //                 let af = pin.af.unwrap_or(0);
+                    let af = pin.af.unwrap_or(0);
 
-    //                 // MCO is special
-    //                 if pin.signal.starts_with("MCO") {
-    //                     peri = format_ident!("{}", pin.signal.replace('_', ""));
-    //                 }
+                    // MCO is special
+                    if pin.signal.starts_with("MCO") {
+                        peri = format_ident!("{}", pin.signal.replace('_', ""));
+                    }
 
-    //                 g.extend(quote! {
-    //                     pin_trait_impl!(#tr, #peri, #pin_name, #af);
-    //                 })
-    //             }
+                    g.extend(quote! {
+                        pin_trait_impl!(#tr, #peri, #pin_name, #af);
+                    })
+                }
 
-    //             // ADC is special
-    //             if regs.kind == "adc" {
-    //                 if p.rcc.is_none() {
-    //                     continue;
-    //                 }
+                // ADC is special
+                if regs.kind == "adc" {
+                    if p.rcc.is_none() {
+                        continue;
+                    }
 
-    //                 let peri = format_ident!("{}", p.name);
-    //                 let pin_name = {
-    //                     // If we encounter a _C pin but the split_feature for this pin is not enabled, skip it
-    //                     if pin.pin.ends_with("_C") && !split_features.iter().any(|x| x.pin_name_with_c == pin.pin) {
-    //                         continue;
-    //                     }
-    //                     format_ident!("{}", pin.pin)
-    //                 };
+                    let peri = format_ident!("{}", p.name);
+                    let pin_name = {
+                        // If we encounter a _C pin but the split_feature for this pin is not enabled, skip it
+                        if pin.pin.ends_with("_C") && !split_features.iter().any(|x| x.pin_name_with_c == pin.pin) {
+                            continue;
+                        }
+                        format_ident!("{}", pin.pin)
+                    };
 
-    //                 // H7 has differential voltage measurements
-    //                 let ch: Option<u8> = if pin.signal.starts_with("INP") {
-    //                     Some(pin.signal.strip_prefix("INP").unwrap().parse().unwrap())
-    //                 } else if pin.signal.starts_with("INN") {
-    //                     // TODO handle in the future when embassy supports differential measurements
-    //                     None
-    //                 } else if pin.signal.starts_with("IN") && pin.signal.ends_with('b') {
-    //                     // we number STM32L1 ADC bank 1 as 0..=31, bank 2 as 32..=63
-    //                     let signal = pin.signal.strip_prefix("IN").unwrap().strip_suffix('b').unwrap();
-    //                     Some(32u8 + signal.parse::<u8>().unwrap())
-    //                 } else if pin.signal.starts_with("IN") {
-    //                     Some(pin.signal.strip_prefix("IN").unwrap().parse().unwrap())
-    //                 } else {
-    //                     None
-    //                 };
-    //                 if let Some(ch) = ch {
-    //                     g.extend(quote! {
-    //                     impl_adc_pin!( #peri, #pin_name, #ch);
-    //                     })
-    //                 }
-    //             }
+                    // H7 has differential voltage measurements
+                    let ch: Option<u8> = if pin.signal.starts_with("INP") {
+                        Some(pin.signal.strip_prefix("INP").unwrap().parse().unwrap())
+                    } else if pin.signal.starts_with("INN") {
+                        // TODO handle in the future when embassy supports differential measurements
+                        None
+                    } else if pin.signal.starts_with("IN") && pin.signal.ends_with('b') {
+                        // we number STM32L1 ADC bank 1 as 0..=31, bank 2 as 32..=63
+                        let signal = pin.signal.strip_prefix("IN").unwrap().strip_suffix('b').unwrap();
+                        Some(32u8 + signal.parse::<u8>().unwrap())
+                    } else if pin.signal.starts_with("IN") {
+                        Some(pin.signal.strip_prefix("IN").unwrap().parse().unwrap())
+                    } else {
+                        None
+                    };
+                    if let Some(ch) = ch {
+                        g.extend(quote! {
+                        impl_adc_pin!( #peri, #pin_name, #ch);
+                        })
+                    }
+                }
 
-    //             if regs.kind == "opamp" {
-    //                 if pin.signal.starts_with("VP") {
-    //                     // Impl NonInvertingPin for the VP* signals (VP0, VP1, VP2, etc)
-    //                     let peri = format_ident!("{}", p.name);
-    //                     let pin_name = format_ident!("{}", pin.pin);
-    //                     let ch: u8 = pin.signal.strip_prefix("VP").unwrap().parse().unwrap();
+                if regs.kind == "opamp" {
+                    if pin.signal.starts_with("VP") {
+                        // Impl NonInvertingPin for the VP* signals (VP0, VP1, VP2, etc)
+                        let peri = format_ident!("{}", p.name);
+                        let pin_name = format_ident!("{}", pin.pin);
+                        let ch: u8 = pin.signal.strip_prefix("VP").unwrap().parse().unwrap();
 
-    //                     g.extend(quote! {
-    //                         impl_opamp_vp_pin!( #peri, #pin_name, #ch);
-    //                     })
-    //                 } else if pin.signal == "VOUT" {
-    //                     // Impl OutputPin for the VOUT pin
-    //                     let peri = format_ident!("{}", p.name);
-    //                     let pin_name = format_ident!("{}", pin.pin);
-    //                     g.extend(quote! {
-    //                         impl_opamp_vout_pin!( #peri, #pin_name );
-    //                     })
-    //                 }
-    //             }
+                        g.extend(quote! {
+                            impl_opamp_vp_pin!( #peri, #pin_name, #ch);
+                        })
+                    } else if pin.signal == "VOUT" {
+                        // Impl OutputPin for the VOUT pin
+                        let peri = format_ident!("{}", p.name);
+                        let pin_name = format_ident!("{}", pin.pin);
+                        g.extend(quote! {
+                            impl_opamp_vout_pin!( #peri, #pin_name );
+                        })
+                    }
+                }
 
-    //             // DAC is special
-    //             if regs.kind == "dac" {
-    //                 let peri = format_ident!("{}", p.name);
-    //                 let pin_name = format_ident!("{}", pin.pin);
-    //                 let ch: u8 = pin.signal.strip_prefix("OUT").unwrap().parse().unwrap();
+                // DAC is special
+                if regs.kind == "dac" {
+                    let peri = format_ident!("{}", p.name);
+                    let pin_name = format_ident!("{}", pin.pin);
+                    let ch: u8 = pin.signal.strip_prefix("OUT").unwrap().parse().unwrap();
 
-    //                 g.extend(quote! {
-    //                 impl_dac_pin!( #peri, #pin_name, #ch);
-    //                 })
-    //             }
-    //         }
-    //     }
-    // }
+                    g.extend(quote! {
+                    impl_dac_pin!( #peri, #pin_name, #ch);
+                    })
+                }
+            }
+        }
+    }
 
     // ========
     // Generate dma_trait_impl!
