@@ -30,7 +30,7 @@ use crate::{interrupt, peripherals};
 // CC1, CC2, CC3, and CC4, so it can provide ALARM_COUNT = 3.
 
 // cfg_if::cfg_if! {
-//     if #[cfg(any(time_driver_tim9, time_driver_tim12, time_driver_tim15, time_driver_tim21, time_driver_tim22))] {
+//     if #[cfg(any(time_driver_tim14, time_driver_tim16, time_driver_tim17))] {
 //         const ALARM_COUNT: usize = 1;
 //     } else {
 //         const ALARM_COUNT: usize = 3;
@@ -54,14 +54,14 @@ type T = peripherals::TIM8;
 type T = peripherals::TIM9;
 #[cfg(time_driver_tim12)]
 type T = peripherals::TIM12;
-#[cfg(time_driver_tim14)]
-type T = peripherals::TIM14;
+// #[cfg(time_driver_tim14)]
+// type T = peripherals::TIM14;
 #[cfg(time_driver_tim15)]
 type T = peripherals::TIM15;
-#[cfg(time_driver_tim16)]
-type T = peripherals::TIM16;
-#[cfg(time_driver_tim17)]
-type T = peripherals::TIM17;
+// #[cfg(time_driver_tim16)]
+// type T = peripherals::TIM16;
+// #[cfg(time_driver_tim17)]
+// type T = peripherals::TIM17;
 #[cfg(time_driver_tim20)]
 type T = peripherals::TIM20;
 #[cfg(time_driver_tim21)]
@@ -154,14 +154,14 @@ foreach_interrupt! {
             DRIVER.on_interrupt()
         }
     };
-    (TIM14, timer, $block:ident, CC, $irq:ident) => {
-        #[cfg(time_driver_tim14)]
-        #[cfg(feature = "rt")]
-        #[interrupt]
-        fn $irq() {
-            DRIVER.on_interrupt()
-        }
-    };
+    // (TIM14, timer, $block:ident, CC, $irq:ident) => {
+    //     #[cfg(time_driver_tim14)]
+    //     #[cfg(feature = "rt")]
+    //     #[interrupt]
+    //     fn $irq() {
+    //         DRIVER.on_interrupt()
+    //     }
+    // };
     (TIM15, timer, $block:ident, CC, $irq:ident) => {
         #[cfg(time_driver_tim15)]
         #[cfg(feature = "rt")]
@@ -170,22 +170,22 @@ foreach_interrupt! {
             DRIVER.on_interrupt()
         }
     };
-    (TIM16, timer, $block:ident, CC, $irq:ident) => {
-        #[cfg(time_driver_tim16)]
-        #[cfg(feature = "rt")]
-        #[interrupt]
-        fn $irq() {
-            DRIVER.on_interrupt()
-        }
-    };
-    (TIM17, timer, $block:ident, CC, $irq:ident) => {
-        #[cfg(time_driver_tim17)]
-        #[cfg(feature = "rt")]
-        #[interrupt]
-        fn $irq() {
-            DRIVER.on_interrupt()
-        }
-    };
+    // (TIM16, timer, $block:ident, CC, $irq:ident) => {
+    //     #[cfg(time_driver_tim16)]
+    //     #[cfg(feature = "rt")]
+    //     #[interrupt]
+    //     fn $irq() {
+    //         DRIVER.on_interrupt()
+    //     }
+    // };
+    // (TIM17, timer, $block:ident, CC, $irq:ident) => {
+    //     #[cfg(time_driver_tim17)]
+    //     #[cfg(feature = "rt")]
+    //     #[interrupt]
+    //     fn $irq() {
+    //         DRIVER.on_interrupt()
+    //     }
+    // };
     (TIM20, timer, $block:ident, CC, $irq:ident) => {
         #[cfg(time_driver_tim20)]
         #[cfg(feature = "rt")]

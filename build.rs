@@ -206,10 +206,10 @@ fn main() {
         // Some("tim8") => "TIM8",
         // Some("tim9") => "TIM9",
         // Some("tim12") => "TIM12",
-        Some("tim14") => "TIM14",
+        // Some("tim14") => "TIM14",
         // Some("tim15") => "TIM15",
-        Some("tim16") => "TIM16",
-        Some("tim17") => "TIM17",
+        // Some("tim16") => "TIM16",
+        // Some("tim17") => "TIM17",
         // Some("tim20") => "TIM20",
         // Some("tim21") => "TIM21",
         // Some("tim22") => "TIM22",
@@ -229,7 +229,7 @@ fn main() {
             [
                 // 2CH
                 // 2CH_CMP
-                "TIM17","TIM16", "TIM14", "TIM3", // GP16
+                "TIM3", // GP16
                 // GP32
                 "TIM1", //ADV
             ]
@@ -243,7 +243,7 @@ fn main() {
         cfgs.enable(format!("time_driver_{}", time_driver_singleton.to_lowercase()));
     }
     for tim in [
-        "tim1", "tim2", "tim3", "tim4", "tim5", "tim8", "tim9", "tim12","tim14", "tim15", "tim16", "tim17", "tim20", "tim21", "tim22", "tim23",
+        "tim1", "tim2", "tim3", "tim4", "tim5", "tim8", "tim9", "tim12", /*"tim14", "tim15", "tim16", "tim17",*/ "tim20", "tim21", "tim22", "tim23",
         "tim24",
     ] {
         cfgs.declare(format!("time_driver_{}", tim));
