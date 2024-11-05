@@ -90,7 +90,7 @@ pub(crate) unsafe fn init(config: Config) {
             24_000_000u32 => (HsiFs::HSI_24MHZ, 0x1FFF_0F10),
             _ => panic!("Unsupported HSI frequency"),
         };
-        let trim_val = (unsafe { *(trim_addr as *const u32) } & 0xFFF) as u16;
+        let trim_val = (unsafe { *(trim_addr as *const u32) } & 0x1FFF ) as u16;
         RCC.icscr().modify(|w| {w.set_hsi_fs(fs_val); w.set_hsi_trim(trim_val);});
     };
     while !RCC.cr().read().hsirdy() {}
