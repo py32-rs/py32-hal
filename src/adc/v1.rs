@@ -162,6 +162,10 @@ impl<'d, T: Instance> Adc<'d, T> {
         T::regs().smpr().modify(|reg| reg.set_smp(self.sample_time.into()));
         T::regs().ier().modify(|w| w.set_eocie(true));
 
+        // AN1011_PY32F030_PY32F003_PY32F002A系列_ADC应用注意事项.pdf
+        // When the ADC is in single-shot mode, after the conversion is completed, the ADC module needs to be re-enabled (ADC_EN = 1) to start the next conversion
+        // (the time interval from ADC_EN set to 1 to ADSTART set to 1 should be greater than 8 ADC clocks).
+        T::regs().cr().modify(|reg| reg.set_aden(true));
         blocking_delay_us(1);
         T::regs().cr().modify(|reg| reg.set_adstart(true));
 
