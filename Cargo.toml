@@ -1,14 +1,17 @@
 [package]
 name = "py32-hal"
-version = "0.1.0"
+version = "0.0.1"
 edition = "2021"
 
 [dependencies]
+py32-metapac = { version = "0.0.1" }
+# py32-metapac = { path = "../py32-data/build/py32-metapac"}
+
 cortex-m = { version = "0.7.7", features = [
     "critical-section-single-core",
     "critical-section",
 ] }
-cortex-m-rt = "0.7.3"
+cortex-m-rt = "0.7.5"
 
 embedded-hal-02 = { package = "embedded-hal", version = "0.2.6", features = [
     "unproven",
@@ -20,17 +23,18 @@ embedded-can = "0.4"
 
 defmt = { version = "0.3", optional = true }
 defmt-rtt = { version = "0.4", optional = true }
-log = { version = "0.4.14", optional = true }
+log = { version = "0.4", optional = true }
 critical-section = "1.2"
 cfg-if = "1.0.0"
 
-py32-metapac = { path = "../py32-data/build/py32-metapac" }
-
-embassy-hal-internal = {version = "0.2.0", git = "https://github.com/embassy-rs/embassy.git" , features = ["cortex-m", "prio-bits-4"] }
+embassy-hal-internal = { version = "0.2.0", features = [
+    "cortex-m",
+    "prio-bits-4",
+] }
 embassy-sync = { version = "0.6.0", optional = true }
 embassy-futures = { version = "0.1.1", optional = true }
 embassy-time-driver = { version = "0.1.0", optional = true }
-embassy-time = { version = "0.3.0", optional = true }
+embassy-time = { version = "0.3.2", optional = true }
 embassy-executor = { version = "0.6", features = [
     "nightly",
     "integrated-timers",
@@ -39,14 +43,16 @@ embassy-executor = { version = "0.6", features = [
 
 
 [build-dependencies]
-proc-macro2 = "1.0.36"
-quote = "1.0.15"
-py32-metapac = { path = "../py32-data/build/py32-metapac", default-features = false, features = [
+py32-metapac = { version = "0.0.1", default-features = false, features = [
+# py32-metapac = { path = "../py32-data/build/py32-metapac", default-features = false, features = [
     "metadata",
 ] }
 
+proc-macro2 = "1.0.89"
+quote = "1.0.37"
+
 [features]
-default = ["rt", "memory-x","defmt", "embassy"]
+default = ["rt", "memory-x", "defmt", "embassy"]
 
 rt = ["py32-metapac/rt"]
 
@@ -54,11 +60,7 @@ defmt = ["dep:defmt", "dep:defmt-rtt"]
 
 memory-x = ["py32-metapac/memory-x"]
 
-embassy = [
-    "dep:embassy-sync",
-    "dep:embassy-futures",
-    "dep:embassy-time-driver",
-]
+embassy = ["dep:embassy-sync", "dep:embassy-futures", "dep:embassy-time-driver"]
 
 py32f030k28 = ["py32-metapac/py32f030k28"]
 py32f030f16 = ["py32-metapac/py32f030f16"]
@@ -73,4 +75,3 @@ time-driver-tim3 = ["_time-driver"]
 
 
 _time-driver = []
-
