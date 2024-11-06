@@ -6,26 +6,13 @@ mod fmt;
 include!(concat!(env!("OUT_DIR"), "/_macros.rs"));
 
 mod macros;
+use macros::*;
 
 pub use py32_metapac as pac;
 
-// This must go last, so that it sees all the impl_foo! macros defined earlier.
-pub(crate) mod _generated {
-    #![allow(dead_code)]
-    #![allow(unused_imports)]
-    #![allow(non_snake_case)]
-    #![allow(missing_docs)]
-
-    include!(concat!(env!("OUT_DIR"), "/_generated.rs"));
-}
-
-pub use crate::_generated::interrupt;
-
-pub use _generated::{peripherals, Peripherals};
-pub use embassy_hal_internal::{into_ref, Peripheral, PeripheralRef};
-
 pub mod time;
 pub mod rcc;
+pub mod adc;
 pub mod dma;
 pub mod timer;
 #[cfg(feature = "_time-driver")]
@@ -101,4 +88,53 @@ pub fn init(config: Config) -> Peripherals {
         };
         p
     })
+}
+
+
+// This must go last, so that it sees all the impl_foo! macros defined earlier.
+pub(crate) mod _generated {
+    #![allow(dead_code)]
+    #![allow(unused_imports)]
+    #![allow(non_snake_case)]
+    #![allow(missing_docs)]
+
+    include!(concat!(env!("OUT_DIR"), "/_generated.rs"));
+}
+
+pub use crate::_generated::interrupt;
+
+pub use _generated::{peripherals, Peripherals};
+pub use embassy_hal_internal::{into_ref, Peripheral, PeripheralRef};
+
+
+// developer note: this macro can't be in `embassy-hal-internal` due to the use of `$crate`.
+#[macro_export]
+macro_rules! bind_interrupts {
+    ($vis:vis struct $name:ident {
+        $(
+            $(#[cfg($cond_irq:meta)])?
+            $irq:ident => $(
+                $(#[cfg($cond_handler:meta)])?
+                $handler:ty
+            ),*;
+        )*
+    }) => {
+        #[derive(Copy, Clone)]
+        $vis struct $name;
+
+        $(
+            #[allow(non_snake_case)]
+            #[no_mangle]
+            $(#[cfg($cond_irq)])?
+            unsafe extern "C" fn $irq() {
+                $(
+                    $(#[cfg($cond_handler)])?
+                    <$handler as $crate::interrupt::typelevel::Handler<$crate::interrupt::typelevel::$irq>>::on_interrupt();
+
+                    $(#[cfg($cond_handler)])?
+                    unsafe impl $crate::interrupt::typelevel::Binding<$crate::interrupt::typelevel::$irq, $handler> for $name {}
+                )*
+            }
+        )*
+    };
 }
