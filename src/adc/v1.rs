@@ -13,7 +13,7 @@ use crate::peripherals::ADC as ADC1;
 use crate::{interrupt, rcc, Peripheral};
 
 pub const VDDA_CALIB_MV: u32 = 3300;
-pub const VREF_INT: u32 = 1230;
+pub const VREF_INT: u32 = 1200;
 
 /// Interrupt handler.
 pub struct InterruptHandler<T: Instance> {
@@ -72,11 +72,7 @@ impl<'d, T: Instance> Adc<'d, T> {
         // tstab = 14 * 1/fadc
         blocking_delay_us(1);
 
-        // A.7.1 ADC calibration code example
-        T::regs().cfgr1().modify(|reg| reg.set_dmaen(false));
-        T::regs().cr().modify(|reg| reg.set_adcal(true));
-
-        while T::regs().cr().read().adcal() {}
+        Self::calibration();
 
         // A.7.2 ADC enable sequence code example
         // if T::regs().isr().read().adrdy() {
@@ -100,6 +96,49 @@ impl<'d, T: Instance> Adc<'d, T> {
             adc,
             sample_time: SampleTime::from_bits(0),
         }
+    }
+
+    pub fn calibration() {
+        // Precautions
+        // When the working conditions of the ADC change (VCC changes are the main factor affecting ADC offset shifts, followed by temperature changes), it is recommended to recalibrate the ADC.
+        // A software calibration process must be added before using the ADC module for the first time.
+        
+        // Operation Procedure
+        // Ensure ADEN = 0 and CKMODE selects the system clock.
+        // Set ADCAL = 1.
+        // Wait until ADCAL = 0.
+        // After calibration is complete, start the ADC conversion.
+
+        T::regs().cfgr1().modify(|reg| reg.set_dmaen(false));
+        T::regs().cr().modify(|reg| reg.set_adcal(true));
+
+        while T::regs().cr().read().adcal() {}
+
+        // Calibration prerequisite: ADC must be disabled.
+        if T::regs().cr().read().aden() {
+            panic!("ADC is already enabled");
+        }
+    
+        // Disable ADC DMA transfer request during calibration
+        // Note: Specificity of this PY32 serie: Calibration factor is         
+        //       available in data register and also transfered by DMA.        
+        //       To not insert ADC calibration factor among ADC conversion data
+        //       in array variable, DMA transfer must be disabled during       
+        //       calibration.  
+        let backup_dma_settings = T::regs().cfgr1().read();
+        T::regs().cfgr1().modify(|reg| reg.set_dmaen(false));
+        
+        // Start ADC calibration
+        T::regs().cr().modify(|reg| reg.set_adcal(true));
+        
+        // Wait for calibration completion
+        while T::regs().cr().read().adcal() {}
+        
+        // Restore ADC DMA transfer request after calibration
+        T::regs().cfgr1().modify(|reg| {
+            reg.set_dmaen(backup_dma_settings.dmaen());
+            reg.set_dmacfg(backup_dma_settings.dmacfg());
+        });
     }
 
     // pub fn enable_vbat(&self) -> Vbat {
