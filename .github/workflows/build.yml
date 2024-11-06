@@ -26,3 +26,10 @@ jobs:
           rustup target add thumbv6m-none-eabi
       - name: Build Only
         run: cargo build --features py32f030k28,rt,embassy --target thumbv6m-none-eabi
+      - name: Build Examples
+        run: |
+          for d in $(ls -1 ./examples); do
+            if [ -f "./examples/$d/Cargo.toml" ]; then
+              (cd ./examples/$d && cargo build --release)
+            fi
+          done
