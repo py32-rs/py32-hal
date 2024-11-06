@@ -8,5 +8,4 @@ target = "thumbv6m-none-eabi"
 [env]
 DEFMT_LOG = "trace"
 
-
 # rustflags = ["-C", "link-arg=-Tlink.x"]
