@@ -1,5 +1,15 @@
 # py32-hal
 
+[![Crates.io][badge-license]][crates]
+[![Crates.io][badge-version]][crates]
+[![docs.rs][badge-docsrs]][docsrs]
+
+[badge-license]: https://img.shields.io/crates/l/py32-hal?style=for-the-badge
+[badge-version]: https://img.shields.io/crates/v/py32-hal?style=for-the-badge
+[badge-docsrs]: https://img.shields.io/docsrs/py32-hal?style=for-the-badge
+[crates]: https://crates.io/crates/py32-hal
+[docsrs]: https://docs.rs/py32-hal
+
 > **Note**
 > This project is under development. While it's usable for experimentation and testing,
 > it may not be fully stable for production environments.
