@@ -12,6 +12,7 @@ pub use py32_metapac as pac;
 
 pub mod time;
 pub mod rcc;
+pub mod i2c;
 pub mod adc;
 pub mod dma;
 pub mod timer;
