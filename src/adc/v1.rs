@@ -3,7 +3,6 @@ use core::marker::PhantomData;
 use core::task::Poll;
 
 use embassy_hal_internal::into_ref;
-use py32_metapac::rcc::Rcc;
 use py32_metapac::adc::vals::Ckmode;
 
 use super::blocking_delay_us;

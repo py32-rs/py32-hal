@@ -628,8 +628,8 @@ fn main() {
                             #reset_offset_and_bit,
                             #enable_offset_and_bit,
                             #refcount_idx,
-                            #[cfg(feature = "low-power")]
-                            #stop_mode,
+                            // #[cfg(feature = "low-power")]
+                            // #stop_mode,
                         )
                     };
                 }
@@ -1528,16 +1528,6 @@ fn main() {
         }
     }
 
-    #[cfg(feature = "_dual-core")]
-    let mut dma_ch_to_irq: BTreeMap<&str, Vec<String>> = BTreeMap::new();
-
-    #[cfg(feature = "_dual-core")]
-    for (irq, channels) in &dma_irqs {
-        for channel in channels {
-            dma_ch_to_irq.entry(channel).or_default().push(irq.to_string());
-        }
-    }
-
     for (ch_idx, ch) in METADATA.dma_channels.iter().enumerate() {
         // Some H7 chips have BDMA1 hardcoded for DFSDM, ie no DMAMUX. It's unsupported, skip it.
         if has_dmamux && ch.dmamux.is_none() {
@@ -1546,15 +1536,6 @@ fn main() {
 
         let name = format_ident!("{}", ch.name);
         let idx = ch_idx as u8;
-        #[cfg(feature = "_dual-core")]
-        let irq = {
-            let irq_name = if let Some(x) = &dma_ch_to_irq.get(ch.name) {
-                format_ident!("{}", x.get(0).unwrap())
-            } else {
-                panic!("failed to find dma interrupt")
-            };
-            quote!(crate::pac::Interrupt::#irq_name)
-        };
 
         g.extend(quote!(dma_channel_impl!(#name, #idx);));
 

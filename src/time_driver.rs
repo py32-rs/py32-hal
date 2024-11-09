@@ -40,38 +40,38 @@ const ALARM_COUNT: usize = 3;
 
 #[cfg(time_driver_tim1)]
 type T = peripherals::TIM1;
-#[cfg(time_driver_tim2)]
-type T = peripherals::TIM2;
+// #[cfg(time_driver_tim2)]
+// type T = peripherals::TIM2;
 #[cfg(time_driver_tim3)]
 type T = peripherals::TIM3;
-#[cfg(time_driver_tim4)]
-type T = peripherals::TIM4;
-#[cfg(time_driver_tim5)]
-type T = peripherals::TIM5;
-#[cfg(time_driver_tim8)]
-type T = peripherals::TIM8;
-#[cfg(time_driver_tim9)]
-type T = peripherals::TIM9;
-#[cfg(time_driver_tim12)]
-type T = peripherals::TIM12;
+// #[cfg(time_driver_tim4)]
+// type T = peripherals::TIM4;
+// #[cfg(time_driver_tim5)]
+// type T = peripherals::TIM5;
+// #[cfg(time_driver_tim8)]
+// type T = peripherals::TIM8;
+// #[cfg(time_driver_tim9)]
+// type T = peripherals::TIM9;
+// #[cfg(time_driver_tim12)]
+// type T = peripherals::TIM12;
 // #[cfg(time_driver_tim14)]
 // type T = peripherals::TIM14;
-#[cfg(time_driver_tim15)]
-type T = peripherals::TIM15;
+// #[cfg(time_driver_tim15)]
+// type T = peripherals::TIM15;
 // #[cfg(time_driver_tim16)]
 // type T = peripherals::TIM16;
 // #[cfg(time_driver_tim17)]
 // type T = peripherals::TIM17;
-#[cfg(time_driver_tim20)]
-type T = peripherals::TIM20;
-#[cfg(time_driver_tim21)]
-type T = peripherals::TIM21;
-#[cfg(time_driver_tim22)]
-type T = peripherals::TIM22;
-#[cfg(time_driver_tim23)]
-type T = peripherals::TIM23;
-#[cfg(time_driver_tim24)]
-type T = peripherals::TIM24;
+// #[cfg(time_driver_tim20)]
+// type T = peripherals::TIM20;
+// #[cfg(time_driver_tim21)]
+// type T = peripherals::TIM21;
+// #[cfg(time_driver_tim22)]
+// type T = peripherals::TIM22;
+// #[cfg(time_driver_tim23)]
+// type T = peripherals::TIM23;
+// #[cfg(time_driver_tim24)]
+// type T = peripherals::TIM24;
 
 foreach_interrupt! {
     (TIM1, timer, $block:ident, CC, $irq:ident) => {

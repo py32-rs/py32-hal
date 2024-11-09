@@ -28,17 +28,17 @@ pub struct Clocks {
 }
 
 
-#[cfg(feature = "low-power")]
-/// Must be written within a critical section
-///
-/// May be read without a critical section
-pub(crate) static mut REFCOUNT_STOP1: u32 = 0;
+// #[cfg(feature = "low-power")]
+// /// Must be written within a critical section
+// ///
+// /// May be read without a critical section
+// pub(crate) static mut REFCOUNT_STOP1: u32 = 0;
 
-#[cfg(feature = "low-power")]
-/// Must be written within a critical section
-///
-/// May be read without a critical section
-pub(crate) static mut REFCOUNT_STOP2: u32 = 0;
+// #[cfg(feature = "low-power")]
+// /// Must be written within a critical section
+// ///
+// /// May be read without a critical section
+// pub(crate) static mut REFCOUNT_STOP2: u32 = 0;
 
 /// Frozen clock frequencies
 ///
@@ -81,9 +81,9 @@ pub(crate) struct RccInfo {
     /// maintain a refcount in `crate::_generated::REFCOUNTS` at this index. If the bit is not
     /// shared, this is 0xff (we don't use an `Option` to save one byte of storage).
     refcount_idx_or_0xff: u8,
-    /// Stop mode of the peripheral, used to maintain `REFCOUNT_STOP1` and `REFCOUNT_STOP2`.
-    #[cfg(feature = "low-power")]
-    stop_mode: StopMode,
+    // /// Stop mode of the peripheral, used to maintain `REFCOUNT_STOP1` and `REFCOUNT_STOP2`.
+    // #[cfg(feature = "low-power")]
+    // stop_mode: StopMode,
 }
 
 #[cfg(feature = "low-power")]
@@ -104,7 +104,7 @@ impl RccInfo {
         reset_offset_and_bit: Option<(u8, u8)>,
         enable_offset_and_bit: (u8, u8),
         refcount_idx: Option<u8>,
-        #[cfg(feature = "low-power")] stop_mode: StopMode,
+        // #[cfg(feature = "low-power")] stop_mode: StopMode,
     ) -> Self {
         let (reset_offset_or_0xff, reset_bit) = match reset_offset_and_bit {
             Some((offset, bit)) => (offset, bit),
@@ -121,8 +121,8 @@ impl RccInfo {
             enable_offset,
             enable_bit,
             refcount_idx_or_0xff,
-            #[cfg(feature = "low-power")]
-            stop_mode,
+            // #[cfg(feature = "low-power")]
+            // stop_mode,
         }
     }
 
@@ -146,16 +146,16 @@ impl RccInfo {
             }
         }
 
-        #[cfg(feature = "low-power")]
-        match self.stop_mode {
-            StopMode::Standby => {}
-            StopMode::Stop2 => unsafe {
-                REFCOUNT_STOP2 += 1;
-            },
-            StopMode::Stop1 => unsafe {
-                REFCOUNT_STOP1 += 1;
-            },
-        }
+        // #[cfg(feature = "low-power")]
+        // match self.stop_mode {
+        //     StopMode::Standby => {}
+        //     StopMode::Stop2 => unsafe {
+        //         REFCOUNT_STOP2 += 1;
+        //     },
+        //     StopMode::Stop1 => unsafe {
+        //         REFCOUNT_STOP1 += 1;
+        //     },
+        // }
 
         // set the xxxRST bit
         let reset_ptr = self.reset_ptr();
@@ -212,16 +212,16 @@ impl RccInfo {
             }
         }
 
-        #[cfg(feature = "low-power")]
-        match self.stop_mode {
-            StopMode::Standby => {}
-            StopMode::Stop2 => unsafe {
-                REFCOUNT_STOP2 -= 1;
-            },
-            StopMode::Stop1 => unsafe {
-                REFCOUNT_STOP1 -= 1;
-            },
-        }
+        // #[cfg(feature = "low-power")]
+        // match self.stop_mode {
+        //     StopMode::Standby => {}
+        //     StopMode::Stop2 => unsafe {
+        //         REFCOUNT_STOP2 -= 1;
+        //     },
+        //     StopMode::Stop1 => unsafe {
+        //         REFCOUNT_STOP1 -= 1;
+        //     },
+        // }
 
         // clear the xxxEN bit
         let enable_ptr = self.enable_ptr();
