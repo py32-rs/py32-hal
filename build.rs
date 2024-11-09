@@ -611,11 +611,11 @@ fn main() {
 
             // A refcount leak can result if the same field is shared by peripherals with different stop modes
             // This condition should be checked in stm32-data
-            let stop_mode = match rcc.stop_mode {
-                StopMode::Standby => quote! { crate::rcc::StopMode::Standby },
-                StopMode::Stop2 => quote! { crate::rcc::StopMode::Stop2 },
-                StopMode::Stop1 => quote! { crate::rcc::StopMode::Stop1 },
-            };
+            // let stop_mode = match rcc.stop_mode {
+            //     StopMode::Standby => quote! { crate::rcc::StopMode::Standby },
+            //     StopMode::Stop2 => quote! { crate::rcc::StopMode::Stop2 },
+            //     StopMode::Stop1 => quote! { crate::rcc::StopMode::Stop1 },
+            // };
 
             g.extend(quote! {
                 impl crate::rcc::SealedRccPeripheral for peripherals::#pname {
@@ -815,8 +815,8 @@ fn main() {
         (("spi", "I2S_MCK"), quote!(crate::spi::MckPin)),
         (("spi", "I2S_CK"), quote!(crate::spi::CkPin)),
         (("spi", "I2S_WS"), quote!(crate::spi::WsPin)),
-        (("i2c", "SDA"), quote!(crate::i2c::SdaPin)),
-        (("i2c", "SCL"), quote!(crate::i2c::SclPin)),
+        // (("i2c", "SDA"), quote!(crate::i2c::SdaPin)),
+        // (("i2c", "SCL"), quote!(crate::i2c::SclPin)),
         // (("rcc", "MCO_1"), quote!(crate::rcc::McoPin)),
         // (("rcc", "MCO_2"), quote!(crate::rcc::McoPin)),
         // (("rcc", "MCO"), quote!(crate::rcc::McoPin)),
