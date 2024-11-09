@@ -13,7 +13,7 @@ readme = "README.md"
 license = "MIT OR Apache-2.0"
 
 [dependencies]
-py32-metapac = { version = "0.0.1" }
+py32-metapac = { git = "https://github.com/py32-rs/py32-metapac.git" }
 # py32-metapac = { path = "../py32-data/build/py32-metapac"}
 
 cortex-m = { version = "0.7.7", features = [
@@ -53,7 +53,7 @@ embassy-executor = { version = "0.6", features = [
 
 [build-dependencies]
 # py32-metapac = { path = "../py32-data/build/py32-metapac", default-features = false, features = [
-py32-metapac = { version = "0.0.1", default-features = false, features = [
+py32-metapac = { git = "https://github.com/py32-rs/py32-metapac.git", default-features = false , features = [
     "metadata",
 ] }
 
@@ -61,7 +61,7 @@ proc-macro2 = "1.0.89"
 quote = "1.0.37"
 
 [features]
-default = ["rt", "memory-x", "defmt", "embassy"]
+default = ["rt", "memory-x", "defmt", "embassy", "exti"]
 
 rt = ["py32-metapac/rt"]
 
@@ -70,6 +70,8 @@ defmt = ["dep:defmt", "dep:defmt-rtt"]
 memory-x = ["py32-metapac/memory-x"]
 
 embassy = ["dep:embassy-sync", "dep:embassy-futures", "dep:embassy-time-driver"]
+
+exti = []
 
 py32f030k28 = ["py32-metapac/py32f030k28"]
 py32f030f16 = ["py32-metapac/py32f030f16"]

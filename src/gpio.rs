@@ -671,12 +671,12 @@ impl AnyPin {
         self.pin_port / 16
     }
 
-    /// Get the GPIO register block for this pin.
-    #[cfg(feature = "unstable-pac")]
-    #[inline]
-    pub fn block(&self) -> gpio::Gpio {
-        pac::GPIO(self._port() as _)
-    }
+    // /// Get the GPIO register block for this pin.
+    // #[cfg(feature = "unstable-pac")]
+    // #[inline]
+    // pub fn block(&self) -> gpio::Gpio {
+    //     pac::GPIO(self._port() as _)
+    // }
 }
 
 impl_peripheral!(AnyPin);

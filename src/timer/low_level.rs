@@ -218,10 +218,10 @@ impl<'d, T: CoreInstance> Timer<'d, T> {
         unsafe { crate::pac::timer::TimCore::from_ptr(T::regs()) }
     }
 
-    #[cfg(timer32bits)]
-    fn regs_gp32_unchecked(&self) -> crate::pac::timer::TimGp32 {
-        unsafe { crate::pac::timer::TimGp32::from_ptr(T::regs()) }
-    }
+    // #[cfg(timer32bits)]
+    // fn regs_gp32_unchecked(&self) -> crate::pac::timer::TimGp32 {
+    //     unsafe { crate::pac::timer::TimGp32::from_ptr(T::regs()) }
+    // }
 
     /// Start the timer.
     pub fn start(&self) {
@@ -340,14 +340,14 @@ impl<'d, T: CoreInstance> Timer<'d, T> {
 
                 timer_f / arr / (psc + 1)
             }
-            #[cfg(timer32bits)]
-            TimerBits::Bits32 => {
-                let regs = self.regs_gp32_unchecked();
-                let arr = regs.arr().read();
-                let psc = regs.psc().read();
+            // #[cfg(timer32bits)]
+            // TimerBits::Bits32 => {
+            //     let regs = self.regs_gp32_unchecked();
+            //     let arr = regs.arr().read();
+            //     let psc = regs.psc().read();
 
-                timer_f / arr / (psc + 1)
-            }
+            //     timer_f / arr / (psc + 1)
+            // }
         }
     }
 
@@ -411,8 +411,8 @@ impl<'d, T: GeneralInstance1Channel> Timer<'d, T> {
     pub fn get_max_compare_value(&self) -> u32 {
         match T::BITS {
             TimerBits::Bits16 => self.regs_1ch().arr().read().arr() as u32,
-            #[cfg(timer32bits)]
-            TimerBits::Bits32 => self.regs_gp32_unchecked().arr().read(),
+            // #[cfg(timer32bits)]
+            // TimerBits::Bits32 => self.regs_gp32_unchecked().arr().read(),
         }
     }
 }
@@ -553,10 +553,10 @@ impl<'d, T: GeneralInstance4Channel> Timer<'d, T> {
                 let value = unwrap!(u16::try_from(value));
                 self.regs_gp16().ccr(channel.index()).modify(|w| w.set_ccr(value));
             }
-            #[cfg(timer32bits)]
-            TimerBits::Bits32 => {
-                self.regs_gp32_unchecked().ccr(channel.index()).write_value(value);
-            }
+            // #[cfg(timer32bits)]
+            // TimerBits::Bits32 => {
+            //     self.regs_gp32_unchecked().ccr(channel.index()).write_value(value);
+            // }
         }
     }
 
@@ -564,8 +564,8 @@ impl<'d, T: GeneralInstance4Channel> Timer<'d, T> {
     pub fn get_compare_value(&self, channel: Channel) -> u32 {
         match T::BITS {
             TimerBits::Bits16 => self.regs_gp16().ccr(channel.index()).read().ccr() as u32,
-            #[cfg(timer32bits)]
-            TimerBits::Bits32 => self.regs_gp32_unchecked().ccr(channel.index()).read(),
+            // #[cfg(timer32bits)]
+            // TimerBits::Bits32 => self.regs_gp32_unchecked().ccr(channel.index()).read(),
         }
     }
 
@@ -613,18 +613,18 @@ impl<'d, T: GeneralInstance4Channel> Timer<'d, T> {
     }
 }
 
-#[cfg(timer32bits)]
-impl<'d, T: GeneralInstance32bit4Channel> Timer<'d, T> {
-    /// Get access to the general purpose 32bit timer registers.
-    ///
-    /// Note: This works even if the timer is more capable, because registers
-    /// for the less capable timers are a subset. This allows writing a driver
-    /// for a given set of capabilities, and having it transparently work with
-    /// more capable timers.
-    pub fn regs_gp32(&self) -> crate::pac::timer::TimGp32 {
-        unsafe { crate::pac::timer::TimGp32::from_ptr(T::regs()) }
-    }
-}
+// #[cfg(timer32bits)]
+// impl<'d, T: GeneralInstance32bit4Channel> Timer<'d, T> {
+//     /// Get access to the general purpose 32bit timer registers.
+//     ///
+//     /// Note: This works even if the timer is more capable, because registers
+//     /// for the less capable timers are a subset. This allows writing a driver
+//     /// for a given set of capabilities, and having it transparently work with
+//     /// more capable timers.
+//     pub fn regs_gp32(&self) -> crate::pac::timer::TimGp32 {
+//         unsafe { crate::pac::timer::TimGp32::from_ptr(T::regs()) }
+//     }
+// }
 
 impl<'d, T: AdvancedInstance1Channel> Timer<'d, T> {
     /// Get access to the general purpose 1 channel with one complementary 16bit timer registers.
