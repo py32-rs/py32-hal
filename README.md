@@ -33,7 +33,7 @@ Keypoints:
 
 Currently, supported chips are listed in `Cargo.toml` as feature flags.
 
-Supported chip flags: py32f030f16, py32f030k28, More is coming...
+Supported chip flags: `py32f030f16`, `py32f030k28`, More is coming...
 
 others should work if you are careful as most peripherals are similar enough.In fact, the IPs of peripherals in different PY32 series may be consistent. Moreover, some series use the same die, so it might not require much work.
 
@@ -46,14 +46,14 @@ For a full list of chip capabilities and peripherals, check the [py32-data](http
 | GPIO       |                 | ✅               |                 |      |
 | INTERRUPT  |                 | ✅               |                 |      |
 | DMA        | N/A             |                 |                 |      |
-| EXTI       |                 |                 |                 |      |
+| EXTI*      |                 | ✅               |                 |      |
 | USART      |                 |                 |                 |      |
 | I2C*       |                 |                 |                 |      |
 | SPI*       |                 |                 |                 |      |
 | ADC*       |                 | ✅               |                 |      |
 | RTC        |                 |                 |                 |      |
 | Timer(PWM) |                 | ✅               |                 |      |
-| USB/OTG    |                 |                 | N/A             | N/A  |
+| USB/OTG    | N/A             | N/A              |                |      |
 
 - ✅ : Expected to work
 - ❌ : Not implemented
@@ -65,6 +65,12 @@ For a full list of chip capabilities and peripherals, check the [py32-data](http
 ### TODOs
 
 Too many...
+
+## time-driver
+
+This crate provides an implementation of the Embassy `time-driver`.
+
+ Embassy requires that any TIM used as a time-driver has at least two channels, so only TIM1 and TIM3 are available for the PY32F030, 003, and 002A series. You can select either `time-driver-tim3` or `time-driver-tim1` to specify the TIM to use.
 
 ## Minimum supported Rust version(MSRV)
 
