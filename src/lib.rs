@@ -18,6 +18,8 @@ pub mod timer;
 #[cfg(feature = "_time-driver")]
 pub mod time_driver;
 pub mod gpio;
+
+#[cfg(feature = "exti")]
 pub mod exti;
 
 /// `py32-hal` global configuration.
@@ -86,6 +88,9 @@ pub fn init(config: Config) -> Peripherals {
             #[cfg(feature = "_time-driver")]
             // must be after rcc init
             time_driver::init(cs);
+
+            #[cfg(feature = "exti")]
+            exti::init(cs);
         };
         p
     })

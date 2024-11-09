@@ -17,40 +17,22 @@ const EXTI_COUNT: usize = 16;
 const NEW_AW: AtomicWaker = AtomicWaker::new();
 static EXTI_WAKERS: [AtomicWaker; EXTI_COUNT] = [NEW_AW; EXTI_COUNT];
 
-#[cfg(exti_w)]
-fn cpu_regs() -> pac::exti::Cpu {
-    EXTI.cpu(crate::pac::CORE_INDEX)
-}
-
-#[cfg(not(exti_w))]
 fn cpu_regs() -> pac::exti::Exti {
     EXTI
 }
 
-#[cfg(not(any(exti_c0, exti_g0, exti_u0, exti_l5, gpio_v1, exti_u5, exti_h5, exti_h50)))]
-fn exticr_regs() -> pac::syscfg::Syscfg {
-    pac::SYSCFG
-}
-#[cfg(any(exti_c0, exti_g0, exti_u0, exti_l5, exti_u5, exti_h5, exti_h50))]
 fn exticr_regs() -> pac::exti::Exti {
     EXTI
 }
-#[cfg(gpio_v1)]
-fn exticr_regs() -> pac::afio::Afio {
-    pac::AFIO
-}
 
 unsafe fn on_irq() {
-    #[cfg(not(any(exti_c0, exti_g0, exti_u0, exti_l5, exti_u5, exti_h5, exti_h50)))]
-    let bits = EXTI.pr(0).read().0;
-    #[cfg(any(exti_c0, exti_g0, exti_u0, exti_l5, exti_u5, exti_h5, exti_h50))]
-    let bits = EXTI.rpr(0).read().0 | EXTI.fpr(0).read().0;
+    let bits = EXTI.pr().read().0;
 
     // We don't handle or change any EXTI lines above 16.
     let bits = bits & 0x0000FFFF;
 
     // Mask all the channels that fired.
-    cpu_regs().imr(0).modify(|w| w.0 &= !bits);
+    cpu_regs().imr().modify(|w| w.0 &= !bits);
 
     // Wake the tasks
     for pin in BitIter(bits) {
@@ -58,16 +40,10 @@ unsafe fn on_irq() {
     }
 
     // Clear pending
-    #[cfg(not(any(exti_c0, exti_g0, exti_u0, exti_l5, exti_u5, exti_h5, exti_h50)))]
-    EXTI.pr(0).write_value(Lines(bits));
-    #[cfg(any(exti_c0, exti_g0, exti_u0, exti_l5, exti_u5, exti_h5, exti_h50))]
-    {
-        EXTI.rpr(0).write_value(Lines(bits));
-        EXTI.fpr(0).write_value(Lines(bits));
-    }
+    EXTI.pr().write_value(Lines(bits));
 
-    #[cfg(feature = "low-power")]
-    crate::low_power::on_wakeup_irq();
+    // #[cfg(feature = "low-power")]
+    // crate::low_power::on_wakeup_irq();
 }
 
 struct BitIter(u32);
@@ -236,20 +212,16 @@ impl<'a> ExtiInputFuture<'a> {
     fn new(pin: u8, port: u8, rising: bool, falling: bool) -> Self {
         critical_section::with(|_| {
             let pin = pin as usize;
+            
+            // The port_sel of GPIOF is 2, but embassy seems to handle this automatically, requiring no extra processing.
             exticr_regs().exticr(pin / 4).modify(|w| w.set_exti(pin % 4, port));
-            EXTI.rtsr(0).modify(|w| w.set_line(pin, rising));
-            EXTI.ftsr(0).modify(|w| w.set_line(pin, falling));
+            EXTI.rtsr().modify(|w| w.set_line(pin, rising));
+            EXTI.ftsr().modify(|w| w.set_line(pin, falling));
 
             // clear pending bit
-            #[cfg(not(any(exti_c0, exti_g0, exti_u0, exti_l5, exti_u5, exti_h5, exti_h50)))]
-            EXTI.pr(0).write(|w| w.set_line(pin, true));
-            #[cfg(any(exti_c0, exti_g0, exti_u0, exti_l5, exti_u5, exti_h5, exti_h50))]
-            {
-                EXTI.rpr(0).write(|w| w.set_line(pin, true));
-                EXTI.fpr(0).write(|w| w.set_line(pin, true));
-            }
+            EXTI.pr().write(|w| w.set_line(pin, true));
 
-            cpu_regs().imr(0).modify(|w| w.set_line(pin, true));
+            cpu_regs().imr().modify(|w| w.set_line(pin, true));
         });
 
         Self {
@@ -263,7 +235,7 @@ impl<'a> Drop for ExtiInputFuture<'a> {
     fn drop(&mut self) {
         critical_section::with(|_| {
             let pin = self.pin as _;
-            cpu_regs().imr(0).modify(|w| w.set_line(pin, false));
+            cpu_regs().imr().modify(|w| w.set_line(pin, false));
         });
     }
 }
@@ -274,7 +246,7 @@ impl<'a> Future for ExtiInputFuture<'a> {
     fn poll(self: Pin<&mut Self>, cx: &mut Context<'_>) -> Poll<Self::Output> {
         EXTI_WAKERS[self.pin as usize].register(cx.waker());
 
-        let imr = cpu_regs().imr(0).read();
+        let imr = cpu_regs().imr().read();
         if !imr.line(self.pin as _) {
             Poll::Ready(())
         } else {
