@@ -86,3 +86,8 @@ time-driver-tim3 = ["_time-driver"]
 
 
 _time-driver = []
+
+
+[package.metadata.docs.rs]
+default-target = "thumbv6m-none-eabi"
+features = ["py32f030k28"]
