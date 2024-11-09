@@ -61,7 +61,7 @@ proc-macro2 = "1.0.89"
 quote = "1.0.37"
 
 [features]
-default = ["rt", "memory-x", "defmt", "embassy"]
+default = ["rt", "memory-x", "defmt", "embassy", "exti"]
 
 rt = ["py32-metapac/rt"]
 
@@ -70,6 +70,8 @@ defmt = ["dep:defmt", "dep:defmt-rtt"]
 memory-x = ["py32-metapac/memory-x"]
 
 embassy = ["dep:embassy-sync", "dep:embassy-futures", "dep:embassy-time-driver"]
+
+exti = []
 
 py32f030k28 = ["py32-metapac/py32f030k28"]
 py32f030f16 = ["py32-metapac/py32f030f16"]

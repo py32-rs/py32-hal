@@ -1586,20 +1586,10 @@ fn main() {
             None => quote!(),
         };
 
-        #[cfg(not(feature = "_dual-core"))]
         dmas.extend(quote! {
             crate::dma::ChannelInfo {
                 dma: #dma_info,
                 num: #ch_num,
-                #dmamux
-            },
-        });
-        #[cfg(feature = "_dual-core")]
-        dmas.extend(quote! {
-            crate::dma::ChannelInfo {
-                dma: #dma_info,
-                num: #ch_num,
-                irq: #irq,
                 #dmamux
             },
         });
@@ -1633,13 +1623,13 @@ fn main() {
     //     pub(crate) const DMA_CHANNELS: &[crate::dma::ChannelInfo] = &[#dmas];
     // });
 
-    // for irq in METADATA.interrupts {
-    //     let name = irq.name.to_ascii_uppercase();
-    //     interrupts_table.push(vec![name.clone()]);
-    //     if name.contains("EXTI") {
-    //         interrupts_table.push(vec!["EXTI".to_string(), name.clone()]);
-    //     }
-    // }
+    for irq in METADATA.interrupts {
+        let name = irq.name.to_ascii_uppercase();
+        interrupts_table.push(vec![name.clone()]);
+        if name.contains("EXTI") {
+            interrupts_table.push(vec!["EXTI".to_string(), name.clone()]);
+        }
+    }
 
     let mut m = clocks_macro.to_string();
 
