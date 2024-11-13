@@ -25,12 +25,12 @@
 
 use embassy_hal_internal::{impl_peripheral, Peripheral};
 
-#[derive(Debug, Copy, Clone, PartialEq, Eq)]
-#[cfg_attr(feature = "defmt", derive(defmt::Format))]
-enum Dir {
-    MemoryToPeripheral,
-    PeripheralToMemory,
-}
+// #[derive(Debug, Copy, Clone, PartialEq, Eq)]
+// #[cfg_attr(feature = "defmt", derive(defmt::Format))]
+// enum Dir {
+//     MemoryToPeripheral,
+//     PeripheralToMemory,
+// }
 
 // /// DMA request type alias. (also known as DMA channel number in some chips)
 // #[cfg(any(dma_v2, bdma_v2, gpdma, dmamux))]
@@ -43,10 +43,10 @@ pub(crate) trait SealedChannel {
     fn id(&self) -> u8;
 }
 
-pub(crate) trait ChannelInterrupt {
-    #[cfg_attr(not(feature = "rt"), allow(unused))]
-    unsafe fn on_irq();
-}
+// pub(crate) trait ChannelInterrupt {
+//     #[cfg_attr(not(feature = "rt"), allow(unused))]
+//     unsafe fn on_irq();
+// }
 
 /// DMA channel.
 #[allow(private_bounds)]
@@ -62,28 +62,28 @@ pub trait Channel: SealedChannel + Peripheral<P = Self> + Into<AnyChannel> + 'st
     }
 }
 
-macro_rules! dma_channel_impl {
-    ($channel_peri:ident, $index:expr) => {
-        impl crate::dma::SealedChannel for crate::peripherals::$channel_peri {
-            fn id(&self) -> u8 {
-                $index
-            }
-        }
-        impl crate::dma::ChannelInterrupt for crate::peripherals::$channel_peri {
-            unsafe fn on_irq() {
-                crate::dma::AnyChannel { id: $index }.on_irq();
-            }
-        }
+// macro_rules! dma_channel_impl {
+//     ($channel_peri:ident, $index:expr) => {
+//         impl crate::dma::SealedChannel for crate::peripherals::$channel_peri {
+//             fn id(&self) -> u8 {
+//                 $index
+//             }
+//         }
+//         impl crate::dma::ChannelInterrupt for crate::peripherals::$channel_peri {
+//             unsafe fn on_irq() {
+//                 crate::dma::AnyChannel { id: $index }.on_irq();
+//             }
+//         }
 
-        impl crate::dma::Channel for crate::peripherals::$channel_peri {}
+//         impl crate::dma::Channel for crate::peripherals::$channel_peri {}
 
-        impl From<crate::peripherals::$channel_peri> for crate::dma::AnyChannel {
-            fn from(x: crate::peripherals::$channel_peri) -> Self {
-                crate::dma::Channel::degrade(x)
-            }
-        }
-    };
-}
+//         impl From<crate::peripherals::$channel_peri> for crate::dma::AnyChannel {
+//             fn from(x: crate::peripherals::$channel_peri) -> Self {
+//                 crate::dma::Channel::degrade(x)
+//             }
+//         }
+//     };
+// }
 
 /// Type-erased DMA channel.
 pub struct AnyChannel {

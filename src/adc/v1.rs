@@ -176,10 +176,10 @@ impl<'d, T: Instance> Adc<'d, T> {
         T::regs().cfgr1().modify(|reg| reg.set_res(resolution.into()));
     }
 
-    // pub fn set_ckmode(&mut self, ckmode: Ckmode) {
-    //     // set ADC clock mode
-    //     T::regs().cfgr2().modify(|reg| reg.set_ckmode(ckmode));
-    // }
+    pub fn set_ckmode(&mut self, ckmode: Ckmode) {
+        // set ADC clock mode
+        T::regs().cfgr2().modify(|reg| reg.set_ckmode(ckmode));
+    }
 
     pub async fn read(&mut self, channel: &mut impl AdcChannel<T>) -> u16 {
         let ch_num = channel.channel();

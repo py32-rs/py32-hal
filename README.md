@@ -46,25 +46,33 @@ For a full list of chip capabilities and peripherals, check the [py32-data](http
 | GPIO       |                 | ✅               |                 |      |
 | INTERRUPT  |                 | ✅               |                 |      |
 | DMA        | N/A             |                 |                 |      |
-| EXTI*      |                 | ✅               |                 |      |
+| EXTI       |                 | ✅+              |                 |      |
 | USART      |                 |                 |                 |      |
-| I2C*       |                 |                 |                 |      |
-| SPI*       |                 |                 |                 |      |
-| ADC*       |                 | ✅               |                 |      |
+| I2C        |                 | ✅               |                 |      |
+| SPI        |                 |                 |                 |      |
+| ADC        |                 | ✅+              |                 |      |
 | RTC        |                 |                 |                 |      |
 | Timer(PWM) |                 | ✅               |                 |      |
-| USB/OTG    | N/A             | N/A              |                |      |
+| USB/OTG    | N/A             | N/A             |                 |      |
 
 - ✅ : Expected to work
 - ❌ : Not implemented
 - ❓ : Not tested
-- `*` marks the async driver
+- `+` : marks the async driver
 - TODO: I haven't got a dev board yet, help-wanted
 - N/A: Not available
 
 ### TODOs
 
 Too many...
+
+- DMA Support (Channel Map, Codegen, API, RingBuffer, I2C...)
+
+- Other series
+
+- SPI, USART
+
+- ...
 
 ## time-driver
 

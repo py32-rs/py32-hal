@@ -1,4 +1,4 @@
-use std::collections::{BTreeMap, BTreeSet, HashMap, HashSet};
+use std::collections::{BTreeMap, BTreeSet, HashMap/*, HashSet*/};
 use std::fmt::Write as _;
 use std::io::Write;
 use std::path::{Path, PathBuf};
@@ -9,7 +9,7 @@ use proc_macro2::{Ident, TokenStream};
 use quote::{format_ident, quote};
 use py32_metapac::metadata::ir::BitOffset;
 use py32_metapac::metadata::{
-    MemoryRegionKind, PeripheralRccKernelClock, PeripheralRccRegister, PeripheralRegisters, StopMode,
+    MemoryRegionKind, PeripheralRccKernelClock, PeripheralRccRegister, PeripheralRegisters, /*StopMode,*/
     // ALL_CHIPS, ALL_PERIPHERAL_VERSIONS,
     METADATA,
 };
@@ -135,36 +135,36 @@ fn main() {
     struct SplitFeature {
         feature_name: String,
         pin_name_with_c: String,
-        #[cfg(feature = "_split-pins-enabled")]
-        pin_name_without_c: String,
+        // #[cfg(feature = "_split-pins-enabled")]
+        // pin_name_without_c: String,
     }
 
     // Extra analog switch pins available on most H7 chips
     let split_features: Vec<SplitFeature> = vec![
-        #[cfg(feature = "split-pa0")]
-        SplitFeature {
-            feature_name: "split-pa0".to_string(),
-            pin_name_with_c: "PA0_C".to_string(),
-            pin_name_without_c: "PA0".to_string(),
-        },
-        #[cfg(feature = "split-pa1")]
-        SplitFeature {
-            feature_name: "split-pa1".to_string(),
-            pin_name_with_c: "PA1_C".to_string(),
-            pin_name_without_c: "PA1".to_string(),
-        },
-        #[cfg(feature = "split-pc2")]
-        SplitFeature {
-            feature_name: "split-pc2".to_string(),
-            pin_name_with_c: "PC2_C".to_string(),
-            pin_name_without_c: "PC2".to_string(),
-        },
-        #[cfg(feature = "split-pc3")]
-        SplitFeature {
-            feature_name: "split-pc3".to_string(),
-            pin_name_with_c: "PC3_C".to_string(),
-            pin_name_without_c: "PC3".to_string(),
-        },
+        // #[cfg(feature = "split-pa0")]
+        // SplitFeature {
+        //     feature_name: "split-pa0".to_string(),
+        //     pin_name_with_c: "PA0_C".to_string(),
+        //     pin_name_without_c: "PA0".to_string(),
+        // },
+        // #[cfg(feature = "split-pa1")]
+        // SplitFeature {
+        //     feature_name: "split-pa1".to_string(),
+        //     pin_name_with_c: "PA1_C".to_string(),
+        //     pin_name_without_c: "PA1".to_string(),
+        // },
+        // #[cfg(feature = "split-pc2")]
+        // SplitFeature {
+        //     feature_name: "split-pc2".to_string(),
+        //     pin_name_with_c: "PC2_C".to_string(),
+        //     pin_name_without_c: "PC2".to_string(),
+        // },
+        // #[cfg(feature = "split-pc3")]
+        // SplitFeature {
+        //     feature_name: "split-pc3".to_string(),
+        //     pin_name_with_c: "PC3_C".to_string(),
+        //     pin_name_without_c: "PC3".to_string(),
+        // },
     ];
 
     for split_feature in &split_features {
@@ -1455,18 +1455,18 @@ fn main() {
                     // Add the "_C" variant to the table. The solution is not optimal, though.
                     // Adding them only when the corresponding GPIOx also appears.
                     // This should avoid unintended side-effects as much as possible.
-                    #[cfg(feature = "_split-pins-enabled")]
-                    for split_feature in &split_features {
-                        if split_feature.pin_name_without_c == pin_name {
-                            pins_table.push(vec![
-                                split_feature.pin_name_with_c.to_string(),
-                                p.name.to_string(),
-                                port_num.to_string(),
-                                pin_num.to_string(),
-                                format!("EXTI{}", pin_num),
-                            ]);
-                        }
-                    }
+                    // #[cfg(feature = "_split-pins-enabled")]
+                    // for split_feature in &split_features {
+                    //     if split_feature.pin_name_without_c == pin_name {
+                    //         pins_table.push(vec![
+                    //             split_feature.pin_name_with_c.to_string(),
+                    //             p.name.to_string(),
+                    //             port_num.to_string(),
+                    //             pin_num.to_string(),
+                    //             format!("EXTI{}", pin_num),
+                    //         ]);
+                    //     }
+                    // }
                 }
             }
 
@@ -1638,59 +1638,59 @@ fn main() {
     // ========
     // Configs for multicore and for targeting groups of chips
 
-    fn get_chip_cfgs(chip_name: &str) -> Vec<String> {
-        let mut cfgs = Vec::new();
+    // fn get_chip_cfgs(chip_name: &str) -> Vec<String> {
+    //     let mut cfgs = Vec::new();
 
-        // Multicore
+    //     // Multicore
 
-        let mut s = chip_name.split('_');
-        let mut chip_name: String = s.next().unwrap().to_string();
-        let core_name = if let Some(c) = s.next() {
-            if !c.starts_with("CM") {
-                chip_name.push('_');
-                chip_name.push_str(c);
-                None
-            } else {
-                Some(c)
-            }
-        } else {
-            None
-        };
+    //     let mut s = chip_name.split('_');
+    //     let mut chip_name: String = s.next().unwrap().to_string();
+    //     let core_name = if let Some(c) = s.next() {
+    //         if !c.starts_with("CM") {
+    //             chip_name.push('_');
+    //             chip_name.push_str(c);
+    //             None
+    //         } else {
+    //             Some(c)
+    //         }
+    //     } else {
+    //         None
+    //     };
 
-        if let Some(core) = core_name {
-            cfgs.push(format!("{}_{}", &chip_name[..chip_name.len() - 2], core));
-        }
+    //     if let Some(core) = core_name {
+    //         cfgs.push(format!("{}_{}", &chip_name[..chip_name.len() - 2], core));
+    //     }
 
-        // Configs for targeting groups of chips
-        if &chip_name[..8] == "stm32wba" {
-            cfgs.push(chip_name[..8].to_owned()); // stm32wba
-            cfgs.push(chip_name[..10].to_owned()); // stm32wba52
-            cfgs.push(format!("package_{}", &chip_name[10..11]));
-            cfgs.push(format!("flashsize_{}", &chip_name[11..12]));
-        } else {
-            if &chip_name[..8] == "stm32h7r" || &chip_name[..8] == "stm32h7s" {
-                cfgs.push("stm32h7rs".to_owned());
-            } else {
-                cfgs.push(chip_name[..7].to_owned()); // stm32f4
-            }
-            cfgs.push(chip_name[..9].to_owned()); // stm32f429
-            cfgs.push(format!("{}x", &chip_name[..8])); // stm32f42x
-            cfgs.push(format!("{}x{}", &chip_name[..7], &chip_name[8..9])); // stm32f4x9
-            cfgs.push(format!("package_{}", &chip_name[9..10]));
-            cfgs.push(format!("flashsize_{}", &chip_name[10..11]));
-        }
+    //     // Configs for targeting groups of chips
+    //     if &chip_name[..8] == "stm32wba" {
+    //         cfgs.push(chip_name[..8].to_owned()); // stm32wba
+    //         cfgs.push(chip_name[..10].to_owned()); // stm32wba52
+    //         cfgs.push(format!("package_{}", &chip_name[10..11]));
+    //         cfgs.push(format!("flashsize_{}", &chip_name[11..12]));
+    //     } else {
+    //         if &chip_name[..8] == "stm32h7r" || &chip_name[..8] == "stm32h7s" {
+    //             cfgs.push("stm32h7rs".to_owned());
+    //         } else {
+    //             cfgs.push(chip_name[..7].to_owned()); // stm32f4
+    //         }
+    //         cfgs.push(chip_name[..9].to_owned()); // stm32f429
+    //         cfgs.push(format!("{}x", &chip_name[..8])); // stm32f42x
+    //         cfgs.push(format!("{}x{}", &chip_name[..7], &chip_name[8..9])); // stm32f4x9
+    //         cfgs.push(format!("package_{}", &chip_name[9..10]));
+    //         cfgs.push(format!("flashsize_{}", &chip_name[10..11]));
+    //     }
 
-        // Mark the L4+ chips as they have many differences to regular L4.
-        if &chip_name[..7] == "stm32l4" {
-            if "pqrs".contains(&chip_name[7..8]) {
-                cfgs.push("stm32l4_plus".to_owned());
-            } else {
-                cfgs.push("stm32l4_nonplus".to_owned());
-            }
-        }
+    //     // Mark the L4+ chips as they have many differences to regular L4.
+    //     if &chip_name[..7] == "stm32l4" {
+    //         if "pqrs".contains(&chip_name[7..8]) {
+    //             cfgs.push("stm32l4_plus".to_owned());
+    //         } else {
+    //             cfgs.push("stm32l4_nonplus".to_owned());
+    //         }
+    //     }
 
-        cfgs
-    }
+    //     cfgs
+    // }
 
     // cfgs.enable_all(&get_chip_cfgs(&chip_name));
     // for &chip_name in ALL_CHIPS.iter() {

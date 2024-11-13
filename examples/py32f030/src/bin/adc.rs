@@ -4,10 +4,10 @@
 
 use defmt::*;
 use embassy_executor::Spawner;
+use embassy_time::Timer;
 use py32_hal::adc::{Adc, SampleTime};
 use py32_hal::peripherals::ADC;
 use py32_hal::{adc, bind_interrupts};
-use embassy_time::Timer;
 use {defmt_rtt as _, panic_probe as _};
 
 bind_interrupts!(struct Irqs {

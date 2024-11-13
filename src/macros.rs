@@ -23,6 +23,7 @@ macro_rules! peri_trait {
     };
 }
 
+#[allow(unused)]
 macro_rules! peri_trait_impl {
     ($instance:ident, $info:expr) => {
         #[allow(private_interfaces)]
@@ -85,6 +86,7 @@ macro_rules! dma_trait_impl {
     };
 }
 
+#[allow(unused)]
 macro_rules! new_dma {
     ($name:ident) => {{
         let dma = $name.into_ref();

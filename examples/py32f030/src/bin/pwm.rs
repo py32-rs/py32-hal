@@ -4,10 +4,10 @@
 
 use defmt::*;
 use embassy_executor::Spawner;
+use embassy_time::Timer;
 use py32_hal::gpio::OutputType;
 use py32_hal::time::khz;
 use py32_hal::timer::simple_pwm::{PwmPin, SimplePwm};
-use embassy_time::Timer;
 use {defmt_rtt as _, panic_probe as _};
 
 #[embassy_executor::main]
@@ -16,7 +16,15 @@ async fn main(_spawner: Spawner) {
     info!("Hello World!");
 
     let ch4_pin = PwmPin::new_ch4(p.PA1, OutputType::PushPull);
-    let mut pwm = SimplePwm::new(p.TIM1, None, None, None, Some(ch4_pin), khz(10), Default::default());
+    let mut pwm = SimplePwm::new(
+        p.TIM1,
+        None,
+        None,
+        None,
+        Some(ch4_pin),
+        khz(10),
+        Default::default(),
+    );
     let mut ch4 = pwm.ch4();
     ch4.enable();
 

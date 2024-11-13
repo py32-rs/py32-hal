@@ -86,13 +86,13 @@ pub(crate) struct RccInfo {
     // stop_mode: StopMode,
 }
 
-#[cfg(feature = "low-power")]
-#[allow(dead_code)]
-pub(crate) enum StopMode {
-    Standby,
-    Stop2,
-    Stop1,
-}
+// #[cfg(feature = "low-power")]
+// #[allow(dead_code)]
+// pub(crate) enum StopMode {
+//     Standby,
+//     Stop2,
+//     Stop1,
+// }
 
 impl RccInfo {
     /// Safety:

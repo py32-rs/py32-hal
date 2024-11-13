@@ -543,19 +543,19 @@ fn set_as_analog(pin_port: u8) {
     r.moder().modify(|w| w.set_moder(n, vals::Moder::ANALOG));
 }
 
-#[inline(never)]
-fn get_pull(pin_port: u8) -> Pull {
-    let pin = unsafe { AnyPin::steal(pin_port) };
-    let r = pin.block();
-    let n = pin._pin() as usize;
+// #[inline(never)]
+// fn get_pull(pin_port: u8) -> Pull {
+//     let pin = unsafe { AnyPin::steal(pin_port) };
+//     let r = pin.block();
+//     let n = pin._pin() as usize;
 
-    return match r.pupdr().read().pupdr(n) {
-        vals::Pupdr::FLOATING => Pull::None,
-        vals::Pupdr::PULLDOWN => Pull::Down,
-        vals::Pupdr::PULLUP => Pull::Up,
-        vals::Pupdr::_RESERVED_3 => Pull::None,
-    };
-}
+//     return match r.pupdr().read().pupdr(n) {
+//         vals::Pupdr::FLOATING => Pull::None,
+//         vals::Pupdr::PULLDOWN => Pull::Down,
+//         vals::Pupdr::PULLUP => Pull::Up,
+//         vals::Pupdr::_RESERVED_3 => Pull::None,
+//     };
+// }
 
 pub(crate) trait SealedPin {
     fn pin_port(&self) -> u8;
@@ -611,11 +611,11 @@ pub(crate) trait SealedPin {
         self.set_as_analog();
     }
 
-    /// Get the pull-up configuration.
-    #[inline]
-    fn pull(&self) -> Pull {
-        critical_section::with(|_| get_pull(self.pin_port()))
-    }
+    // /// Get the pull-up configuration.
+    // #[inline]
+    // fn pull(&self) -> Pull {
+    //     critical_section::with(|_| get_pull(self.pin_port()))
+    // }
 }
 
 /// GPIO pin trait.
