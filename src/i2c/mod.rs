@@ -219,7 +219,6 @@ impl Timeout {
     fn check(self) -> Result<(), Error> {
         #[cfg(feature = "time")]
         if Instant::now() > self.deadline {
-            panic!("I2C timeout");
             return Err(Error::Timeout);
         }
 

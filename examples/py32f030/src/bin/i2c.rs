@@ -16,7 +16,7 @@ async fn main(_spawner: Spawner) {
     info!("Hello world!");
     let p = py32_hal::init(Default::default());
 
-    let mut i2c = I2c::new_blocking(p.I2C1, p.PF1, p.PF0, Hertz(100_000), Default::default());
+    let mut i2c = I2c::new_blocking(p.I2C1, p.PA3, p.PA2, Hertz(100_000), Default::default());
 
     let mut data = [0u8; 1];
 
