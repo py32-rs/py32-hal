@@ -3,9 +3,9 @@
 #![feature(impl_trait_in_assoc_type)]
 
 use defmt::*;
-use py32_hal::gpio::{Level, Output, Speed};
 use embassy_executor::Spawner;
 use embassy_time::Timer;
+use py32_hal::gpio::{Level, Output, Speed};
 use {defmt_rtt as _, panic_halt as _};
 
 // main is itself an async function.
