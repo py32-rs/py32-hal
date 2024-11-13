@@ -46,9 +46,9 @@ impl Channel {
 pub enum TimerBits {
     /// 16 bits.
     Bits16,
-    /// 32 bits.
-    #[cfg(timer32bits)]
-    Bits32,
+    // /// 32 bits.
+    // #[cfg(timer32bits)]
+    // Bits32,
 }
 
 struct State {

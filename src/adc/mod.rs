@@ -2,7 +2,6 @@
 
 #![macro_use]
 #![allow(missing_docs)] // TODO
-#![cfg_attr(adc_f3_v2, allow(unused))]
 
 mod v1;
 

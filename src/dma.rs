@@ -1,20 +1,21 @@
 //! Direct Memory Access (DMA)
 #![macro_use]
+#![warn(dead_code)]
 
-#[cfg(any(bdma, dma))]
-mod dma_bdma;
-#[cfg(any(bdma, dma))]
-pub use dma_bdma::*;
+// #[cfg(any(bdma, dma))]
+// mod dma_bdma;
+// #[cfg(any(bdma, dma))]
+// pub use dma_bdma::*;
 
-#[cfg(gpdma)]
-pub(crate) mod gpdma;
-#[cfg(gpdma)]
-pub use gpdma::*;
+// #[cfg(gpdma)]
+// pub(crate) mod gpdma;
+// #[cfg(gpdma)]
+// pub use gpdma::*;
 
-#[cfg(dmamux)]
-mod dmamux;
-#[cfg(dmamux)]
-pub(crate) use dmamux::*;
+// #[cfg(dmamux)]
+// mod dmamux;
+// #[cfg(dmamux)]
+// pub(crate) use dmamux::*;
 
 // mod util;
 // pub(crate) use util::*;
@@ -24,8 +25,6 @@ pub(crate) use dmamux::*;
 
 use embassy_hal_internal::{impl_peripheral, Peripheral};
 
-use crate::interrupt;
-
 #[derive(Debug, Copy, Clone, PartialEq, Eq)]
 #[cfg_attr(feature = "defmt", derive(defmt::Format))]
 enum Dir {
@@ -33,11 +32,11 @@ enum Dir {
     PeripheralToMemory,
 }
 
-/// DMA request type alias. (also known as DMA channel number in some chips)
-#[cfg(any(dma_v2, bdma_v2, gpdma, dmamux))]
-pub type Request = u8;
-/// DMA request type alias. (also known as DMA channel number in some chips)
-#[cfg(not(any(dma_v2, bdma_v2, gpdma, dmamux)))]
+// /// DMA request type alias. (also known as DMA channel number in some chips)
+// #[cfg(any(dma_v2, bdma_v2, gpdma, dmamux))]
+// pub type Request = u8;
+// /// DMA request type alias. (also known as DMA channel number in some chips)
+// #[cfg(not(any(dma_v2, bdma_v2, gpdma, dmamux)))]
 pub type Request = ();
 
 pub(crate) trait SealedChannel {
@@ -119,23 +118,23 @@ pub struct NoDma;
 
 impl_peripheral!(NoDma);
 
-// safety: must be called only once at startup
-pub(crate) unsafe fn init(
-    cs: critical_section::CriticalSection,
-    #[cfg(bdma)] bdma_priority: interrupt::Priority,
-    #[cfg(dma)] dma_priority: interrupt::Priority,
-    #[cfg(gpdma)] gpdma_priority: interrupt::Priority,
-) {
-    #[cfg(any(dma, bdma))]
-    dma_bdma::init(
-        cs,
-        #[cfg(dma)]
-        dma_priority,
-        #[cfg(bdma)]
-        bdma_priority,
-    );
-    #[cfg(gpdma)]
-    gpdma::init(cs, gpdma_priority);
-    #[cfg(dmamux)]
-    dmamux::init(cs);
-}
+// // safety: must be called only once at startup
+// pub(crate) unsafe fn init(
+//     cs: critical_section::CriticalSection,
+//     #[cfg(bdma)] bdma_priority: interrupt::Priority,
+//     #[cfg(dma)] dma_priority: interrupt::Priority,
+//     #[cfg(gpdma)] gpdma_priority: interrupt::Priority,
+// ) {
+//     #[cfg(any(dma, bdma))]
+//     dma_bdma::init(
+//         cs,
+//         #[cfg(dma)]
+//         dma_priority,
+//         #[cfg(bdma)]
+//         bdma_priority,
+//     );
+//     #[cfg(gpdma)]
+//     gpdma::init(cs, gpdma_priority);
+//     #[cfg(dmamux)]
+//     dmamux::init(cs);
+// }

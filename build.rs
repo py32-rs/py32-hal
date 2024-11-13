@@ -611,11 +611,11 @@ fn main() {
 
             // A refcount leak can result if the same field is shared by peripherals with different stop modes
             // This condition should be checked in stm32-data
-            let stop_mode = match rcc.stop_mode {
-                StopMode::Standby => quote! { crate::rcc::StopMode::Standby },
-                StopMode::Stop2 => quote! { crate::rcc::StopMode::Stop2 },
-                StopMode::Stop1 => quote! { crate::rcc::StopMode::Stop1 },
-            };
+            // let stop_mode = match rcc.stop_mode {
+            //     StopMode::Standby => quote! { crate::rcc::StopMode::Standby },
+            //     StopMode::Stop2 => quote! { crate::rcc::StopMode::Stop2 },
+            //     StopMode::Stop1 => quote! { crate::rcc::StopMode::Stop1 },
+            // };
 
             g.extend(quote! {
                 impl crate::rcc::SealedRccPeripheral for peripherals::#pname {
@@ -628,8 +628,8 @@ fn main() {
                             #reset_offset_and_bit,
                             #enable_offset_and_bit,
                             #refcount_idx,
-                            #[cfg(feature = "low-power")]
-                            #stop_mode,
+                            // #[cfg(feature = "low-power")]
+                            // #stop_mode,
                         )
                     };
                 }
@@ -815,8 +815,8 @@ fn main() {
         (("spi", "I2S_MCK"), quote!(crate::spi::MckPin)),
         (("spi", "I2S_CK"), quote!(crate::spi::CkPin)),
         (("spi", "I2S_WS"), quote!(crate::spi::WsPin)),
-        (("i2c", "SDA"), quote!(crate::i2c::SdaPin)),
-        (("i2c", "SCL"), quote!(crate::i2c::SclPin)),
+        // (("i2c", "SDA"), quote!(crate::i2c::SdaPin)),
+        // (("i2c", "SCL"), quote!(crate::i2c::SclPin)),
         // (("rcc", "MCO_1"), quote!(crate::rcc::McoPin)),
         // (("rcc", "MCO_2"), quote!(crate::rcc::McoPin)),
         // (("rcc", "MCO"), quote!(crate::rcc::McoPin)),
@@ -1528,16 +1528,6 @@ fn main() {
         }
     }
 
-    #[cfg(feature = "_dual-core")]
-    let mut dma_ch_to_irq: BTreeMap<&str, Vec<String>> = BTreeMap::new();
-
-    #[cfg(feature = "_dual-core")]
-    for (irq, channels) in &dma_irqs {
-        for channel in channels {
-            dma_ch_to_irq.entry(channel).or_default().push(irq.to_string());
-        }
-    }
-
     for (ch_idx, ch) in METADATA.dma_channels.iter().enumerate() {
         // Some H7 chips have BDMA1 hardcoded for DFSDM, ie no DMAMUX. It's unsupported, skip it.
         if has_dmamux && ch.dmamux.is_none() {
@@ -1546,15 +1536,6 @@ fn main() {
 
         let name = format_ident!("{}", ch.name);
         let idx = ch_idx as u8;
-        #[cfg(feature = "_dual-core")]
-        let irq = {
-            let irq_name = if let Some(x) = &dma_ch_to_irq.get(ch.name) {
-                format_ident!("{}", x.get(0).unwrap())
-            } else {
-                panic!("failed to find dma interrupt")
-            };
-            quote!(crate::pac::Interrupt::#irq_name)
-        };
 
         g.extend(quote!(dma_channel_impl!(#name, #idx);));
 
@@ -1586,20 +1567,10 @@ fn main() {
             None => quote!(),
         };
 
-        #[cfg(not(feature = "_dual-core"))]
         dmas.extend(quote! {
             crate::dma::ChannelInfo {
                 dma: #dma_info,
                 num: #ch_num,
-                #dmamux
-            },
-        });
-        #[cfg(feature = "_dual-core")]
-        dmas.extend(quote! {
-            crate::dma::ChannelInfo {
-                dma: #dma_info,
-                num: #ch_num,
-                irq: #irq,
                 #dmamux
             },
         });
@@ -1633,13 +1604,13 @@ fn main() {
     //     pub(crate) const DMA_CHANNELS: &[crate::dma::ChannelInfo] = &[#dmas];
     // });
 
-    // for irq in METADATA.interrupts {
-    //     let name = irq.name.to_ascii_uppercase();
-    //     interrupts_table.push(vec![name.clone()]);
-    //     if name.contains("EXTI") {
-    //         interrupts_table.push(vec!["EXTI".to_string(), name.clone()]);
-    //     }
-    // }
+    for irq in METADATA.interrupts {
+        let name = irq.name.to_ascii_uppercase();
+        interrupts_table.push(vec![name.clone()]);
+        if name.contains("EXTI") {
+            interrupts_table.push(vec!["EXTI".to_string(), name.clone()]);
+        }
+    }
 
     let mut m = clocks_macro.to_string();
 
