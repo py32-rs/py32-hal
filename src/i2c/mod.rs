@@ -99,7 +99,7 @@ impl Config {
 /// I2C driver.
 pub struct I2c<'d, M: Mode> {
     info: &'static Info,
-    state: &'static State,
+    _state: &'static State,
     kernel_clock: Hertz,
     scl: Option<PeripheralRef<'d, AnyPin>>,
     sda: Option<PeripheralRef<'d, AnyPin>>,
@@ -171,7 +171,7 @@ impl<'d, M: Mode> I2c<'d, M> {
 
         let mut this = Self {
             info: T::info(),
-            state: T::state(),
+            _state: T::state(),
             kernel_clock: T::frequency(),
             scl,
             sda,

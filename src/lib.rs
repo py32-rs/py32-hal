@@ -6,7 +6,6 @@ mod fmt;
 include!(concat!(env!("OUT_DIR"), "/_macros.rs"));
 
 mod macros;
-use macros::*;
 
 pub use py32_metapac as pac;
 

@@ -4,12 +4,12 @@
 //!
 //! All other devices (as of 2023-12-28) use [`v2`](super::v2) instead.
 
-use core::future::poll_fn;
-use core::task::Poll;
+// use core::future::poll_fn;
+// use core::task::Poll;
 
 use embassy_embedded_hal::SetConfig;
-use embassy_futures::select::{select, Either};
-use embassy_hal_internal::drop::OnDrop;
+// use embassy_futures::select::{select, Either};
+// use embassy_hal_internal::drop::OnDrop;
 use embedded_hal_1::i2c::Operation;
 
 use super::*;
@@ -343,15 +343,15 @@ impl<'d, M: PeriMode> I2c<'d, M> {
         Ok(())
     }
 
-    // Async
+    // // Async
 
-    #[inline] // pretty sure this should always be inlined
-    fn enable_interrupts(info: &'static Info) -> () {
-        info.regs.cr2().modify(|w| {
-            w.set_iterren(true);
-            w.set_itevten(true);
-        });
-    }
+    // #[inline] // pretty sure this should always be inlined
+    // fn enable_interrupts(info: &'static Info) -> () {
+    //     info.regs.cr2().modify(|w| {
+    //         w.set_iterren(true);
+    //         w.set_itevten(true);
+    //     });
+    // }
 }
 
 // impl<'d> I2c<'d, Async> {
