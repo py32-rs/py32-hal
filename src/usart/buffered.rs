@@ -9,8 +9,6 @@ use embassy_hal_internal::atomic_ring_buffer::RingBuffer;
 use embassy_hal_internal::{Peripheral, PeripheralRef};
 use embassy_sync::waitqueue::AtomicWaker;
 
-#[cfg(not(any(usart_v1, usart_v2)))]
-use super::DePin;
 use super::{
     clear_interrupt_flags, configure, rdr, reconfigure, send_break, sr, tdr, Config, ConfigError, CtsPin, Error, Info,
     Instance, Regs, RtsPin, RxPin, TxPin,
@@ -36,7 +34,7 @@ unsafe fn on_interrupt(r: Regs, state: &'static State) {
     // On v1 & v2, reading DR clears the rxne, error and idle interrupt
     // flags. Keep this close to the SR read to reduce the chance of a
     // flag being set in-between.
-    let dr = if sr_val.rxne() || cfg!(any(usart_v1, usart_v2)) && (sr_val.ore() || sr_val.idle()) {
+    let dr = if sr_val.rxne() || (sr_val.ore() || sr_val.idle()) {
         Some(rdr(r).read_volatile())
     } else {
         None
@@ -81,7 +79,6 @@ unsafe fn on_interrupt(r: Regs, state: &'static State) {
     // For other usart variants it shows that last byte from the buffer was just sent.
     if sr_val.tc() {
         // For others it is cleared above with `clear_interrupt_flags`.
-        #[cfg(any(usart_v1, usart_v2))]
         sr(r).modify(|w| w.set_tc(false));
 
         r.cr1().modify(|w| {
@@ -294,31 +291,6 @@ impl<'d> BufferedUart<'d> {
         )
     }
 
-    /// Create a new bidirectional buffered UART driver with a driver-enable pin
-    #[cfg(not(any(usart_v1, usart_v2)))]
-    pub fn new_with_de<T: Instance>(
-        peri: impl Peripheral<P = T> + 'd,
-        _irq: impl interrupt::typelevel::Binding<T::Interrupt, InterruptHandler<T>> + 'd,
-        rx: impl Peripheral<P = impl RxPin<T>> + 'd,
-        tx: impl Peripheral<P = impl TxPin<T>> + 'd,
-        de: impl Peripheral<P = impl DePin<T>> + 'd,
-        tx_buffer: &'d mut [u8],
-        rx_buffer: &'d mut [u8],
-        config: Config,
-    ) -> Result<Self, ConfigError> {
-        Self::new_inner(
-            peri,
-            new_pin!(rx, AfType::input(config.rx_pull)),
-            new_pin!(tx, AfType::output(OutputType::PushPull, Speed::Medium)),
-            None,
-            None,
-            new_pin!(de, AfType::output(OutputType::PushPull, Speed::Medium)),
-            tx_buffer,
-            rx_buffer,
-            config,
-        )
-    }
-
     fn new_inner<T: Instance>(
         _peri: impl Peripheral<P = T> + 'd,
         rx: Option<PeripheralRef<'d, AnyPin>>,
@@ -375,8 +347,6 @@ impl<'d> BufferedUart<'d> {
         info.regs.cr3().write(|w| {
             w.set_rtse(self.rx.rts.is_some());
             w.set_ctse(self.tx.cts.is_some());
-            #[cfg(not(any(usart_v1, usart_v2)))]
-            w.set_dem(self.tx.de.is_some());
         });
         configure(info, self.rx.kernel_clock, &config, true, true)?;
 
