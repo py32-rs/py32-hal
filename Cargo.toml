@@ -29,6 +29,9 @@ embedded-hal-1 = { package = "embedded-hal", version = "1.0" }
 embedded-hal-async = { version = "1.0" }
 embedded-hal-nb = { version = "1.0" }
 embedded-can = "0.4"
+embedded-io = { version = "0.6.0" }
+embedded-io-async = { version = "0.6.1" }
+nb = "1.0.0"
 
 defmt = { version = "0.3", optional = true }
 defmt-rtt = { version = "0.4", optional = true }
