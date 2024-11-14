@@ -185,6 +185,15 @@ pub(crate) unsafe fn init(config: Config) {
     //     }
     // });
 
+    // Temporarily: set flash latency
+    if hclk1.0 > 24_000_000 {
+        unsafe {
+            let acr_reg = 0x4002_2000 as *mut u32;
+            let value = acr_reg.read_volatile() | 0x1;
+            acr_reg.write_volatile(value);
+        }
+    }
+
     // Set prescalers
     // CFGR has been written before (PLL, PLL48) don't overwrite these settings
     RCC.cfgr().modify(|w| {
