@@ -47,7 +47,7 @@ For a full list of chip capabilities and peripherals, check the [py32-data](http
 | INTERRUPT  |                 | ✅               |                 |      |
 | DMA        | N/A             |                 |                 |      |
 | EXTI       |                 | ✅+              |                 |      |
-| USART      |                 |                 |                 |      |
+| USART      |                 | ✅               |                 |      |
 | I2C        |                 | ✅               |                 |      |
 | SPI        |                 |                 |                 |      |
 | ADC        |                 | ✅+              |                 |      |

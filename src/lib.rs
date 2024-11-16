@@ -39,6 +39,7 @@ pub mod rcc;
 pub mod i2c;
 pub mod adc;
 pub mod dma;
+pub mod usart;
 pub mod timer;
 #[cfg(feature = "_time-driver")]
 pub mod time_driver;
