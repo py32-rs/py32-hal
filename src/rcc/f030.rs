@@ -1,7 +1,7 @@
 // use crate::pac::flash::vals::Latency;
 use crate::pac::rcc::vals::Pllsrc;
 // pub use crate::pac::rcc::vals::Prediv as PllPreDiv;
-pub use crate::pac::rcc::vals::{Hpre as AHBPrescaler, Ppre as APBPrescaler, Sw as Sysclk, HsiFs};
+pub use crate::pac::rcc::vals::{Hpre as AHBPrescaler, Ppre as APBPrescaler, Sw as Sysclk, HsiFs, Hsidiv};
 use crate::pac::{/* FLASH , */RCC};
 use crate::time::Hertz;
 
@@ -18,6 +18,14 @@ pub enum HseMode {
 
 #[derive(Clone, Copy, Eq, PartialEq)]
 pub struct Hse {
+    /// HSE frequency.
+    pub freq: Hertz,
+    /// HSE mode.
+    pub mode: HseMode,
+}
+
+#[derive(Clone, Copy, Eq, PartialEq)]
+pub struct Hsi {
     /// HSE frequency.
     pub freq: Hertz,
     /// HSE mode.
@@ -48,6 +56,7 @@ pub struct Pll {
 #[derive(Clone, Copy)]
 pub struct Config {
     pub hsi: Option<Hertz>,
+    pub hsidiv: Hsidiv,
     pub hse: Option<Hse>,
     pub sys: Sysclk,
 
@@ -67,6 +76,7 @@ impl Default for Config {
             hsi: Some(Hertz::mhz(8)),
             hse: None,
             sys: Sysclk::HSI,
+            hsidiv: Hsidiv::DIV1,
             pll: None,
             ahb_pre: AHBPrescaler::DIV1,
             apb1_pre: APBPrescaler::DIV1,
@@ -98,6 +108,8 @@ pub(crate) unsafe fn init(config: Config) {
     // Use the HSI clock as system clock during the actual clock setup
     RCC.cfgr().modify(|w| w.set_sw(Sysclk::HSI));
     while RCC.cfgr().read().sws() != Sysclk::HSI {}
+
+    RCC.cr().modify(|w| w.set_hsidiv(config.hsidiv));
 
     // Configure HSI
     let hsi = config.hsi;
@@ -155,7 +167,7 @@ pub(crate) unsafe fn init(config: Config) {
 
     // Configure sysclk
     let sys = match config.sys {
-        Sysclk::HSI => unwrap!(hsi),
+        Sysclk::HSI => unwrap!(hsi) / config.hsidiv,
         Sysclk::HSE => unwrap!(hse),
         Sysclk::PLL => unwrap!(pll),
         _ => unreachable!(),
