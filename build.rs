@@ -199,22 +199,19 @@ fn main() {
     let time_driver_singleton = match time_driver.as_ref().map(|x| x.as_ref()) {
         None => "",
         Some("tim1") => "TIM1",
-        // Some("tim2") => "TIM2",
+        Some("tim2") => "TIM2",
         Some("tim3") => "TIM3",
-        // Some("tim4") => "TIM4",
-        // Some("tim5") => "TIM5",
-        // Some("tim8") => "TIM8",
-        // Some("tim9") => "TIM9",
-        // Some("tim12") => "TIM12",
-        // Some("tim14") => "TIM14",
-        // Some("tim15") => "TIM15",
-        // Some("tim16") => "TIM16",
-        // Some("tim17") => "TIM17",
-        // Some("tim20") => "TIM20",
-        // Some("tim21") => "TIM21",
-        // Some("tim22") => "TIM22",
-        // Some("tim23") => "TIM23",
-        // Some("tim24") => "TIM24",
+        Some("tim4") => "TIM4",
+        Some("tim5") => "TIM5",
+        Some("tim8") => "TIM8",
+        Some("tim9") => "TIM9",
+        Some("tim12") => "TIM12",
+        Some("tim15") => "TIM15",
+        Some("tim20") => "TIM20",
+        Some("tim21") => "TIM21",
+        Some("tim22") => "TIM22",
+        Some("tim23") => "TIM23",
+        Some("tim24") => "TIM24",
         Some("any") => {
             // Order of TIM candidators:
             // 1. 2CH -> 2CH_CMP -> GP16 -> GP32 -> ADV
@@ -228,9 +225,9 @@ fn main() {
             // ]
             [
                 // 2CH
-                // 2CH_CMP
+                "TIM15", // 2CH_CMP
                 "TIM3", // GP16
-                // GP32
+                "TIM2", // GP32
                 "TIM1", //ADV
             ]
             .iter()
@@ -243,7 +240,7 @@ fn main() {
         cfgs.enable(format!("time_driver_{}", time_driver_singleton.to_lowercase()));
     }
     for tim in [
-        "tim1", "tim2", "tim3", "tim4", "tim5", "tim8", "tim9", "tim12", /*"tim14", "tim15", "tim16", "tim17",*/ "tim20", "tim21", "tim22", "tim23",
+        "tim1", "tim2", "tim3", "tim4", "tim5", "tim8", "tim9", "tim12", "tim15", "tim20", "tim21", "tim22", "tim23",
         "tim24",
     ] {
         cfgs.declare(format!("time_driver_{}", tim));

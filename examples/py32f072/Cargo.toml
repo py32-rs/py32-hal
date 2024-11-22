@@ -20,7 +20,7 @@ embassy-time = { version = "0.3.2", features = ["defmt", "defmt-timestamp-uptime
 embedded-io = { version = "0.6.0" }
 embedded-io-async = { version = "0.6.1" }
 
-py32-hal = { path = "../../", features = [ "time-driver-tim3", "py32f072c1b"]}
+py32-hal = { path = "../../", features = [ "time-driver-tim15", "py32f072c1b"]}
 
 defmt = "0.3"
 defmt-rtt = "0.4"

@@ -96,6 +96,7 @@ py32f072c1b = ["py32-metapac/py32f072c1b"]
 time-driver-any = ["_time-driver"]
 time-driver-tim1 = ["_time-driver"]
 time-driver-tim3 = ["_time-driver"]
+time-driver-tim15 = ["_time-driver"]
 
 
 _time-driver = []
