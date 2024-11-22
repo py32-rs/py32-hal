@@ -87,6 +87,7 @@ exti = []
 
 py32f030k28 = ["py32-metapac/py32f030k28"]
 py32f030f16 = ["py32-metapac/py32f030f16"]
+py32f072c1b = ["py32-metapac/py32f072c1b"]
 
 # As of 2023-12-04, this driver is implemented using CC1 as the halfway rollover interrupt, and any
 # additional CC capabilities to provide timer alarms to embassy-time. embassy-time requires AT LEAST
