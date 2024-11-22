@@ -26,14 +26,18 @@ Keypoints:
 - Embassy support
 - All-in-one metapac for peripheral register access, check [py32-data](https://github.com/py32-rs/py32-data) for more
 - All-in-one HAL crate, no need to create a new crate for each chip
-- Async drivers, with async/await support, DMA (TODO)support
+- Async drivers, with async/await support, DMA(TODO) support
 - Write once, run on all supported chips(should be)
 
 ## Supported Devices and Peripherals
 
 Currently, supported chips are listed in `Cargo.toml` as feature flags.
 
-Supported chip flags: `py32f030f16`, `py32f030k28`, More is coming...
+Supported chip flags: `py32f030f16`, `py32f030k28`, `py32f072c1b`, More is coming...
+
+Note: Currently the program behavior has nothing to do with chip packaging.
+
+
 
 others should work if you are careful as most peripherals are similar enough.In fact, the IPs of peripherals in different PY32 series may be consistent. Moreover, some series use the same die, so it might not require much work.
 
@@ -41,18 +45,18 @@ For a full list of chip capabilities and peripherals, check the [py32-data](http
 
 | Family     | F002B/L020/F001 | F030/F003/F002A | F040/F07x/MD410 | F403 |
 | ---------- | --------------- | --------------- | --------------- | ---- |
-| Embassy    |                 | ✅               |                 |      |
-| RCC        |                 | ✅               |                 |      |
-| GPIO       |                 | ✅               |                 |      |
-| INTERRUPT  |                 | ✅               |                 |      |
+| Embassy    |                 | ✅               | ✅               |      |
+| RCC        |                 | ✅               | ✅               |      |
+| GPIO       |                 | ✅               | ✅               |      |
+| INTERRUPT  |                 | ✅               | ✅               |      |
 | DMA        | N/A             |                 |                 |      |
-| EXTI       |                 | ✅+              |                 |      |
-| USART      |                 | ✅               |                 |      |
-| I2C        |                 | ✅               |                 |      |
+| EXTI       |                 | ✅+              | ❓               |      |
+| USART      |                 | ✅               | ❓               |      |
+| I2C        |                 | ✅               | ❓               |      |
 | SPI        |                 |                 |                 |      |
-| ADC        |                 | ✅+              |                 |      |
+| ADC        |                 | ✅+              | ❓               |      |
 | RTC        |                 |                 |                 |      |
-| Timer(PWM) |                 | ✅               |                 |      |
+| Timer(PWM) |                 | ✅               | ❓               |      |
 | USB/OTG    | N/A             | N/A             |                 |      |
 
 - ✅ : Expected to work
@@ -66,11 +70,17 @@ For a full list of chip capabilities and peripherals, check the [py32-data](http
 
 Too many...
 
-- DMA Support (Channel Map, Codegen, API, RingBuffer, I2C...)
+- DMA support (channel map, codegen, API, RingBuffer, I2C...)
+
+- Test F072 peripherals
+
+- HSE test and examples
 
 - Other series
 
-- SPI, USART
+- SPI, RTC
+
+- F072 TIM2(GP32) support
 
 - ...
 
