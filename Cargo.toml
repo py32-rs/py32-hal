@@ -13,8 +13,10 @@ readme = "README.md"
 license = "MIT OR Apache-2.0"
 
 [dependencies]
-py32-metapac = "0.1.0"
+# py32-metapac = "0.1.0"
 # py32-metapac = { path = "../py32-data/build/py32-metapac"}
+py32-metapac = { git = "https://github.com/py32-rs/py32-metapac.git" }
+
 
 cortex-m = { version = "0.7.7", features = [
     "critical-section-single-core",
@@ -59,7 +61,8 @@ embassy-embedded-hal = { version = "0.2.0", default-features = false }
 
 [build-dependencies]
 # py32-metapac = { path = "../py32-data/build/py32-metapac", default-features = false, features = [
-py32-metapac = { version = "0.1.0", default-features = false, features = [
+# py32-metapac = { version = "0.1.0", default-features = false, features = [
+py32-metapac = { git = "https://github.com/py32-rs/py32-metapac.git", default-features = false, features = [
     "metadata",
 ] }
 
