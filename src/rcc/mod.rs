@@ -7,8 +7,9 @@ use crate::pac::RCC;
 pub use crate::_generated::mux;
 use crate::time::Hertz;
 
-mod f030;
-pub use f030::*;
+#[cfg_attr(py32f0, path = "f0.rs")]
+mod _version;
+pub use _version::*;
 
 #[derive(Clone, Copy, Debug)]
 #[cfg_attr(feature = "defmt", derive(defmt::Format))]

@@ -29,49 +29,42 @@ use crate::{interrupt, peripherals};
 // available after reserving CC1 for regular time keeping. For example, TIM2 has four CC registers:
 // CC1, CC2, CC3, and CC4, so it can provide ALARM_COUNT = 3.
 
-// cfg_if::cfg_if! {
-//     if #[cfg(any(time_driver_tim14, time_driver_tim16, time_driver_tim17))] {
-//         const ALARM_COUNT: usize = 1;
-//     } else {
-//         const ALARM_COUNT: usize = 3;
-//     }
-// }
-const ALARM_COUNT: usize = 3;
+cfg_if::cfg_if! {
+    if #[cfg(any(time_driver_tim15))] {
+        const ALARM_COUNT: usize = 1;
+    } else {
+        const ALARM_COUNT: usize = 3;
+    }
+}
 
 #[cfg(time_driver_tim1)]
 type T = peripherals::TIM1;
-// #[cfg(time_driver_tim2)]
-// type T = peripherals::TIM2;
+#[cfg(time_driver_tim2)]
+type T = peripherals::TIM2;
 #[cfg(time_driver_tim3)]
 type T = peripherals::TIM3;
-// #[cfg(time_driver_tim4)]
-// type T = peripherals::TIM4;
-// #[cfg(time_driver_tim5)]
-// type T = peripherals::TIM5;
-// #[cfg(time_driver_tim8)]
-// type T = peripherals::TIM8;
-// #[cfg(time_driver_tim9)]
-// type T = peripherals::TIM9;
-// #[cfg(time_driver_tim12)]
-// type T = peripherals::TIM12;
-// #[cfg(time_driver_tim14)]
-// type T = peripherals::TIM14;
-// #[cfg(time_driver_tim15)]
-// type T = peripherals::TIM15;
-// #[cfg(time_driver_tim16)]
-// type T = peripherals::TIM16;
-// #[cfg(time_driver_tim17)]
-// type T = peripherals::TIM17;
-// #[cfg(time_driver_tim20)]
-// type T = peripherals::TIM20;
-// #[cfg(time_driver_tim21)]
-// type T = peripherals::TIM21;
-// #[cfg(time_driver_tim22)]
-// type T = peripherals::TIM22;
-// #[cfg(time_driver_tim23)]
-// type T = peripherals::TIM23;
-// #[cfg(time_driver_tim24)]
-// type T = peripherals::TIM24;
+#[cfg(time_driver_tim4)]
+type T = peripherals::TIM4;
+#[cfg(time_driver_tim5)]
+type T = peripherals::TIM5;
+#[cfg(time_driver_tim8)]
+type T = peripherals::TIM8;
+#[cfg(time_driver_tim9)]
+type T = peripherals::TIM9;
+#[cfg(time_driver_tim12)]
+type T = peripherals::TIM12;
+#[cfg(time_driver_tim15)]
+type T = peripherals::TIM15;
+#[cfg(time_driver_tim20)]
+type T = peripherals::TIM20;
+#[cfg(time_driver_tim21)]
+type T = peripherals::TIM21;
+#[cfg(time_driver_tim22)]
+type T = peripherals::TIM22;
+#[cfg(time_driver_tim23)]
+type T = peripherals::TIM23;
+#[cfg(time_driver_tim24)]
+type T = peripherals::TIM24;
 
 foreach_interrupt! {
     (TIM1, timer, $block:ident, CC, $irq:ident) => {
@@ -154,14 +147,6 @@ foreach_interrupt! {
             DRIVER.on_interrupt()
         }
     };
-    // (TIM14, timer, $block:ident, CC, $irq:ident) => {
-    //     #[cfg(time_driver_tim14)]
-    //     #[cfg(feature = "rt")]
-    //     #[interrupt]
-    //     fn $irq() {
-    //         DRIVER.on_interrupt()
-    //     }
-    // };
     (TIM15, timer, $block:ident, CC, $irq:ident) => {
         #[cfg(time_driver_tim15)]
         #[cfg(feature = "rt")]
@@ -170,22 +155,6 @@ foreach_interrupt! {
             DRIVER.on_interrupt()
         }
     };
-    // (TIM16, timer, $block:ident, CC, $irq:ident) => {
-    //     #[cfg(time_driver_tim16)]
-    //     #[cfg(feature = "rt")]
-    //     #[interrupt]
-    //     fn $irq() {
-    //         DRIVER.on_interrupt()
-    //     }
-    // };
-    // (TIM17, timer, $block:ident, CC, $irq:ident) => {
-    //     #[cfg(time_driver_tim17)]
-    //     #[cfg(feature = "rt")]
-    //     #[interrupt]
-    //     fn $irq() {
-    //         DRIVER.on_interrupt()
-    //     }
-    // };
     (TIM20, timer, $block:ident, CC, $irq:ident) => {
         #[cfg(time_driver_tim20)]
         #[cfg(feature = "rt")]

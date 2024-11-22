@@ -2,6 +2,9 @@
 use crate::pac::rcc::vals::Pllsrc;
 // pub use crate::pac::rcc::vals::Prediv as PllPreDiv;
 pub use crate::pac::rcc::vals::{Hpre as AHBPrescaler, Ppre as APBPrescaler, Sw as Sysclk, HsiFs, Hsidiv};
+#[cfg(rcc_f072)]
+pub use crate::pac::rcc::vals::Pllmul as PllMul;
+
 use crate::pac::{/* FLASH , */RCC};
 use crate::time::Hertz;
 
@@ -47,8 +50,9 @@ pub struct Pll {
     // /// On some chips, this must be 2 if `src == HSI`. Init will panic if this is not the case.
     // pub prediv: PllPreDiv,
 
-    // /// PLL multiplication factor.
-    // pub mul: PllMul,
+    #[cfg(rcc_f072)]
+    /// PLL multiplication factor.
+    pub mul: PllMul,
 }
 
 /// Clocks configutation
@@ -92,12 +96,24 @@ pub(crate) unsafe fn init(config: Config) {
     RCC.cr().modify(|w| w.set_hsion(true));
     if let Some(value) = config.hsi {
         let val = value.0;
+
+        #[cfg(rcc_f030)]
         let (fs_val, trim_addr): (HsiFs, usize) = match val {
             4_000_000u32 => (HsiFs::HSI_4MHZ, 0x1FFF_0F00),
             8_000_000u32 => (HsiFs::HSI_8MHZ, 0x1FFF_0F04),
             16_000_000u32 => (HsiFs::HSI_16MHZ, 0x1FFF_0F08),
             22_120_000u32 => (HsiFs::HSI_22_12MHZ, 0x1FFF_0F0C),
             24_000_000u32 => (HsiFs::HSI_24MHZ, 0x1FFF_0F10),
+            _ => panic!("Unsupported HSI frequency"),
+        };
+
+        #[cfg(rcc_f072)]
+        let (fs_val, trim_addr): (HsiFs, usize) = match val {
+            4_000_000u32 => (HsiFs::HSI_4MHZ, 0x1FFF_3200),
+            8_000_000u32 => (HsiFs::HSI_8MHZ, 0x1FFF_3208),
+            16_000_000u32 => (HsiFs::HSI_16MHZ, 0x1FFF_3210),
+            22_120_000u32 => (HsiFs::HSI_22_12MHZ, 0x1FFF_3218),
+            24_000_000u32 => (HsiFs::HSI_24MHZ, 0x1FFF_3220),
             _ => panic!("Unsupported HSI frequency"),
         };
         let trim_val = (unsafe { *(trim_addr as *const u32) } & 0x1FFF ) as u16;
@@ -140,14 +156,21 @@ pub(crate) unsafe fn init(config: Config) {
             PllSource::HSE => (Pllsrc::HSE, unwrap!(hse)),
             PllSource::HSI => (Pllsrc::HSI, unwrap!(hsi)),
         };
+        #[cfg(rcc_f030)]
         let out_freq = src_freq * 2u8;
+        #[cfg(rcc_f072)]
+        let out_freq = src_freq * pll.mul;
         assert!(max::PLL_IN.contains(&src_freq));
         // assert!(max::PLL_OUT.contains(&pll.src.out_freq(pll.mul)));
 
         RCC.cr().modify(|w| w.set_pllon(false));
         while RCC.cr().read().pllrdy() {}
 
-        RCC.pllcfgr().modify(|w| w.set_pllsrc(src_val));
+        RCC.pllcfgr().modify(|w| {
+            #[cfg(rcc_f072)]
+            w.set_pllmul(pll.mul);
+            w.set_pllsrc(src_val);
+        });
         RCC.cr().modify(|w| w.set_pllon(true));
         cortex_m::asm::delay(1_000);
         while !RCC.cr().read().pllrdy() {}
@@ -197,14 +220,19 @@ pub(crate) unsafe fn init(config: Config) {
     //     }
     // });
 
+
+    let latency: u32 = match hclk1.0 {
+        ..=24_000_000 => 0,
+        ..=48_000_000 => 1,
+        _ => 2,
+    };
     // Temporarily: set flash latency
-    if hclk1.0 > 24_000_000 {
-        unsafe {
-            let acr_reg = 0x4002_2000 as *mut u32;
-            let value = acr_reg.read_volatile() | 0x1;
-            acr_reg.write_volatile(value);
-        }
+    unsafe {
+        let acr_reg = 0x4002_2000 as *mut u32;
+        let value = acr_reg.read_volatile() | latency;
+        acr_reg.write_volatile(value);
     }
+    
 
     // Set prescalers
     // CFGR has been written before (PLL, PLL48) don't overwrite these settings
@@ -285,7 +313,7 @@ mod max {
     // pub(crate) const HCLK: RangeInclusive<Hertz> = Hertz(0)..=Hertz(48_000_000);
     // pub(crate) const PCLK1: RangeInclusive<Hertz> = Hertz(0)..=Hertz(48_000_000);
 
-    // py32f030
+    #[cfg(any(rcc_f030, rcc_f072))]
     pub(crate) const PLL_IN: RangeInclusive<Hertz> = Hertz(16_000_000)..=Hertz(24_000_000);
     // pub(crate) const PLL_OUT: RangeInclusive<Hertz> = Hertz(16_000_000)..=Hertz(48_000_000);
 }
