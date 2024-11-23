@@ -3,10 +3,12 @@
 #![macro_use]
 #![allow(missing_docs)] // TODO
 
-mod v1;
+#[cfg_attr(adc_v1, path = "v1.rs")]
+#[cfg_attr(adc_v2, path = "v2.rs")]
+mod _version;
 
 #[allow(unused)]
-pub use v1::*;
+pub use _version::*;
 
 use core::marker::PhantomData;
 use embassy_sync::waitqueue::AtomicWaker;
