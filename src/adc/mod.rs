@@ -42,6 +42,7 @@ impl State {
 trait SealedInstance {
     #[allow(unused)]
     fn regs() -> crate::pac::adc::Adc;
+    #[allow(unused)]
     fn state() -> &'static State;
 }
 
