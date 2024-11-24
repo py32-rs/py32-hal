@@ -71,7 +71,7 @@ impl<'d, T: Instance> Adc<'d, T> {
         // tstab = 14 * 1/fadc
         blocking_delay_us(1);
 
-        Self::calibration();
+        Self::calibrate();
 
         // A.7.2 ADC enable sequence code example
         // if T::regs().isr().read().adrdy() {
@@ -97,7 +97,7 @@ impl<'d, T: Instance> Adc<'d, T> {
         }
     }
 
-    pub fn calibration() {
+    pub fn calibrate() {
         // Precautions
         // When the working conditions of the ADC change (VCC changes are the main factor affecting ADC offset shifts, followed by temperature changes), it is recommended to recalibrate the ADC.
         // A software calibration process must be added before using the ADC module for the first time.

@@ -62,7 +62,8 @@ pub enum Prescaler {
 }
 
 impl Prescaler {
-    //
+    // I couldn't find the MAX_FREQUENCY for the PY32. 
+    // Therefore, the division factor is left for the user to decide.
 
     // fn from_pclk2(freq: Hertz) -> Self {
     //     // Datasheet for F2 specifies min frequency 0.6 MHz, and max 30 MHz (with VDDA 2.4-3.6V).
@@ -95,6 +96,7 @@ impl<'d, T> Adc<'d, T>
 where
     T: Instance,
 {
+    /// adc_div: The PCLK division factor.
     pub fn new(adc: impl Peripheral<P = T> + 'd, adc_div: Prescaler) -> Self {
         into_ref!(adc);
         rcc::enable_and_reset::<T>();
@@ -106,6 +108,8 @@ where
         T::regs().cr2().modify(|reg| {
             reg.set_extsel(Extsel::SWSTART);
         });
+
+        Self::calibrate();
 
         T::regs().cr2().modify(|reg| {
             reg.set_adon(true);
@@ -205,6 +209,48 @@ where
             ..=19 => T::regs().smpr2().modify(|reg| reg.set_smp((ch - 10) as _, sample_time)),
             _ => T::regs().smpr3().modify(|reg| reg.set_smp((ch - 20) as _, sample_time)),
         }
+    }
+
+
+    /// Perform ADC automatic self-calibration
+    pub fn calibrate() {
+        T::regs().cr2().modify(|reg| {
+            reg.set_adon(false);
+        });
+
+        while T::regs().cr2().read().adon() { }
+
+        // Wait for ADC to be fully disabled
+        // Compute and wait for required ADC clock cycles
+
+        let adc_clock_mhz = 72_u32; // MAX
+        let cpu_clock_mhz = unsafe { rcc::get_freqs() }.sys.to_hertz().unwrap().0 / 1_000_000; 
+        #[cfg(py32f072)]
+        let precalibration_cycles = 2_u32;
+
+        let delay_us = (precalibration_cycles * adc_clock_mhz) / cpu_clock_mhz;
+        blocking_delay_us(delay_us);
+
+        // Check if ADC is enabled
+        if T::regs().cr2().read().adon() {
+            panic!();
+        }
+
+        // Reset calibration
+        T::regs().cr2().modify(|reg| {
+            reg.set_rstcal(true);
+        });
+
+        // Wait for calibration reset to complete
+        while T::regs().cr2().read().rstcal() { }
+
+        // Start calibration
+        T::regs().cr2().modify(|reg| {
+            reg.set_cal(true);
+        });
+
+        // Wait for calibration to complete
+        while T::regs().cr2().read().cal() { }
     }
 }
 
