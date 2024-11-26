@@ -7,7 +7,7 @@ use embassy_executor::Spawner;
 use embassy_time::Timer;
 use py32_hal::rcc::{Pll, PllSource, Sysclk, PllMul};
 use py32_hal::time::Hertz;
-use py32_hal::adc::{Adc, SampleTime, Prescaler};
+use py32_hal::adc::{Adc, SampleTime};
 use {defmt_rtt as _, panic_probe as _};
 
 #[embassy_executor::main]
@@ -25,6 +25,8 @@ async fn main(_spawner: Spawner) {
 
     // Automatically calculate the minimum prescaler using PCLK.
     let mut adc = Adc::new(p.ADC);
+    
+    // use py32_hal::adc::Prescaler;
     // let mut adc = Adc::new_with_prediv(p.ADC, Prescaler::Div4);
 
     // The minimum conversion time for each resolution is as follows (sampling time + conversion time): 

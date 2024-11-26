@@ -54,7 +54,7 @@ For a full list of chip capabilities and peripherals, check the [py32-data](http
 | USART      |                 | ✅               | ❓               |      |
 | I2C        |                 | ✅               | ❓               |      |
 | SPI        |                 |                 |                 |      |
-| ADC        |                 | ✅+              | ❓               |      |
+| ADC        |                 | ✅+              | ✅               |      |
 | RTC        |                 |                 |                 |      |
 | Timer(PWM) |                 | ✅               | ❓               |      |
 | USB/OTG    | N/A             | N/A             |                 |      |
