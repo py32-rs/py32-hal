@@ -4,7 +4,7 @@ use super::blocking_delay_us;
 use crate::adc::{Adc, AdcChannel, Instance, Resolution, SampleTime};
 use crate::pac::adc::vals::Extsel;
 use crate::peripherals::ADC;
-// use crate::time::Hertz;
+use crate::time::Hertz;
 use crate::{rcc, Peripheral};
 use crate::pac::RCC;
 
@@ -62,25 +62,18 @@ pub enum Prescaler {
 }
 
 impl Prescaler {
-    // I couldn't find the MAX_FREQUENCY for the PY32. 
-    // Therefore, the division factor is left for the user to decide.
-
-    // fn from_pclk2(freq: Hertz) -> Self {
-    //     // Datasheet for F2 specifies min frequency 0.6 MHz, and max 30 MHz (with VDDA 2.4-3.6V).
-    //     #[cfg(stm32f2)]
-    //     const MAX_FREQUENCY: Hertz = Hertz(30_000_000);
-    //     // Datasheet for both F4 and F7 specifies min frequency 0.6 MHz, typ freq. 30 MHz and max 36 MHz.
-    //     #[cfg(not(stm32f2))]
-    //     const MAX_FREQUENCY: Hertz = Hertz(36_000_000);
-    //     let raw_div = freq.0 / MAX_FREQUENCY.0;
-    //     match raw_div {
-    //         0..=1 => Self::Div2,
-    //         2..=3 => Self::Div4,
-    //         4..=5 => Self::Div6,
-    //         6..=7 => Self::Div8,
-    //         _ => panic!("Selected PCLK2 frequency is too high for ADC with largest possible prescaler."),
-    //     }
-    // }
+    fn from_pclk(freq: Hertz) -> Self {
+        #[cfg(py32f072)]
+        const MAX_FREQUENCY: Hertz = Hertz(16_000_000);
+        let raw_div = freq.0 / MAX_FREQUENCY.0;
+        match raw_div {
+            0..=1 => Self::Div2,
+            2..=3 => Self::Div4,
+            4..=5 => Self::Div6,
+            6..=7 => Self::Div8,
+            _ => panic!("Selected PCLK frequency is too high for ADC with largest possible prescaler."),
+        }
+    }
 
     fn adcdiv(&self) -> crate::pac::rcc::vals::Adcdiv {
         match self {
@@ -96,12 +89,16 @@ impl<'d, T> Adc<'d, T>
 where
     T: Instance,
 {
-    /// adc_div: The PCLK division factor.
-    pub fn new(adc: impl Peripheral<P = T> + 'd, adc_div: Prescaler) -> Self {
+    pub fn new(adc: impl Peripheral<P = T> + 'd) -> Self {
+        let presc = Prescaler::from_pclk(T::frequency());
+        Self::new_with_prediv(adc, presc)
+    }
+
+    /// adc_div: The PCLK division factor
+    pub fn new_with_prediv(adc: impl Peripheral<P = T> + 'd, adc_div: Prescaler) -> Self {
         into_ref!(adc);
         rcc::enable_and_reset::<T>();
 
-        // let presc = Prescaler::from_pclk2(T::frequency());
         RCC.cr().modify(|reg| {
             reg.set_adcdiv(adc_div.adcdiv());
         });

@@ -23,7 +23,10 @@ async fn main(_spawner: Spawner) {
 
     info!("Hello World!");
 
-    let mut adc = Adc::new(p.ADC, Prescaler::Div4);
+    // Automatically calculate the minimum prescaler using PCLK.
+    let mut adc = Adc::new(p.ADC);
+    // let mut adc = Adc::new_with_prediv(p.ADC, Prescaler::Div4);
+
     // The minimum conversion time for each resolution is as follows (sampling time + conversion time): 
     // 12-bit: 3.5 + 12.5 = 16 ADCCLK cycles 
     // 10-bit: 3.5 + 10.5 = 14 ADCCLK cycles 
