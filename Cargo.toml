@@ -100,6 +100,11 @@ time-driver-tim15 = ["_time-driver"]
 
 time-driver-systick = ["portable-atomic"]
 
+# td == time-driver, to avoid confliction
+# By default, only one alarm is provided (similar to a 2-channel timer). Enabling this feature provides three alarms (similar to a 4-channel timer).
+# Of course, this will also increase the execution time of the interrupt handler.
+td-systick-multi-alarms = ["time-driver-systick"]
+
 _time-driver = []
 
 

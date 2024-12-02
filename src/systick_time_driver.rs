@@ -12,6 +12,7 @@ use embassy_sync::blocking_mutex::Mutex;
 use embassy_time_driver::{AlarmHandle, Driver, TICK_HZ};
 
 // Maximum number of supported alarms
+#[cfg(feature = "td-systick-multi-alarms")]
 const ALARM_COUNT: usize = 3;
 
 // Alarm state structure to manage individual alarms
@@ -40,7 +41,10 @@ pub(crate) struct SysTickDriver {
     // Number of allocated alarms
     alarm_count: AtomicU8,
     // Mutex-protected array of alarms
+    #[cfg(feature = "td-systick-multi-alarms")]
     alarms: Mutex<CriticalSectionRawMutex, [AlarmState; ALARM_COUNT]>,
+    #[cfg(not(feature = "td-systick-multi-alarms"))]
+    alarm: Mutex<CriticalSectionRawMutex, AlarmState>,
 }
 
 // Constant initialization for alarm states
@@ -51,7 +55,10 @@ const ALARM_STATE_NEW: AlarmState = AlarmState::new();
 embassy_time_driver::time_driver_impl!(static DRIVER: SysTickDriver = SysTickDriver {
     ticks: AtomicU64::new(0),
     alarm_count: AtomicU8::new(0),
+    #[cfg(feature = "td-systick-multi-alarms")]
     alarms: Mutex::const_new(CriticalSectionRawMutex::new(), [ALARM_STATE_NEW; ALARM_COUNT]),
+    #[cfg(not(feature = "td-systick-multi-alarms"))]
+    alarm: Mutex::const_new(CriticalSectionRawMutex::new(), ALARM_STATE_NEW),
 });
 
 impl SysTickDriver {
@@ -84,15 +91,29 @@ impl SysTickDriver {
             let current_ticks = self.ticks.fetch_add(1, Ordering::Relaxed);
 
             // Check and trigger any due alarms
+            #[cfg(feature = "td-systick-multi-alarms")]
             for n in 0..ALARM_COUNT {
                 self.check_and_trigger_alarm(n, current_ticks, cs);
             }
+
+            #[cfg(not(feature = "td-systick-multi-alarms"))]
+            self.check_and_trigger_alarm(current_ticks, cs);
         });
     }
 
     // Check if an alarm is due and trigger it if necessary
-    fn check_and_trigger_alarm(&self, n: usize, current_time: u64, cs: CriticalSection) {
+    #[inline]
+    fn check_and_trigger_alarm(&self,
+        #[cfg(feature = "td-systick-multi-alarms")]
+        n: usize,
+        current_time: u64,
+        cs: CriticalSection) {
+        
+        #[cfg(feature = "td-systick-multi-alarms")]
         let alarm = &self.alarms.borrow(cs)[n];
+        #[cfg(not(feature = "td-systick-multi-alarms"))]
+        let alarm = &self.alarm.borrow(cs);
+
         let alarm_timestamp = alarm.timestamp.get();
 
         // Check if alarm is scheduled and due
@@ -117,30 +138,58 @@ impl Driver for SysTickDriver {
     // Allocate a new alarm
     unsafe fn allocate_alarm(&self) -> Option<AlarmHandle> {
         critical_section::with(|_| {
-            let id = self.alarm_count.load(Ordering::Relaxed);
-            if id < ALARM_COUNT as u8 {
-                self.alarm_count.store(id + 1, Ordering::Relaxed);
-                Some(AlarmHandle::new(id as u8))
-            } else {
-                None
+            #[cfg(feature = "td-systick-multi-alarms")]
+            {
+                let id = self.alarm_count.load(Ordering::Relaxed);
+                if id < ALARM_COUNT as u8 {
+                    self.alarm_count.store(id + 1, Ordering::Relaxed);
+                    Some(AlarmHandle::new(id as u8))
+                } else {
+                    None
+                }
+            }
+
+            #[cfg(not(feature = "td-systick-multi-alarms"))]
+            {
+                if self.alarm_count.load(Ordering::Relaxed) < 1 {
+                    self.alarm_count.store(1, Ordering::Relaxed);
+                    Some(AlarmHandle::new(0))
+                } else {
+                    None
+                }
             }
         })
     }
 
     // Set alarm callback
+    #[allow(unused_variables)]
     fn set_alarm_callback(&self, alarm: AlarmHandle, callback: fn(*mut ()), ctx: *mut ()) {
         critical_section::with(|cs| {
+            #[cfg(feature = "td-systick-multi-alarms")]
             let alarm_state = &self.alarms.borrow(cs)[alarm.id() as usize];
+            #[cfg(not(feature = "td-systick-multi-alarms"))]
+            let alarm_state = &self.alarm.borrow(cs);
             alarm_state.callback.set(callback as *const ());
             alarm_state.ctx.set(ctx);
         });
     }
 
     // Set alarm timestamp
+    #[allow(unused_variables)]
     fn set_alarm(&self, alarm: AlarmHandle, timestamp: u64) -> bool {
         critical_section::with(|cs| {
-            let n = alarm.id() as usize;
-            let alarm_state = &self.alarms.borrow(cs)[n];
+            let alarm_state = {
+                #[cfg(feature = "td-systick-multi-alarms")]
+                {
+                    let n = alarm.id() as usize;
+                    &self.alarms.borrow(cs)[n]
+                }
+                #[cfg(not(feature = "td-systick-multi-alarms"))]
+                {
+                    &self.alarm.borrow(cs)
+                }
+            };
+            
 
             let current_time = self.now();
             if timestamp <= current_time {
