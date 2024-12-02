@@ -40,7 +40,7 @@ defmt-rtt = { version = "0.4", optional = true }
 log = { version = "0.4", optional = true }
 critical-section = "1.2"
 cfg-if = "1.0.0"
-
+portable-atomic = { version = "1", features = ["unsafe-assume-single-core", "require-cas"], optional = true }
 
 futures-util = { version = "0.3.30", default-features = false }
 embassy-hal-internal = { version = "0.2.0", features = [
@@ -98,6 +98,7 @@ time-driver-tim1 = ["_time-driver"]
 time-driver-tim3 = ["_time-driver"]
 time-driver-tim15 = ["_time-driver"]
 
+time-driver-systick = ["portable-atomic"]
 
 _time-driver = []
 
