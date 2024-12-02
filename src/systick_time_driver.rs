@@ -5,7 +5,7 @@ use cortex_m::peripheral::syst::SystClkSource;
 use cortex_m::peripheral::SYST;
 use cortex_m_rt::exception;
 
-use portable_atomic::{AtomicU32, Ordering};
+use portable_atomic::{AtomicU64, AtomicU8, Ordering};
 use critical_section::CriticalSection;
 use embassy_sync::blocking_mutex::raw::CriticalSectionRawMutex;
 use embassy_sync::blocking_mutex::Mutex;
@@ -36,9 +36,9 @@ impl AlarmState {
 // SysTick-based time driver implementation
 pub(crate) struct SysTickDriver {
     // Total number of ticks since system start
-    ticks: AtomicU32,
+    ticks: AtomicU64,
     // Number of allocated alarms
-    alarm_count: AtomicU32,
+    alarm_count: AtomicU8,
     // Mutex-protected array of alarms
     alarms: Mutex<CriticalSectionRawMutex, [AlarmState; ALARM_COUNT]>,
 }
@@ -49,8 +49,8 @@ const ALARM_STATE_NEW: AlarmState = AlarmState::new();
 
 // Macro to create a static driver instance
 embassy_time_driver::time_driver_impl!(static DRIVER: SysTickDriver = SysTickDriver {
-    ticks: AtomicU32::new(0),
-    alarm_count: AtomicU32::new(0),
+    ticks: AtomicU64::new(0),
+    alarm_count: AtomicU8::new(0),
     alarms: Mutex::const_new(CriticalSectionRawMutex::new(), [ALARM_STATE_NEW; ALARM_COUNT]),
 });
 
@@ -82,11 +82,10 @@ impl SysTickDriver {
         critical_section::with(|cs| {
             // Increment global tick counter
             let current_ticks = self.ticks.fetch_add(1, Ordering::Relaxed);
-            let current_time = current_ticks as u64;
 
             // Check and trigger any due alarms
             for n in 0..ALARM_COUNT {
-                self.check_and_trigger_alarm(n, current_time, cs);
+                self.check_and_trigger_alarm(n, current_ticks, cs);
             }
         });
     }
@@ -112,14 +111,14 @@ impl SysTickDriver {
 impl Driver for SysTickDriver {
     // Get current system time in ticks
     fn now(&self) -> u64 {
-        self.ticks.load(Ordering::Relaxed) as u64
+        self.ticks.load(Ordering::Relaxed)
     }
 
     // Allocate a new alarm
     unsafe fn allocate_alarm(&self) -> Option<AlarmHandle> {
         critical_section::with(|_| {
             let id = self.alarm_count.load(Ordering::Relaxed);
-            if id < ALARM_COUNT as u32 {
+            if id < ALARM_COUNT as u8 {
                 self.alarm_count.store(id + 1, Ordering::Relaxed);
                 Some(AlarmHandle::new(id as u8))
             } else {
