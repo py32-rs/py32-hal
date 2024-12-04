@@ -66,7 +66,7 @@ For a full list of chip capabilities and peripherals, check the [py32-data](http
 - TODO: I haven't got a dev board yet, help-wanted
 - N/A: Not available
 
-### TODOs
+## TODOs
 
 Too many...
 
@@ -88,7 +88,9 @@ Too many...
 
 This crate provides an implementation of the Embassy `time-driver`.
 
- Embassy requires that any TIM used as a time-driver has at least two channels, so only TIM1 and TIM3 are available for the PY32F030, 003, and 002A series. You can select either `time-driver-tim3` or `time-driver-tim1` to specify the TIM to use.
+Embassy requires that any TIM used as a time-driver has at least two channels, so only TIM1 and TIM3 are available for the PY32F030, 003, and 002A series. You can select either `time-driver-tim3` or `time-driver-tim1` to specify the TIM to use.
+
+`time-driver-systick`: Although we do not recommend using it and there are some shortcomings, it does work. For details, please see [systick-demo](examples/systick-time-driver-f030/README.md)
 
 ## Minimum supported Rust version(MSRV)
 

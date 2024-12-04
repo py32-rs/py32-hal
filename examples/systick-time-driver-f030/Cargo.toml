@@ -1,0 +1,46 @@
+[package]
+name = "systick-time-driver-f030"
+version = "0.1.1"
+edition = "2021"
+
+[dependencies]
+panic-halt = "1.0.0"
+cortex-m = { version = "0.7.7", features = [
+    "critical-section-single-core",
+    "critical-section",
+] }
+cortex-m-rt = "0.7.3"
+cortex-m-semihosting = { version = "0.5" }
+panic-probe = { version = "0.3", features = ["print-defmt"] }
+
+embassy-sync = { version = "0.6.0", features = ["defmt"] }
+embassy-executor = { version = "0.6.1", features = ["arch-cortex-m", "executor-thread", "executor-interrupt", "defmt", "integrated-timers"] }
+embassy-time = { version = "0.3.2", features = ["defmt", "defmt-timestamp-uptime", "tick-hz-1_000"] }
+
+embedded-io = { version = "0.6.0" }
+embedded-io-async = { version = "0.6.1" }
+
+py32-hal = { path = "../../", features = [ "time-driver-systick", "py32f030k28"]}
+
+defmt = "0.3"
+defmt-rtt = "0.4"
+
+# cargo build/run
+[profile.dev]
+codegen-units = 1
+debug = 2
+debug-assertions = true # <-
+incremental = false
+opt-level = 'z'         # <-
+overflow-checks = true  # <-
+
+# cargo build/run --release
+[profile.release]
+codegen-units = 1
+debug = 2
+debug-assertions = false # <-
+incremental = false
+lto = 'fat'
+opt-level = 3            # <-
+overflow-checks = false  # <-
+
