@@ -44,9 +44,12 @@ pub mod timer;
 #[cfg(feature = "_time-driver")]
 pub mod time_driver;
 pub mod gpio;
+#[cfg(usb)]
+pub mod usb;
 
 #[cfg(feature = "exti")]
 pub mod exti;
+
 
 /// `py32-hal` global configuration.
 #[non_exhaustive]

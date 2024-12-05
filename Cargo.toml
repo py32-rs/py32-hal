@@ -57,7 +57,7 @@ embassy-executor = { version = "0.6", features = [
     "arch-cortex-m",
 ] }
 embassy-embedded-hal = { version = "0.2.0", default-features = false }
-
+embassy-usb-driver = {version = "0.1.0" }
 
 [build-dependencies]
 # py32-metapac = { path = "../py32-data/build/py32-metapac", default-features = false, features = [
@@ -74,7 +74,7 @@ default = ["rt", "memory-x", "defmt", "embassy", "time", "exti"]
 
 rt = ["py32-metapac/rt"]
 
-defmt = ["dep:defmt", "dep:defmt-rtt"]
+defmt = ["dep:defmt", "dep:defmt-rtt", "embassy-usb-driver/defmt"]
 
 memory-x = ["py32-metapac/memory-x"]
 
