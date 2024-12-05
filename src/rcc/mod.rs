@@ -23,6 +23,7 @@ pub struct Clocks {
     
     pub hsi: crate::time::MaybeHertz,
     pub lse: crate::time::MaybeHertz,
+    pub pll: crate::time::MaybeHertz,
     // pub rtc: crate::time::MaybeHertz,
     // pub sys: Option<crate::time::Hertz>,
     // pub usb: Option<crate::time::Hertz>,
