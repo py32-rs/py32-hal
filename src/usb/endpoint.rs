@@ -38,12 +38,8 @@ impl<'d, T: Instance> driver::EndpointOut for Endpoint<'d, T, Out> {
 
         let _ = poll_fn(|cx| {
             EP_OUT_WAKERS[index].register(cx.waker());
-            let unready = if index == 0 {
-                regs.ep0_csr().read().out_pkt_rdy()
-            } else {
-                regs.index().write(|w| w.set_index(0));
-                regs.out_csr1().read().out_pkt_rdy()
-            };
+            regs.index().write(|w| w.set_index(index as _));
+            let unready = regs.out_csr1().read().out_pkt_rdy();
 
             if unready {
                 Poll::Pending
@@ -53,9 +49,7 @@ impl<'d, T: Instance> driver::EndpointOut for Endpoint<'d, T, Out> {
         })
         .await;
 
-        if index != 0 {
-            regs.index().write(|w| w.set_index(0));
-        }
+        regs.index().write(|w| w.set_index(index as _));
 
         let read_count = regs.out_count().read().outcount();
         
@@ -85,12 +79,8 @@ impl<'d, T: Instance> driver::EndpointIn for Endpoint<'d, T, In> {
 
         let _ = poll_fn(|cx| {
             EP_IN_WAKERS[index].register(cx.waker());
-            let unready = if index == 0 {
-                regs.ep0_csr().read().in_pkt_rdy()
-            } else {
-                regs.index().write(|w| w.set_index(0));
-                regs.in_csr1().read().in_pkt_rdy()
-            };
+            regs.index().write(|w| w.set_index(index as _));
+            let unready = regs.in_csr1().read().in_pkt_rdy();
 
             if unready {
                 Poll::Pending
@@ -100,29 +90,16 @@ impl<'d, T: Instance> driver::EndpointIn for Endpoint<'d, T, In> {
         })
         .await;
 
-        if index != 0 {
-            regs.index().write(|w| w.set_index(0));
-        }
+        regs.index().write(|w| w.set_index(index as _));
 
         if buf.len() == 0 {
-            if index == 0 {
-                // TODO:
-                // if (usb_ep0_state == USB_EP0_STATE_IN_DATA)
-                // USB->EP0_CSR = (USB_CSR0_INPKTRDY | USB_CSR0_DATAEND);
-                regs.ep0_csr().modify(|w| w.set_in_pkt_rdy(true));
-            } else {
-                regs.in_csr1().modify(|w| w.set_in_pkt_rdy(true));
-            }
+            regs.in_csr1().modify(|w| w.set_in_pkt_rdy(true));
         } else {
             buf.into_iter().for_each(|b|
-                regs.fifo(index).write(|w| w.set_data(b))
+                regs.fifo(index).write(|w| w.set_data(*b))
             );
 
-            if index == 0 {
-                regs.ep0_csr().modify(|w| w.set_in_pkt_rdy(true));
-            } else {
-                regs.in_csr1().modify(|w| w.set_in_pkt_rdy(true));
-            }
+            regs.in_csr1().modify(|w| w.set_in_pkt_rdy(true));
         }
         trace!("WRITE OK");
 

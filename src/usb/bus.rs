@@ -132,10 +132,15 @@ impl<'d, T: Instance> driver::Bus for Bus<'d, T> {
             T::regs().index().write(|w| w.set_index(ep_index as u8));
             match ep_addr.direction() {
                 Direction::Out => {
-                    T::regs().out_in1e().modify(|w| 
-                        w.set_epin(ep_index, true)
-                    );
-
+                    if ep_index == 0 {
+                        T::regs().int_in1e().modify(|w| 
+                            w.set_ep0(true))
+                    } else {
+                        T::regs().int_out1e().modify(|w| 
+                            w.set_epout(ep_index - 1, true)
+                        );
+                    }
+                    
                     // T::regs().out_csr2().write(|w| {
                     //     w.set_auto_clear(true);
                     // });
@@ -153,19 +158,25 @@ impl<'d, T: Instance> driver::Bus for Bus<'d, T> {
                     if self.ep_confs[ep_index].ep_type == EndpointType::Isochronous {
                         T::regs().out_csr2().write(|w| {
                             w.set_iso(true);
+                            w.set_mode(Mode::IN);
                         });
                     }
     
                     if T::regs().out_csr1().read().out_pkt_rdy() {
-                        T::regs().out_csr1().write(|w| 
+                        T::regs().out_csr1().modify(|w| 
                             w.set_flush_fifo(true)
                         );
                     }
                 }
                 Direction::In => {
-                    T::regs().int_in1e().modify(|w| 
-                        w.set_epin(ep_index, true)
-                    );
+                    if ep_index == 0 {
+                        T::regs().int_in1e().modify(|w| 
+                            w.set_ep0(true))
+                    } else {
+                        T::regs().int_in1e().modify(|w| 
+                            w.set_epin(ep_index - 1, true)
+                        );
+                    }
     
                     // T::regs().in_csr2().write(|w| {
                     //     w.set_auto_set(true);
@@ -184,11 +195,12 @@ impl<'d, T: Instance> driver::Bus for Bus<'d, T> {
                     if self.ep_confs[ep_index].ep_type == EndpointType::Isochronous {
                         T::regs().in_csr2().write(|w| {
                             w.set_iso(true);
+                            w.set_mode(Mode::IN);
                         });
                     }
     
                     if T::regs().in_csr1().read().fifo_not_empty() {
-                        T::regs().in_csr1().write(|w|    
+                        T::regs().in_csr1().modify(|w|    
                             w.set_flush_fifo(true)
                         );
                     }

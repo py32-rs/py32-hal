@@ -38,8 +38,8 @@ const NEW_AW: AtomicWaker = AtomicWaker::new();
 static BUS_WAKER: AtomicWaker = NEW_AW;
 static EP0_SETUP: AtomicBool = AtomicBool::new(false);
 
-const NEW_CTR_TRIGGERED: AtomicBool = AtomicBool::new(false);
-static CTR_TRIGGERED: [AtomicBool; EP_COUNT] = [NEW_CTR_TRIGGERED; EP_COUNT];
+// const NEW_CTR_TRIGGERED: AtomicBool = AtomicBool::new(false);
+// static CTR_TRIGGERED: [AtomicBool; EP_COUNT] = [NEW_CTR_TRIGGERED; EP_COUNT];
 
 static EP_IN_WAKERS: [AtomicWaker; EP_COUNT] = [NEW_AW; EP_COUNT];
 static EP_OUT_WAKERS: [AtomicWaker; EP_COUNT] = [NEW_AW; EP_COUNT];
