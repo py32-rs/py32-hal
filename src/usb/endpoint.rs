@@ -29,7 +29,6 @@ impl<'d, T: Instance, D: Dir> driver::Endpoint for Endpoint<'d, T, D> {
     }
 }
 
-
 impl<'d, T: Instance> driver::EndpointOut for Endpoint<'d, T, Out> {
     async fn read(&mut self, buf: &mut [u8]) -> Result<usize, EndpointError> {
         trace!("READ WAITING, buf.len() = {}", buf.len());
@@ -39,12 +38,12 @@ impl<'d, T: Instance> driver::EndpointOut for Endpoint<'d, T, Out> {
         let _ = poll_fn(|cx| {
             EP_OUT_WAKERS[index].register(cx.waker());
             regs.index().write(|w| w.set_index(index as _));
-            let unready = regs.out_csr1().read().out_pkt_rdy();
+            let ready = regs.out_csr1().read().out_pkt_rdy();
 
-            if unready {
-                Poll::Pending
-            } else {
+            if ready {
                 Poll::Ready(())
+            } else {
+                Poll::Pending
             }
         })
         .await;

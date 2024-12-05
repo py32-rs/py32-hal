@@ -10,7 +10,6 @@ use embassy_usb_driver::{
     Direction, EndpointAddress, EndpointAllocError, EndpointError, EndpointInfo, EndpointType, Event, Unsupported,
 };
 
-use crate::pac::usb::regs;
 use crate::pac::usb::vals::Mode;
 use crate::rcc::{self, RccPeripheral};
 use crate::{interrupt, Peripheral};
@@ -35,14 +34,12 @@ const EP_COUNT: usize = 6;
 const EP_COUNT: usize = 8;
 
 const NEW_AW: AtomicWaker = AtomicWaker::new();
-static BUS_WAKER: AtomicWaker = NEW_AW;
-static EP0_SETUP: AtomicBool = AtomicBool::new(false);
 
-// const NEW_CTR_TRIGGERED: AtomicBool = AtomicBool::new(false);
-// static CTR_TRIGGERED: [AtomicBool; EP_COUNT] = [NEW_CTR_TRIGGERED; EP_COUNT];
+static BUS_WAKER: AtomicWaker = NEW_AW;
 
 static EP_IN_WAKERS: [AtomicWaker; EP_COUNT] = [NEW_AW; EP_COUNT];
 static EP_OUT_WAKERS: [AtomicWaker; EP_COUNT] = [NEW_AW; EP_COUNT];
+
 static IRQ_RESET: AtomicBool = AtomicBool::new(false);
 static IRQ_SUSPEND: AtomicBool = AtomicBool::new(false);
 static IRQ_RESUME: AtomicBool = AtomicBool::new(false);
@@ -80,8 +77,6 @@ impl<T: Instance> interrupt::typelevel::Handler<T::Interrupt> for InterruptHandl
         let int_in = T::regs().int_in1().read();
         let int_out = T::regs().int_out1().read();
         if int_in.ep0() {
-            // TODO
-            // EP0_SETUP.store(true, Ordering::SeqCst);
             EP_IN_WAKERS[0].wake();
             EP_OUT_WAKERS[0].wake();
         }

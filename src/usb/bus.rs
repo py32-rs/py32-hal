@@ -158,7 +158,6 @@ impl<'d, T: Instance> driver::Bus for Bus<'d, T> {
                     if self.ep_confs[ep_index].ep_type == EndpointType::Isochronous {
                         T::regs().out_csr2().write(|w| {
                             w.set_iso(true);
-                            w.set_mode(Mode::IN);
                         });
                     }
     
