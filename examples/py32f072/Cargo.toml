@@ -24,6 +24,9 @@ py32-hal = { path = "../../", features = [ "time-driver-tim15", "py32f072c1b"]}
 
 defmt = "0.3"
 defmt-rtt = "0.4"
+embassy-futures = "0.1.1"
+embassy-usb = { version = "0.3.0", features = [ "defmt"]}
+usbd-hid = "0.8.2"
 
 # cargo build/run
 [profile.dev]
