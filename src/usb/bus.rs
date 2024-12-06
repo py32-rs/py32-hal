@@ -12,6 +12,8 @@ impl<'d, T: Instance> driver::Bus for Bus<'d, T> {
         poll_fn(move |cx| {
             BUS_WAKER.register(cx.waker());
 
+            let regs = T::regs();
+
             // TODO: implement VBUS detection.
             if !self.inited {
                 self.inited = true;
@@ -26,8 +28,13 @@ impl<'d, T: Instance> driver::Bus for Bus<'d, T> {
             if IRQ_RESET.load(Ordering::Acquire) {
                 IRQ_RESET.store(false, Ordering::Relaxed);
 
+                regs.power().write(|w| w.set_suspend_mode(true));
+                // for index in 1..EP_COUNT {
+                //     regs.index().write(|w| w.set_index(index as _));
+                //     regs.in_csr1().modify(|w| w.set_flush_fifo(true));
+                // }
+
                 trace!("RESET");
-                panic!("RESET");
 
                 for w in &EP_IN_WAKERS {
                     w.wake()
@@ -146,7 +153,7 @@ impl<'d, T: Instance> driver::Bus for Bus<'d, T> {
                     // });
     
                     T::regs().max_pkt_out().write(|w|
-                        w.set_max_pkt_size(self.ep_confs[ep_index].max_fifo_size)
+                        w.set_max_pkt_size(self.ep_confs[ep_index].out_max_fifo_size)
                     );
     
                     T::regs().out_csr1().write(|w| {
@@ -184,7 +191,7 @@ impl<'d, T: Instance> driver::Bus for Bus<'d, T> {
                     // TODO: DMA
     
                     T::regs().max_pkt_in().write(|w|
-                        w.set_max_pkt_size(self.ep_confs[ep_index].max_fifo_size)
+                        w.set_max_pkt_size(self.ep_confs[ep_index].in_max_fifo_size)
                     );
     
                     T::regs().in_csr1().write(|w| {
@@ -194,9 +201,9 @@ impl<'d, T: Instance> driver::Bus for Bus<'d, T> {
                     if self.ep_confs[ep_index].ep_type == EndpointType::Isochronous {
                         T::regs().in_csr2().write(|w| {
                             w.set_iso(true);
-                            w.set_mode(Mode::IN);
                         });
                     }
+                    T::regs().in_csr2().write(|w| w.set_mode(Mode::IN));
     
                     if T::regs().in_csr1().read().fifo_not_empty() {
                         T::regs().in_csr1().modify(|w|    

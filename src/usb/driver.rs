@@ -11,17 +11,18 @@ impl<'d, T: Instance> Driver<'d, T> {
     pub fn new(
         _usb: impl Peripheral<P = T> + 'd,
         _irq: impl interrupt::typelevel::Binding<T::Interrupt, InterruptHandler<T>> + 'd,
-        dp: impl Peripheral<P = impl DpPin<T>> + 'd,
-        dm: impl Peripheral<P = impl DmPin<T>> + 'd,
+        _dp: impl Peripheral<P = impl DpPin<T>> + 'd,
+        _dm: impl Peripheral<P = impl DmPin<T>> + 'd,
     ) -> Self {
         let freq = T::frequency();
         if freq.0 != 48_000_000 {
             panic!("USB clock (PLL) must be 48MHz");
         }
 
+        T::Interrupt::unpend();
+        unsafe { T::Interrupt::enable() };
         rcc::enable_and_reset::<T>();
 
-        into_ref!(dp, dm);
         let regs = T::regs();
         
         regs.index().write(|w| w.set_index(0));
@@ -30,12 +31,7 @@ impl<'d, T: Instance> Driver<'d, T> {
         embassy_time::block_for(embassy_time::Duration::from_millis(100));
         #[cfg(not(feature = "time"))]
         cortex_m::asm::delay(unsafe { crate::rcc::get_freqs() }.sys.to_hertz().unwrap().0 / 10);
-
-        use crate::gpio::{AfType, OutputType, Speed};
-        dp.set_as_af(dp.af_num(), AfType::output(OutputType::PushPull, Speed::VeryHigh));
-        dm.set_as_af(dm.af_num(), AfType::output(OutputType::PushPull, Speed::VeryHigh));
-        
-        
+         
         // Initialize the bus so that it signals that power is available
         BUS_WAKER.wake();
 
@@ -44,7 +40,8 @@ impl<'d, T: Instance> Driver<'d, T> {
             alloc: [EndpointData {
                 ep_conf: EndPointConfig {
                     ep_type: EndpointType::Bulk,
-                    max_fifo_size: 1,
+                    in_max_fifo_size: 1,
+                    out_max_fifo_size: 1,
                 },
                 used_in: false,
                 used_out: false,
@@ -104,17 +101,21 @@ impl<'d, T: Instance> Driver<'d, T> {
         };
 
         ep.ep_conf.ep_type = ep_type;
-        ep.ep_conf.max_fifo_size = calc_max_fifo_size(max_packet_size);
+        
 
         T::regs().index().write(|w| w.set_index(index as u8));
         match D::dir() {
             Direction::Out => {
                 assert!(!ep.used_out);
                 ep.used_out = true;
+
+                ep.ep_conf.out_max_fifo_size = calc_max_fifo_size(max_packet_size);
             }
             Direction::In => {
                 assert!(!ep.used_in);
                 ep.used_in = true;
+
+                ep.ep_conf.in_max_fifo_size = calc_max_fifo_size(max_packet_size);
             }
         };
 
@@ -166,7 +167,8 @@ impl<'d, T: Instance> driver::Driver<'d> for Driver<'d, T> {
 
         let mut ep_confs = [EndPointConfig {
             ep_type: EndpointType::Bulk,
-            max_fifo_size: 1,
+            in_max_fifo_size: 1,
+            out_max_fifo_size: 1,
         }; EP_COUNT];
         
         for i in 0..EP_COUNT {

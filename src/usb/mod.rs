@@ -3,7 +3,6 @@ use core::marker::PhantomData;
 use core::sync::atomic::{AtomicBool, Ordering};
 use core::task::Poll;
 
-use embassy_hal_internal::into_ref;
 use embassy_sync::waitqueue::AtomicWaker;
 use embassy_usb_driver as driver;
 use embassy_usb_driver::{
@@ -13,6 +12,7 @@ use embassy_usb_driver::{
 use crate::pac::usb::vals::Mode;
 use crate::rcc::{self, RccPeripheral};
 use crate::{interrupt, Peripheral};
+use crate::interrupt::typelevel::Interrupt;
 
 mod endpoint;
 pub use endpoint::Endpoint;
@@ -83,11 +83,16 @@ impl<T: Instance> interrupt::typelevel::Handler<T::Interrupt> for InterruptHandl
 
         for index in 1..EP_COUNT {
             if int_in.epin(index - 1) {
-                EP_OUT_WAKERS[index].wake();
+                EP_IN_WAKERS[index].wake();
             }
             if int_out.epout(index - 1) {                
                 EP_OUT_WAKERS[index].wake();
             }
+            if T::regs().in_csr1().read().underrun(){
+                T::regs().in_csr1().modify(|w| w.set_underrun(false));
+                warn!("Underrun");
+            }
+
         }
         
     }
@@ -128,3 +133,17 @@ pub trait Instance: SealedInstance + RccPeripheral + 'static {
 // Internal PHY pins
 pin_trait!(DpPin, Instance);
 pin_trait!(DmPin, Instance);
+
+foreach_interrupt!(
+    ($inst:ident, usb, $block:ident, LP, $irq:ident) => {
+        impl SealedInstance for crate::peripherals::$inst {
+            fn regs() -> crate::pac::usb::Usb {
+                crate::pac::$inst
+            }
+        }
+
+        impl Instance for crate::peripherals::$inst {
+            type Interrupt = crate::interrupt::typelevel::$irq;
+        }
+    };
+);

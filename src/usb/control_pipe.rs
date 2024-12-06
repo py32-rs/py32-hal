@@ -19,8 +19,22 @@ impl<'d, T: Instance> driver::ControlPipe for ControlPipe<'d, T> {
             trace!("SETUP read waiting");
             poll_fn(|cx| {
                 EP_OUT_WAKERS[0].register(cx.waker());
-                if regs.ep0_csr().read().setup_end() {
-                    regs.ep0_csr().write(|w| w.set_serviced_setup_end(false));
+                
+                regs.index().write(|w| w.set_index(0));
+
+                // TODO: 
+                // If the host enters the state phase before all data transfer of the transfer request is complete, or if it 
+                // sends a new SETUP packet before completing the current transfer, thus ending the transfer early, 
+                // then the SetupEnd bit is set and an Endpoint 0 interrupt is generated. When software receives an 
+                // endpoint 0 interrupt with the SetupEnd bit set, it should abort the current transmission, set the Ser
+                // vicedSetupEnd bit, and return to the idle state. If the OutPktRdy bit is set, this indicates that the host 
+                // has sent another SEPUP packet and then the software should process the command.
+                
+                // if regs.ep0_csr().read().setup_end() {
+                //     regs.ep0_csr().write(|w| w.set_serviced_setup_end(false));
+                // }
+
+                if regs.ep0_csr().read().out_pkt_rdy() {
                     Poll::Ready(())
                 } else {
                     Poll::Pending
@@ -37,6 +51,7 @@ impl<'d, T: Instance> driver::ControlPipe for ControlPipe<'d, T> {
             (&mut buf).into_iter().for_each(|b|
                 *b = regs.fifo(0).read().data()
             );
+            regs.ep0_csr().modify(|w| w.set_serviced_out_pkt_rdy(true));
 
             trace!("SETUP read ok");
             return buf;
@@ -76,6 +91,7 @@ impl<'d, T: Instance> driver::ControlPipe for ControlPipe<'d, T> {
         buf.into_iter().for_each(|b|
             *b = regs.fifo(0).read().data()
         );
+        regs.ep0_csr().modify(|w| w.set_serviced_out_pkt_rdy(true));
         trace!("READ OK, rx_len = {}", read_count);
 
         Ok(read_count as usize)
@@ -95,6 +111,8 @@ impl<'d, T: Instance> driver::ControlPipe for ControlPipe<'d, T> {
         let _ = poll_fn(|cx| {
             EP_IN_WAKERS[0].register(cx.waker());
             regs.index().write(|w| w.set_index(0));
+
+             // TODO: use fifo_not_empty?
             let unready = regs.ep0_csr().read().in_pkt_rdy();
 
             if unready {
@@ -125,20 +143,26 @@ impl<'d, T: Instance> driver::ControlPipe for ControlPipe<'d, T> {
         regs.index().write(|w| w.set_index(0));
 
         // zero length
-        regs.ep0_csr().modify(|w| w.set_in_pkt_rdy(true));
+        regs.ep0_csr().modify(|w| {
+            w.set_in_pkt_rdy(true);
+            // w.set_data_end(true);
+        });
+
+        cortex_m::asm::delay(10000);
 
         // Wait is needed, so that we don't set the address too soon, breaking the status stage.
         // (embassy-usb sets the address after accept() returns)
-        poll_fn(|cx| {
-            EP_IN_WAKERS[0].register(cx.waker());
-            regs.index().write(|w| w.set_index(0));
-            if !regs.ep0_csr().read().in_pkt_rdy() {
-                Poll::Ready(())
-            } else {
-                Poll::Pending
-            }
-        })
-        .await;
+        // poll_fn(|cx| {
+        //     EP_IN_WAKERS[0].register(cx.waker());
+        //     regs.index().write(|w| w.set_index(0));
+        //     trace!("accept: poll {}", regs.ep0_csr().read().in_pkt_rdy());
+        //     if !regs.ep0_csr().read().in_pkt_rdy() {
+        //         Poll::Ready(())
+        //     } else {
+        //         Poll::Pending
+        //     }
+        // })
+        // .await;
 
         trace!("control: accept OK");
     }

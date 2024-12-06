@@ -50,7 +50,7 @@ impl<'d, T: Instance> driver::EndpointOut for Endpoint<'d, T, Out> {
 
         regs.index().write(|w| w.set_index(index as _));
 
-        let read_count = regs.out_count().read().outcount();
+        let read_count = regs.out_count().read().count();
         
         if read_count as usize > buf.len() {
             return Err(EndpointError::BufferOverflow);
@@ -59,6 +59,7 @@ impl<'d, T: Instance> driver::EndpointOut for Endpoint<'d, T, Out> {
         buf.into_iter().for_each(|b|
             *b = regs.fifo(index).read().data()
         );
+        regs.out_csr1().modify(|w| w.set_out_pkt_rdy(false));
         trace!("READ OK, rx_len = {}", read_count);
 
         Ok(read_count as usize)
@@ -74,11 +75,13 @@ impl<'d, T: Instance> driver::EndpointIn for Endpoint<'d, T, In> {
         let index = self.info.addr.index();
         let regs = T::regs();
 
-        trace!("WRITE WAITING");
+        trace!("WRITE WAITING len = {}", buf.len());
 
         let _ = poll_fn(|cx| {
             EP_IN_WAKERS[index].register(cx.waker());
             regs.index().write(|w| w.set_index(index as _));
+
+            // TODO: use fifo_not_empty?
             let unready = regs.in_csr1().read().in_pkt_rdy();
 
             if unready {
@@ -110,6 +113,6 @@ impl<'d, T: Instance> driver::EndpointIn for Endpoint<'d, T, In> {
 #[cfg_attr(feature = "defmt", derive(defmt::Format))]
 pub(super) struct EndPointConfig {
     pub(super) ep_type: EndpointType,
-    pub(super) max_fifo_size: u8,
-
+    pub(super) in_max_fifo_size: u8,
+    pub(super) out_max_fifo_size: u8,
 }
