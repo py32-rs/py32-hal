@@ -31,6 +31,9 @@ usbd-hid = "0.8.2"
 # embassy-usb-logger = "0.2.0"
 log = "0.4"
 
+portable-atomic = { version = "1.5", features = ["critical-section"] }
+static_cell = "2.1"
+
 # cargo build/run
 [profile.dev]
 codegen-units = 1
