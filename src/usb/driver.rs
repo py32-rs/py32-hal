@@ -40,8 +40,8 @@ impl<'d, T: Instance> Driver<'d, T> {
             alloc: [EndpointData {
                 ep_conf: EndPointConfig {
                     ep_type: EndpointType::Bulk,
-                    in_max_fifo_size: 1,
-                    out_max_fifo_size: 1,
+                    in_max_fifo_size_btyes: 1,
+                    out_max_fifo_size_btyes: 1,
                 },
                 used_in: false,
                 used_out: false,
@@ -76,17 +76,17 @@ impl<'d, T: Instance> Driver<'d, T> {
                 let used = ep.used_out || ep.used_in;
                 
                 #[cfg(all(not(feature = "allow-ep-shared-fifo"), py32f072))]
-                if used {
-                    // TODO
-                    return false
+                if used { return false }
+
+                #[cfg(py32f072)]
+                if ((max_packet_size + 7) / 8) as u8 > MAX_FIFO_SIZE_BTYES[*i] {
+                    return false;
                 }
-                
-                // if used && (ep.ep_conf.ep_type == EndpointType::Isochronous || ep.ep_conf.ep_type == EndpointType::Bulk) {
-                //     // Isochronous and bulk endpoints are double-buffered.
-                //     // Their corresponding endpoint/channel registers are forced to be unidirectional.
-                //     // Do not reuse this index.
-                //     return false;
-                // }
+
+                #[cfg(py32f403)]
+                if ((max_packet_size + 7) / 8) as u8 > MAX_FIFO_SIZE_BTYES {
+                    panic!("max_packet_size > MAX_FIFO_SIZE");
+                }
 
                 let used_dir = match D::dir() {
                     Direction::Out => ep.used_out,
@@ -110,13 +110,13 @@ impl<'d, T: Instance> Driver<'d, T> {
                 assert!(!ep.used_out);
                 ep.used_out = true;
 
-                ep.ep_conf.out_max_fifo_size = calc_max_fifo_size(max_packet_size);
+                ep.ep_conf.out_max_fifo_size_btyes = calc_max_fifo_size_btyes(max_packet_size);
             }
             Direction::In => {
                 assert!(!ep.used_in);
                 ep.used_in = true;
 
-                ep.ep_conf.in_max_fifo_size = calc_max_fifo_size(max_packet_size);
+                ep.ep_conf.in_max_fifo_size_btyes = calc_max_fifo_size_btyes(max_packet_size);
             }
         };
 
@@ -168,8 +168,8 @@ impl<'d, T: Instance> driver::Driver<'d> for Driver<'d, T> {
 
         let mut ep_confs = [EndPointConfig {
             ep_type: EndpointType::Bulk,
-            in_max_fifo_size: 1,
-            out_max_fifo_size: 1,
+            in_max_fifo_size_btyes: 1,
+            out_max_fifo_size_btyes: 1,
         }; EP_COUNT];
         
         for i in 0..EP_COUNT {

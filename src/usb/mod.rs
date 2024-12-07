@@ -33,6 +33,12 @@ const EP_COUNT: usize = 6;
 #[cfg(py32f403)]
 const EP_COUNT: usize = 8;
 
+#[cfg(py32f072)]
+const MAX_FIFO_SIZE_BTYES: [u8; EP_COUNT] = [8, 8, 16, 16, 16, 64];
+
+#[cfg(py32f403)]
+const MAX_FIFO_SIZE_BTYES: u8 = 8;
+
 const NEW_AW: AtomicWaker = AtomicWaker::new();
 
 static BUS_WAKER: AtomicWaker = NEW_AW;
@@ -45,7 +51,8 @@ static IRQ_SUSPEND: AtomicBool = AtomicBool::new(false);
 static IRQ_RESUME: AtomicBool = AtomicBool::new(false);
 
 
-fn calc_max_fifo_size(len: u16) -> u8 {
+
+fn calc_max_fifo_size_btyes(len: u16) -> u8 {
     let btyes = ((len + 7) / 8) as u8;
     if btyes > 8 {
         panic!("Invalid length: {}", len);

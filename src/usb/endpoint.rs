@@ -113,6 +113,6 @@ impl<'d, T: Instance> driver::EndpointIn for Endpoint<'d, T, In> {
 #[cfg_attr(feature = "defmt", derive(defmt::Format))]
 pub(super) struct EndPointConfig {
     pub(super) ep_type: EndpointType,
-    pub(super) in_max_fifo_size: u8,
-    pub(super) out_max_fifo_size: u8,
+    pub(super) in_max_fifo_size_btyes: u8,
+    pub(super) out_max_fifo_size_btyes: u8,
 }

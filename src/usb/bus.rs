@@ -153,7 +153,7 @@ impl<'d, T: Instance> driver::Bus for Bus<'d, T> {
                     // });
     
                     T::regs().max_pkt_out().write(|w|
-                        w.set_max_pkt_size(self.ep_confs[ep_index].out_max_fifo_size)
+                        w.set_max_pkt_size(self.ep_confs[ep_index].out_max_fifo_size_btyes)
                     );
     
                     T::regs().out_csr1().write(|w| {
@@ -191,7 +191,7 @@ impl<'d, T: Instance> driver::Bus for Bus<'d, T> {
                     // TODO: DMA
     
                     T::regs().max_pkt_in().write(|w|
-                        w.set_max_pkt_size(self.ep_confs[ep_index].in_max_fifo_size)
+                        w.set_max_pkt_size(self.ep_confs[ep_index].in_max_fifo_size_btyes)
                     );
     
                     T::regs().in_csr1().write(|w| {
