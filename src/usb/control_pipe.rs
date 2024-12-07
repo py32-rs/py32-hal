@@ -22,18 +22,6 @@ impl<'d, T: Instance> driver::ControlPipe for ControlPipe<'d, T> {
                 
                 regs.index().write(|w| w.set_index(0));
 
-                // TODO: 
-                // If the host enters the state phase before all data transfer of the transfer request is complete, or if it 
-                // sends a new SETUP packet before completing the current transfer, thus ending the transfer early, 
-                // then the SetupEnd bit is set and an Endpoint 0 interrupt is generated. When software receives an 
-                // endpoint 0 interrupt with the SetupEnd bit set, it should abort the current transmission, set the Ser
-                // vicedSetupEnd bit, and return to the idle state. If the OutPktRdy bit is set, this indicates that the host 
-                // has sent another SEPUP packet and then the software should process the command.
-                
-                // if regs.ep0_csr().read().setup_end() {
-                //     regs.ep0_csr().write(|w| w.set_serviced_setup_end(false));
-                // }
-
                 if regs.ep0_csr().read().out_pkt_rdy() {
                     Poll::Ready(())
                 } else {
@@ -152,17 +140,23 @@ impl<'d, T: Instance> driver::ControlPipe for ControlPipe<'d, T> {
 
         // Wait is needed, so that we don't set the address too soon, breaking the status stage.
         // (embassy-usb sets the address after accept() returns)
-        // poll_fn(|cx| {
-        //     EP_IN_WAKERS[0].register(cx.waker());
-        //     regs.index().write(|w| w.set_index(0));
-        //     trace!("accept: poll {}", regs.ep0_csr().read().in_pkt_rdy());
-        //     if !regs.ep0_csr().read().in_pkt_rdy() {
-        //         Poll::Ready(())
-        //     } else {
-        //         Poll::Pending
-        //     }
-        // })
-        // .await;
+        poll_fn(|cx| {
+            EP_IN_WAKERS[0].register(cx.waker());
+            regs.index().write(|w| w.set_index(0));
+
+            // A zero-length OUT data packet is used to indicate the end of a Control transfer. In normal operation, such packets should only 
+            // be received after the entire length of the device request has been transferred (i.e. after the CPU has set DataEnd). If, however, the 
+            // host sends a zero-length OUT data packet before the entire length of device request has been transferred, this signals the 
+            // premature end of the transfer. In this case, the MUSBMHDRC will automatically flush any IN token loaded by CPU ready for the 
+            // Data phase from the FIFO and set SetupEnd. 
+            if regs.ep0_csr().read().setup_end() {
+                regs.ep0_csr().write(|w| w.set_serviced_setup_end(false));
+                Poll::Ready(())
+            } else {
+                Poll::Pending
+            }
+        })
+        .await;
 
         trace!("control: accept OK");
     }
