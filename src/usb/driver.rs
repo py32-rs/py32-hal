@@ -75,17 +75,18 @@ impl<'d, T: Instance> Driver<'d, T> {
                 }
                 let used = ep.used_out || ep.used_in;
                 
+                #[cfg(all(not(feature = "allow-ep-shared-fifo"), py32f072))]
                 if used {
                     // TODO
                     return false
                 }
                 
-                if used && (ep.ep_conf.ep_type == EndpointType::Isochronous || ep.ep_conf.ep_type == EndpointType::Bulk) {
-                    // Isochronous and bulk endpoints are double-buffered.
-                    // Their corresponding endpoint/channel registers are forced to be unidirectional.
-                    // Do not reuse this index.
-                    return false;
-                }
+                // if used && (ep.ep_conf.ep_type == EndpointType::Isochronous || ep.ep_conf.ep_type == EndpointType::Bulk) {
+                //     // Isochronous and bulk endpoints are double-buffered.
+                //     // Their corresponding endpoint/channel registers are forced to be unidirectional.
+                //     // Do not reuse this index.
+                //     return false;
+                // }
 
                 let used_dir = match D::dir() {
                     Direction::Out => ep.used_out,

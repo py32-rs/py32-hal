@@ -85,6 +85,11 @@ time = ["dep:embassy-time", "embassy-embedded-hal/time"]
 
 exti = []
 
+# PY32F07x: the IN and OUT buffers of the same endpoint being shared
+# When this feature is enabled, the In and Out of an endpoint will not be used at the same time, except for ep0.
+# PY32F403: IN and OUT do not share FIFO, this feature is invalid
+allow-ep-shared-fifo = []
+
 py32f030k28 = ["py32-metapac/py32f030k28"]
 py32f030f16 = ["py32-metapac/py32f030f16"]
 py32f072c1b = ["py32-metapac/py32f072c1b"]
