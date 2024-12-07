@@ -134,7 +134,7 @@ impl<'d, T: Instance> driver::Bus for Bus<'d, T> {
     fn endpoint_set_enabled(&mut self, ep_addr: EndpointAddress, enabled: bool) {
         trace!("set_enabled {:x} {}", ep_addr, enabled);
         let ep_index = ep_addr.index();
-        // py32 offiial CherryUsb port does nothing when disable an endpoint
+        
         if enabled {
             T::regs().index().write(|w| w.set_index(ep_index as u8));
             match ep_addr.direction() {
@@ -173,6 +173,11 @@ impl<'d, T: Instance> driver::Bus for Bus<'d, T> {
                             w.set_flush_fifo(true)
                         );
                     }
+                    
+                    let flags = EP_OUT_ENABLED.load(Ordering::Acquire) | ep_index as u8;
+                    EP_OUT_ENABLED.store(flags, Ordering::Release);
+                    // Wake `Endpoint::wait_enabled()`
+                    EP_OUT_WAKERS[ep_index].wake();
                 }
                 Direction::In => {
                     if ep_index == 0 {
@@ -210,6 +215,24 @@ impl<'d, T: Instance> driver::Bus for Bus<'d, T> {
                             w.set_flush_fifo(true)
                         );
                     }
+
+                    let flags = EP_IN_ENABLED.load(Ordering::Acquire) | ep_index as u8;
+                    EP_IN_ENABLED.store(flags, Ordering::Release);
+                    // Wake `Endpoint::wait_enabled()`
+                    EP_IN_WAKERS[ep_index].wake();
+                }
+            }
+        }
+        else {
+            // py32 offiial CherryUsb port does nothing when disable an endpoint
+            match ep_addr.direction() {
+                Direction::Out => {
+                    let flags = EP_OUT_ENABLED.load(Ordering::Acquire) & !(ep_index as u8);
+                    EP_OUT_ENABLED.store(flags, Ordering::Release);
+                }
+                Direction::In => {
+                    let flags = EP_IN_ENABLED.load(Ordering::Acquire) & !(ep_index as u8);
+                    EP_IN_ENABLED.store(flags, Ordering::Release);
                 }
             }
         }

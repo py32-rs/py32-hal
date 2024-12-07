@@ -21,11 +21,27 @@ impl<'d, T: Instance, D: Dir> driver::Endpoint for Endpoint<'d, T, D> {
     }
 
     async fn wait_enabled(&mut self) {
-        // TODO: seems unachievable
-        #[cfg(feature = "time")]
-        embassy_time::block_for(embassy_time::Duration::from_millis(10));
-        #[cfg(not(feature = "time"))]
-        cortex_m::asm::delay(unsafe { crate::rcc::get_freqs() }.sys.to_hertz().unwrap().0 / 100);
+        let _ = poll_fn(|cx| {
+            let index = self.info.addr.index();
+
+            let enabled = match self.info.addr.direction() {
+                Direction::Out => {
+                    EP_OUT_WAKERS[index].register(cx.waker());
+                    EP_OUT_ENABLED.load(Ordering::Acquire) & (index as u8) != 0
+                },
+                Direction::In => {
+                    EP_IN_WAKERS[index].register(cx.waker());
+                    EP_IN_ENABLED.load(Ordering::Acquire) & (index as u8) != 0
+                }
+            };
+            if enabled {
+                Poll::Ready(())
+            } else {
+                Poll::Pending
+            }
+        })
+        .await;
+        trace!("Endpoint {:#X} wait enabled OK", self.info.addr);
     }
 }
 
@@ -81,7 +97,6 @@ impl<'d, T: Instance> driver::EndpointIn for Endpoint<'d, T, In> {
             EP_IN_WAKERS[index].register(cx.waker());
             regs.index().write(|w| w.set_index(index as _));
 
-            // TODO: use fifo_not_empty?
             let unready = regs.in_csr1().read().in_pkt_rdy();
 
             if unready {

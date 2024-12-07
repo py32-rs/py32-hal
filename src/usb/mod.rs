@@ -1,6 +1,6 @@
 use core::future::poll_fn;
 use core::marker::PhantomData;
-use core::sync::atomic::{AtomicBool, Ordering};
+use core::sync::atomic::{AtomicBool, AtomicU8, Ordering};
 use core::task::Poll;
 
 use embassy_sync::waitqueue::AtomicWaker;
@@ -49,8 +49,8 @@ static EP_OUT_WAKERS: [AtomicWaker; EP_COUNT] = [NEW_AW; EP_COUNT];
 static IRQ_RESET: AtomicBool = AtomicBool::new(false);
 static IRQ_SUSPEND: AtomicBool = AtomicBool::new(false);
 static IRQ_RESUME: AtomicBool = AtomicBool::new(false);
-
-
+static EP_IN_ENABLED: AtomicU8 = AtomicU8::new(0);
+static EP_OUT_ENABLED: AtomicU8 = AtomicU8::new(0);
 
 fn calc_max_fifo_size_btyes(len: u16) -> u8 {
     let btyes = ((len + 7) / 8) as u8;
@@ -97,7 +97,7 @@ impl<T: Instance> interrupt::typelevel::Handler<T::Interrupt> for InterruptHandl
             }
             if T::regs().in_csr1().read().underrun(){
                 T::regs().in_csr1().modify(|w| w.set_underrun(false));
-                warn!("Underrun");
+                warn!("Underrun: ep {}", index);
             }
 
         }
