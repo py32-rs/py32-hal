@@ -28,6 +28,9 @@ embassy-futures = "0.1.1"
 embassy-usb = { version = "0.3.0", features = [ "defmt"]}
 usbd-hid = "0.8.2"
 
+# embassy-usb-logger = "0.2.0"
+log = "0.4"
+
 # cargo build/run
 [profile.dev]
 codegen-units = 1
