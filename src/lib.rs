@@ -43,6 +43,9 @@ pub mod usart;
 pub mod timer;
 #[cfg(feature = "_time-driver")]
 pub mod time_driver;
+
+#[cfg(feature = "time-driver-systick")]
+pub mod systick_time_driver;
 pub mod gpio;
 #[cfg(usb)]
 pub mod usb;
@@ -50,6 +53,13 @@ pub mod usb;
 #[cfg(feature = "exti")]
 pub mod exti;
 
+#[cfg(all(feature = "_time-driver", feature = "time-driver-systick"))]
+compile_error!(
+    "The `time-driver-systick` feature is incompatible with the `time-driver-timxx` feature. "
+);
+
+#[cfg(feature = "time-driver-systick")]
+use cortex_m::peripheral::SYST;
 
 /// `py32-hal` global configuration.
 #[non_exhaustive]
@@ -107,16 +117,24 @@ impl Default for Config {
 /// This returns the peripheral singletons that can be used for creating drivers.
 ///
 /// This should only be called once at startup, otherwise it panics.
-pub fn init(config: Config) -> Peripherals {
+pub fn init(
+    config: Config,
+    #[cfg(feature = "time-driver-systick")]
+    systick: SYST,
+) -> Peripherals {
     critical_section::with(|cs| {
         let p = Peripherals::take_with_cs(cs);
         unsafe {
             rcc::init(config.rcc);
             gpio::init(cs);
 
-            #[cfg(feature = "_time-driver")]
             // must be after rcc init
+            #[cfg(feature = "_time-driver")]
             time_driver::init(cs);
+
+            #[cfg(feature = "time-driver-systick")]
+            systick_time_driver::init(cs, systick);
+
 
             #[cfg(feature = "exti")]
             exti::init(cs);

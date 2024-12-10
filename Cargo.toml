@@ -40,7 +40,7 @@ defmt-rtt = { version = "0.4", optional = true }
 log = { version = "0.4", optional = true }
 critical-section = "1.2"
 cfg-if = "1.0.0"
-
+portable-atomic = { version = "1", features = ["unsafe-assume-single-core", "require-cas"], optional = true }
 
 futures-util = { version = "0.3.30", default-features = false }
 embassy-hal-internal = { version = "0.2.0", features = [
@@ -102,6 +102,12 @@ time-driver-tim1 = ["_time-driver"]
 time-driver-tim3 = ["_time-driver"]
 time-driver-tim15 = ["_time-driver"]
 
+time-driver-systick = ["portable-atomic"]
+
+# td == time-driver, to avoid confliction
+# By default, only one alarm is provided (similar to a 2-channel timer). Enabling this feature provides three alarms (similar to a 4-channel timer).
+# Of course, this will also increase the execution time of the interrupt handler.
+td-systick-multi-alarms = ["time-driver-systick"]
 
 _time-driver = []
 

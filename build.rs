@@ -193,7 +193,7 @@ fn main() {
                 .to_ascii_lowercase(),
         ),
         Err(GetOneError::None) => None,
-        Err(GetOneError::Multiple) => panic!("Multiple py32xx Cargo features enabled"),
+        Err(GetOneError::Multiple) => panic!("Multiple time-driver-xxx Cargo features enabled"),
     };
 
     let time_driver_singleton = match time_driver.as_ref().map(|x| x.as_ref()) {
@@ -212,6 +212,7 @@ fn main() {
         Some("tim22") => "TIM22",
         Some("tim23") => "TIM23",
         Some("tim24") => "TIM24",
+        Some("systick") => "",
         Some("any") => {
             // Order of TIM candidators:
             // 1. 2CH -> 2CH_CMP -> GP16 -> GP32 -> ADV
