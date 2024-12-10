@@ -1,3 +1,13 @@
+/// Universal Serial Bus (USB)
+/// 
+/// The USB peripheral IP in PY32 is a mini Mentor USB (musb), 
+/// featuring a fixed FIFO size and with some register functionalities masked. 
+/// 
+/// For the PY32F07x series, IN and OUT endpoints for the same endpoint share a FIFO. 
+/// By default, we don't use a single endpoint simultaneously for IN and OUT directions.
+/// However, you can enable the `allow-ep-shared-fifo` feature to use an endpoint's IN 
+/// and OUT capabilities concurrently.
+
 use core::future::poll_fn;
 use core::marker::PhantomData;
 use core::sync::atomic::{AtomicBool, AtomicU8, Ordering};

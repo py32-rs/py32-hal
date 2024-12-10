@@ -37,9 +37,7 @@ Supported chip flags: `py32f030f16`, `py32f030k28`, `py32f072c1b`, More is comin
 
 Note: Currently the program behavior has nothing to do with chip packaging.
 
-
-
-others should work if you are careful as most peripherals are similar enough.In fact, the IPs of peripherals in different PY32 series may be consistent. Moreover, some series use the same die, so it might not require much work.
+Others should work if you are careful as most peripherals are similar enough.In fact, the IPs of peripherals in different PY32 series may be consistent. Moreover, some series use the same die, so it might not require much work.
 
 For a full list of chip capabilities and peripherals, check the [py32-data](https://github.com/py32-rs/py32-data) repository.
 
@@ -57,14 +55,13 @@ For a full list of chip capabilities and peripherals, check the [py32-data](http
 | ADC        |                 | ✅+              | ✅               |      |
 | RTC        |                 |                 |                 |      |
 | Timer(PWM) |                 | ✅               | ❓               |      |
-| USB/OTG    | N/A             | N/A             |                 |      |
+| USB        | N/A             | N/A             | ✅+              |      |
 
-- ✅ : Expected to work
-- ❌ : Not implemented
-- ❓ : Not tested
-- `+` : marks the async driver
-- TODO: I haven't got a dev board yet, help-wanted
-- N/A: Not available
+- ✅ : Implemented
+- Blank : Not implemented
+- ❓ : Requires demo verification
+- `+` : Async support
+- N/A : Not available
 
 ### TODOs
 
@@ -90,6 +87,8 @@ This crate provides an implementation of the Embassy `time-driver`.
 
  Embassy requires that any TIM used as a time-driver has at least two channels, so only TIM1 and TIM3 are available for the PY32F030, 003, and 002A series. You can select either `time-driver-tim3` or `time-driver-tim1` to specify the TIM to use.
 
+For PY32F07x, F040, you can use TIM15, TIM3 or TIM1.
+
 ## Minimum supported Rust version(MSRV)
 
 This project is developed with a recent **nightly** version of Rust compiler. And is expected to work with beta versions of Rust.
@@ -112,3 +111,7 @@ All kinds of contributions are welcome.
 ## License
 
 This project is licensed under the MIT or Apache-2.0 license, at your option.
+
+
+
+Some peripheral driver code has been modified from [embassy-stm32]([embassy/embassy-stm32 at main · embassy-rs/embassy](https://github.com/embassy-rs/embassy/tree/main/embassy-stm32)). Big thanks to this project and its awesome contributors!

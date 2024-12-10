@@ -80,7 +80,6 @@ memory-x = ["py32-metapac/memory-x"]
 
 embassy = ["dep:embassy-sync", "dep:embassy-futures", "dep:embassy-time-driver"]
 
-
 time = ["dep:embassy-time", "embassy-embedded-hal/time"]
 
 exti = []

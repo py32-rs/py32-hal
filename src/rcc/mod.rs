@@ -1,3 +1,5 @@
+/// Reset and Clock Control (RCC)
+
 use core::mem::MaybeUninit;
 
 use critical_section::CriticalSection;
