@@ -5,7 +5,6 @@
 use embassy_executor::Spawner;
 use defmt::*;
 use py32_hal::usart::{Config, Uart};
-use py32_hal::{bind_interrupts, peripherals, usart};
 use {defmt_rtt as _, panic_probe as _};
 
 #[embassy_executor::main]

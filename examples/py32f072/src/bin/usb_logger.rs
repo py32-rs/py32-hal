@@ -1,3 +1,7 @@
+#![no_std]
+#![no_main]
+#![feature(impl_trait_in_assoc_type)]
+
 // This example works well, but there is a dependency conflict.  
 // Please remove the `embassy-usb` and `usbd-hid` dependencies from `Cargo.toml`, and then add:  
 // ```toml
@@ -5,13 +9,14 @@
 // ```  
 // This issue may be resolved in a future release of Embassy.
 
+// Delete me
+#[embassy_executor::main]
+async fn main(_spawner: embassy_executor::Spawner) {
+    let _p = py32_hal::init(Default::default());
+}
 
 
-// #![no_std]
-// #![no_main]
-// #![feature(impl_trait_in_assoc_type)]
-
-// use {defmt_rtt as _, panic_probe as _};
+use {defmt_rtt as _, panic_probe as _};
 // use embassy_executor::Spawner;
 // use embassy_time::Timer;
 // use py32_hal::bind_interrupts;

@@ -2,8 +2,6 @@
 #![no_main]
 #![feature(impl_trait_in_assoc_type)]
 
-use core::sync::atomic::{AtomicBool, Ordering};
-
 use defmt::*;
 use {defmt_rtt as _, panic_probe as _};
 use embassy_executor::Spawner;
