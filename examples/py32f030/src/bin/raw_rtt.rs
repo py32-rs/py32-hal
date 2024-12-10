@@ -4,9 +4,11 @@
 use cortex_m_rt::entry;
 use defmt::*;
 use defmt_rtt as _;
-use hal::pac;
 use panic_halt as _;
+
 use py32_hal as hal;
+#[allow(unused_imports)]
+use hal::pac;
 
 #[entry]
 fn main() -> ! {

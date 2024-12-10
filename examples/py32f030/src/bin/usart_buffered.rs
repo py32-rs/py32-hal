@@ -7,7 +7,6 @@ use embassy_executor::Spawner;
 use py32_hal::usart::{BufferedUart, Config};
 use py32_hal::{bind_interrupts, peripherals, usart};
 use py32_hal::time::Hertz;
-use py32_hal::rcc::{Pll, PllSource, Sysclk};
 use embedded_io_async::Read;
 use embedded_io_async::Write;
 use {defmt_rtt as _, panic_probe as _};

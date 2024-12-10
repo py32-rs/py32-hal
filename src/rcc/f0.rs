@@ -298,6 +298,7 @@ pub(crate) unsafe fn init(config: Config) {
         sys: Some(sys).into(),
         hsi: hsi.into(),
         lse: None.into(),
+        pll: pll.into(),
     };
     crate::rcc::set_freqs(clocks);
 }

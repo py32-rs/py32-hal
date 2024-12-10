@@ -8,8 +8,6 @@ use py32_hal::exti::ExtiInput;
 use py32_hal::gpio::Pull;
 use {defmt_rtt as _, panic_probe as _};
 
-use py32_hal::interrupt;
-
 #[embassy_executor::main]
 async fn main(_spawner: Spawner) {
     let p = py32_hal::init(Default::default());
