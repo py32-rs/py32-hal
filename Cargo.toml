@@ -1,6 +1,6 @@
 [package]
 name = "py32-hal"
-version = "0.1.1"
+version = "0.2.0"
 edition = "2021"
 authors = ["Decaday <myDecaday@outlook.com>", "Andelf <andelf@gmail.com>"]
 repository = "https://github.com/py32-rs/py32-hal"
@@ -13,7 +13,7 @@ readme = "README.md"
 license = "MIT OR Apache-2.0"
 
 [dependencies]
-# py32-metapac = "0.1.1"
+# py32-metapac = "0.2.0"
 # py32-metapac = { path = "../py32-data/build/py32-metapac"}
 py32-metapac = { git = "https://github.com/py32-rs/py32-metapac.git" }
 
