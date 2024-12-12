@@ -41,6 +41,9 @@ log = { version = "0.4", optional = true }
 critical-section = "1.2"
 cfg-if = "1.0.0"
 portable-atomic = { version = "1", features = ["unsafe-assume-single-core", "require-cas"], optional = true }
+# musb = { version = "0.1.0", optional = true, features = ["prebuild"] }
+musb = { git = "https://github.com/decaday/musb.git", optional = true, features = ["prebuild"] }
+# musb = { path = "../musb", optional = true , features = ["prebuild"] }
 
 futures-util = { version = "0.3.30", default-features = false }
 embassy-hal-internal = { version = "0.2.0", features = [
@@ -87,11 +90,11 @@ exti = []
 # PY32F07x: the IN and OUT buffers of the same endpoint being shared
 # When this feature is enabled, the In and Out of an endpoint will not be used at the same time, except for ep0.
 # PY32F403: IN and OUT do not share FIFO, this feature is invalid
-allow-ep-shared-fifo = []
+allow-ep-shared-fifo = ["musb/allow-ep-shared-fifo"]
 
 py32f030k28 = ["py32-metapac/py32f030k28"]
 py32f030f16 = ["py32-metapac/py32f030f16"]
-py32f072c1b = ["py32-metapac/py32f072c1b"]
+py32f072c1b = ["py32-metapac/py32f072c1b", "dep:musb", "musb/builtin-py32f07x"]
 
 # As of 2023-12-04, this driver is implemented using CC1 as the halfway rollover interrupt, and any
 # additional CC capabilities to provide timer alarms to embassy-time. embassy-time requires AT LEAST
