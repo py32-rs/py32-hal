@@ -37,25 +37,27 @@ Supported chip flags: `py32f030f16`, `py32f030k28`, `py32f072c1b`, More is comin
 
 Note: Currently the program behavior has nothing to do with chip packaging.
 
-Others should work if you are careful as most peripherals are similar enough.In fact, the IPs of peripherals in different PY32 series may be consistent. Moreover, some series use the same die, so it might not require much work.
+Others should work if you are careful as most peripherals are similar enough. In fact, the IPs of peripherals in different PY32 series may be consistent. Moreover, some series use the same die, so it might not require much work.
 
 For a full list of chip capabilities and peripherals, check the [py32-data](https://github.com/py32-rs/py32-data) repository.
 
-| Family     | F002B/L020/F001 | F030/F003/F002A | F040/F07x/MD410 | F403 |
-| ---------- | --------------- | --------------- | --------------- | ---- |
-| Embassy    |                 | ✅               | ✅               |      |
-| RCC        |                 | ✅               | ✅               |      |
-| GPIO       |                 | ✅               | ✅               |      |
-| INTERRUPT  |                 | ✅               | ✅               |      |
-| DMA        | N/A             |                 |                 |      |
-| EXTI       |                 | ✅+              | ❓               |      |
-| USART      |                 | ✅               | ❓               |      |
-| I2C        |                 | ✅               | ❓               |      |
-| SPI        |                 |                 |                 |      |
-| ADC        |                 | ✅+              | ✅               |      |
-| RTC        |                 |                 |                 |      |
-| Timer(PWM) |                 | ✅               | ❓               |      |
-| USB        | N/A             | N/A             | ✅+              |      |
+| Family     | F002B/L020 | F030/F003/F002A | F040/F07x/MD410 | F403 |
+| ---------- | ---------- | --------------- | --------------- | ---- |
+| Embassy    |            | ✅               | ✅               |      |
+| RCC        |            | ✅               | ✅               |      |
+| GPIO       |            | ✅               | ✅               |      |
+| INTERRUPT  |            | ✅               | ✅               |      |
+| DMA        | N/A        |                 |                 |      |
+| EXTI       |            | ✅+              | ✅+              |      |
+| USART      |            | ✅+              | ✅+              |      |
+| I2C        |            | ✅               | ❓               |      |
+| SPI        |            |                 |                 |      |
+| ADC        |            | ✅+              | ✅               |      |
+| RTC        |            |                 |                 |      |
+| Timer(PWM) |            | ✅               | ❓               |      |
+| USB        | N/A        | N/A             | ✅+              |      |
+| DAC        | N/A        | N/A             |                 |      |
+| I2S        | N/A        | N/A             |                 |      |
 
 - ✅ : Implemented
 - Blank : Not implemented
@@ -91,11 +93,9 @@ Embassy requires that any TIM used as a time-driver has at least two channels, s
 
 For PY32F07x, F040, you can use TIM15, TIM3 or TIM1.
 
-## Minimum supported Rust version(MSRV)
+## Awesome List
 
-This project is developed with a recent **nightly** version of Rust compiler. And is expected to work with beta versions of Rust.
-
-Feel free to change this if you did some testing with some version of Rust.
+[py32csdk-hal-sys](https://github.com/decaday/py32csdk-hal-sys): PY32F0 MCU c SDK bindings rust crate
 
 ## Contributing
 
@@ -109,6 +109,12 @@ All kinds of contributions are welcome.
 - Revising the peripheral definitions at [py32-data](https://github.com/py32-rs/py32-data)
 - Adding new peripheral drivers
 - ...
+
+## Minimum supported Rust version(MSRV)
+
+This project is developed with a recent **nightly** version of Rust compiler. And is expected to work with beta versions of Rust.
+
+Feel free to change this if you did some testing with some version of Rust.
 
 ## License
 

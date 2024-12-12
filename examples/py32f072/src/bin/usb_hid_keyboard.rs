@@ -100,12 +100,12 @@ async fn main(_spawner: Spawner) {
 
     let (reader, mut writer) = hid.split();
 
-    let mut button = ExtiInput::new(p.PB0, p.EXTI0, Pull::Down);
+    let mut button = ExtiInput::new(p.PB0, p.EXTI0, Pull::Up);
 
     // Do stuff with the class!
     let in_fut = async {
         loop {
-            button.wait_for_rising_edge().await;
+            button.wait_for_falling_edge().await;
             // signal_pin.wait_for_high().await;
             info!("Button pressed!");
             // Create a report with the A key pressed. (no shift modifier)
@@ -121,7 +121,7 @@ async fn main(_spawner: Spawner) {
                 Err(e) => warn!("Failed to send report: {:?}", e),
             };
 
-            button.wait_for_falling_edge().await;
+            button.wait_for_rising_edge().await;
             // signal_pin.wait_for_low().await;
             info!("Button released!");
             let report = KeyboardReport {
