@@ -2,8 +2,8 @@
 
 use core::marker::PhantomData;
 
-use embassy_hal_internal::{into_ref, PeripheralRef};
 use crate::pac::timer::vals;
+use embassy_hal_internal::{into_ref, PeripheralRef};
 
 use super::low_level::Timer;
 use super::{Channel1Pin, Channel2Pin, GeneralInstance4Channel};
@@ -58,7 +58,11 @@ pub struct Qei<'d, T: GeneralInstance4Channel> {
 
 impl<'d, T: GeneralInstance4Channel> Qei<'d, T> {
     /// Create a new quadrature decoder driver.
-    pub fn new(tim: impl Peripheral<P = T> + 'd, _ch1: QeiPin<'d, T, Ch1>, _ch2: QeiPin<'d, T, Ch2>) -> Self {
+    pub fn new(
+        tim: impl Peripheral<P = T> + 'd,
+        _ch1: QeiPin<'d, T, Ch1>,
+        _ch2: QeiPin<'d, T, Ch2>,
+    ) -> Self {
         Self::new_inner(tim)
     }
 

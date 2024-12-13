@@ -5,11 +5,11 @@ use cortex_m::peripheral::syst::SystClkSource;
 use cortex_m::peripheral::SYST;
 use cortex_m_rt::exception;
 
-use portable_atomic::{AtomicU64, AtomicU8, Ordering};
 use critical_section::CriticalSection;
 use embassy_sync::blocking_mutex::raw::CriticalSectionRawMutex;
 use embassy_sync::blocking_mutex::Mutex;
 use embassy_time_driver::{AlarmHandle, Driver, TICK_HZ};
+use portable_atomic::{AtomicU64, AtomicU8, Ordering};
 
 // Maximum number of supported alarms
 #[cfg(feature = "td-systick-multi-alarms")]
@@ -65,7 +65,11 @@ impl SysTickDriver {
     // Initialize the SysTick driver
     fn init(&'static self, _cs: CriticalSection, mut systick: SYST) -> bool {
         // Calculate the reload value
-        let core_clock = unsafe { crate::rcc::get_freqs() }.hclk1.to_hertz().unwrap().0;
+        let core_clock = unsafe { crate::rcc::get_freqs() }
+            .hclk1
+            .to_hertz()
+            .unwrap()
+            .0;
 
         let reload_value = match (core_clock as u64).checked_div(TICK_HZ) {
             Some(div) if div > 0 && div <= 0x00FFFFFF => (div - 1) as u32,
@@ -75,7 +79,7 @@ impl SysTickDriver {
         // let mut systick = peripherals.SYST;
 
         // Configure SysTick
-        systick.set_clock_source(SystClkSource::Core);  // Use processor clock
+        systick.set_clock_source(SystClkSource::Core); // Use processor clock
         systick.set_reload(reload_value);
         systick.clear_current();
         systick.enable_counter();
@@ -103,12 +107,12 @@ impl SysTickDriver {
 
     // Check if an alarm is due and trigger it if necessary
     #[inline]
-    fn check_and_trigger_alarm(&self,
-        #[cfg(feature = "td-systick-multi-alarms")]
-        n: usize,
+    fn check_and_trigger_alarm(
+        &self,
+        #[cfg(feature = "td-systick-multi-alarms")] n: usize,
         current_time: u64,
-        cs: CriticalSection) {
-        
+        cs: CriticalSection,
+    ) {
         #[cfg(feature = "td-systick-multi-alarms")]
         let alarm = &self.alarms.borrow(cs)[n];
         #[cfg(not(feature = "td-systick-multi-alarms"))]
@@ -189,7 +193,6 @@ impl Driver for SysTickDriver {
                     &self.alarm.borrow(cs)
                 }
             };
-            
 
             let current_time = self.now();
             if timestamp <= current_time {
@@ -211,6 +214,6 @@ pub(crate) fn init(cs: CriticalSection, systick: SYST) {
 
 // SysTick interrupt handler (to be implemented in your interrupt vector)
 #[exception]
-fn SysTick(){
+fn SysTick() {
     DRIVER.on_systick();
 }

@@ -2,14 +2,14 @@
 
 use core::marker::PhantomData;
 
-use embassy_hal_internal::{into_ref, PeripheralRef};
 use crate::pac::timer::vals::Ckd;
+use embassy_hal_internal::{into_ref, PeripheralRef};
 
 use super::low_level::{CountingMode, OutputPolarity, Timer};
 use super::simple_pwm::{Ch1, Ch2, Ch3, Ch4, PwmPin};
 use super::{
-    AdvancedInstance4Channel, Channel, Channel1ComplementaryPin, Channel2ComplementaryPin, Channel3ComplementaryPin,
-    Channel4ComplementaryPin,
+    AdvancedInstance4Channel, Channel, Channel1ComplementaryPin, Channel2ComplementaryPin,
+    Channel3ComplementaryPin, Channel4ComplementaryPin,
 };
 use crate::gpio::{AnyPin, OutputType};
 use crate::time::Hertz;
@@ -75,8 +75,14 @@ impl<'d, T: AdvancedInstance4Channel> ComplementaryPwm<'d, T> {
         Self::new_inner(tim, freq, counting_mode)
     }
 
-    fn new_inner(tim: impl Peripheral<P = T> + 'd, freq: Hertz, counting_mode: CountingMode) -> Self {
-        let mut this = Self { inner: Timer::new(tim) };
+    fn new_inner(
+        tim: impl Peripheral<P = T> + 'd,
+        freq: Hertz,
+        counting_mode: CountingMode,
+    ) -> Self {
+        let mut this = Self {
+            inner: Timer::new(tim),
+        };
 
         this.inner.set_counting_mode(counting_mode);
         this.set_frequency(freq);
@@ -87,7 +93,8 @@ impl<'d, T: AdvancedInstance4Channel> ComplementaryPwm<'d, T> {
         [Channel::Ch1, Channel::Ch2, Channel::Ch3, Channel::Ch4]
             .iter()
             .for_each(|&channel| {
-                this.inner.set_output_compare_mode(channel, OutputCompareMode::PwmMode1);
+                this.inner
+                    .set_output_compare_mode(channel, OutputCompareMode::PwmMode1);
                 this.inner.set_output_compare_preload(channel, true);
             });
 
@@ -137,7 +144,8 @@ impl<'d, T: AdvancedInstance4Channel> ComplementaryPwm<'d, T> {
     /// Set the output polarity for a given channel.
     pub fn set_polarity(&mut self, channel: Channel, polarity: OutputPolarity) {
         self.inner.set_output_polarity(channel, polarity);
-        self.inner.set_complementary_output_polarity(channel, polarity);
+        self.inner
+            .set_complementary_output_polarity(channel, polarity);
     }
 
     /// Set the dead time as a proportion of max_duty

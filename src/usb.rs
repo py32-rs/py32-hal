@@ -1,32 +1,24 @@
 /// Universal Serial Bus (USB)
-/// 
-/// The USB peripheral IP in PY32 is a mini Mentor USB (musb), 
-/// featuring a fixed FIFO size and with some register functionalities masked. 
-/// 
+///
+/// The USB peripheral IP in PY32 is a mini Mentor USB (musb),
+/// featuring a fixed FIFO size and with some register functionalities masked.
+///
 /// See more: https://github.com/decaday/musb
-/// 
-/// For the PY32F07x series, IN and OUT endpoints for the same endpoint share a FIFO. 
+///
+/// For the PY32F07x series, IN and OUT endpoints for the same endpoint share a FIFO.
 /// By default, we don't use a single endpoint simultaneously for IN and OUT directions.
-/// However, you can enable the `allow-ep-shared-fifo` feature to use an endpoint's IN 
+/// However, you can enable the `allow-ep-shared-fifo` feature to use an endpoint's IN
 /// and OUT capabilities concurrently.
-
 use core::marker::PhantomData;
 use embassy_usb_driver as driver;
 
+use crate::interrupt::typelevel::Interrupt;
 use crate::rcc::{self, RccPeripheral};
 use crate::{interrupt, Peripheral};
-use crate::interrupt::typelevel::Interrupt;
 
 use embassy_usb_driver::EndpointType;
 
-use musb::{MusbDriver,
-    Endpoint,
-    ControlPipe,
-    UsbInstance,
-    Bus,
-    Out,
-    In,
-};
+use musb::{Bus, ControlPipe, Endpoint, In, MusbDriver, Out, UsbInstance};
 
 /// Interrupt handler.
 pub struct InterruptHandler<T: Instance> {
@@ -75,33 +67,38 @@ impl<'d, T: Instance> Driver<'d, T> {
 }
 
 impl<'d, T: Instance> driver::Driver<'d> for Driver<'d, T> {
-        type EndpointOut = Endpoint<'d, UsbInstance, Out>;
-        type EndpointIn = Endpoint<'d, UsbInstance, In>;
-        type ControlPipe = ControlPipe<'d, UsbInstance>;
-        type Bus = Bus<'d, UsbInstance>;
-    
-        fn alloc_endpoint_in(
-            &mut self,
-            ep_type: EndpointType,
-            max_packet_size: u16,
-            interval_ms: u8,
-        ) -> Result<Self::EndpointIn, driver::EndpointAllocError> {
-            self.inner.alloc_endpoint(ep_type, max_packet_size, interval_ms, false)
-        }
-    
-        fn alloc_endpoint_out(
-            &mut self,
-            ep_type: EndpointType,
-            max_packet_size: u16,
-            interval_ms: u8,
-        ) -> Result<Self::EndpointOut, driver::EndpointAllocError> {
-            self.inner.alloc_endpoint(ep_type, max_packet_size, interval_ms, false)
-        }
+    type EndpointOut = Endpoint<'d, UsbInstance, Out>;
+    type EndpointIn = Endpoint<'d, UsbInstance, In>;
+    type ControlPipe = ControlPipe<'d, UsbInstance>;
+    type Bus = Bus<'d, UsbInstance>;
 
-        fn start(self, control_max_packet_size: u16) -> (Bus<'d, UsbInstance>, ControlPipe<'d, UsbInstance>) {
-            self.inner.start(control_max_packet_size)
-        }
+    fn alloc_endpoint_in(
+        &mut self,
+        ep_type: EndpointType,
+        max_packet_size: u16,
+        interval_ms: u8,
+    ) -> Result<Self::EndpointIn, driver::EndpointAllocError> {
+        self.inner
+            .alloc_endpoint(ep_type, max_packet_size, interval_ms, false)
     }
+
+    fn alloc_endpoint_out(
+        &mut self,
+        ep_type: EndpointType,
+        max_packet_size: u16,
+        interval_ms: u8,
+    ) -> Result<Self::EndpointOut, driver::EndpointAllocError> {
+        self.inner
+            .alloc_endpoint(ep_type, max_packet_size, interval_ms, false)
+    }
+
+    fn start(
+        self,
+        control_max_packet_size: u16,
+    ) -> (Bus<'d, UsbInstance>, ControlPipe<'d, UsbInstance>) {
+        self.inner.start(control_max_packet_size)
+    }
+}
 
 trait SealedInstance {}
 

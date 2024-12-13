@@ -199,8 +199,12 @@ impl HalfDuplexConfig {
     fn af_type(self) -> gpio::AfType {
         match self {
             HalfDuplexConfig::PushPull => AfType::output(OutputType::PushPull, Speed::Medium),
-            HalfDuplexConfig::OpenDrainExternal => AfType::output(OutputType::OpenDrain, Speed::Medium),
-            HalfDuplexConfig::OpenDrainInternal => AfType::output_pull(OutputType::OpenDrain, Speed::Medium, Pull::Up),
+            HalfDuplexConfig::OpenDrainExternal => {
+                AfType::output(OutputType::OpenDrain, Speed::Medium)
+            }
+            HalfDuplexConfig::OpenDrainInternal => {
+                AfType::output_pull(OutputType::OpenDrain, Speed::Medium, Pull::Up)
+            }
         }
     }
 }
@@ -811,7 +815,12 @@ impl<'d> UartRx<'d, Blocking> {
         rx: impl Peripheral<P = impl RxPin<T>> + 'd,
         config: Config,
     ) -> Result<Self, ConfigError> {
-        Self::new_inner(peri, new_pin!(rx, AfType::input(config.rx_pull)), None, /*None,*/ config)
+        Self::new_inner(
+            peri,
+            new_pin!(rx, AfType::input(config.rx_pull)),
+            None,
+            /*None,*/ config,
+        )
     }
 
     /// Create a new rx-only UART with a request-to-send pin
@@ -1321,7 +1330,8 @@ fn configure(
         if brr < brr_min {
             if brr * 2 >= brr_min && kind == Kind::Uart {
                 over8 = true;
-                r.brr().write_value(regs::Brr(((brr << 1) & !0xF) | (brr & 0x07)));
+                r.brr()
+                    .write_value(regs::Brr(((brr << 1) & !0xF) | (brr & 0x07)));
                 found_brr = Some(brr);
                 break;
             }

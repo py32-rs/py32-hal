@@ -69,7 +69,9 @@ pub(crate) fn blocking_delay_us(us: u32) {
 
 /// ADC instance.
 #[allow(private_bounds)]
-pub trait Instance: SealedInstance + crate::Peripheral<P = Self> + crate::rcc::RccPeripheral {
+pub trait Instance:
+    SealedInstance + crate::Peripheral<P = Self> + crate::rcc::RccPeripheral
+{
     type Interrupt: crate::interrupt::typelevel::Interrupt;
 }
 

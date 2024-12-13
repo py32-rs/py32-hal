@@ -9,7 +9,6 @@ mod macros;
 
 pub use py32_metapac as pac;
 
-
 /// Operating modes for peripherals.
 pub mod mode {
     trait SealedMode {}
@@ -34,19 +33,19 @@ pub mod mode {
     impl_mode!(Async);
 }
 
-pub mod time;
-pub mod rcc;
-pub mod i2c;
 pub mod adc;
 pub mod dma;
-pub mod usart;
-pub mod timer;
+pub mod i2c;
+pub mod rcc;
+pub mod time;
 #[cfg(feature = "_time-driver")]
 pub mod time_driver;
+pub mod timer;
+pub mod usart;
 
+pub mod gpio;
 #[cfg(feature = "time-driver-systick")]
 pub mod systick_time_driver;
-pub mod gpio;
 #[cfg(feature = "py32f072c1b")]
 pub mod usb;
 
@@ -67,7 +66,6 @@ use cortex_m::peripheral::SYST;
 pub struct Config {
     /// RCC config.
     pub rcc: rcc::Config,
-
     // /// Enable debug during sleep and stop.
     // ///
     // /// May increase power consumption. Defaults to true.
@@ -93,7 +91,6 @@ pub struct Config {
     // pub gpdma_interrupt_priority: Priority,
 }
 
-
 impl Default for Config {
     fn default() -> Self {
         Self {
@@ -117,11 +114,7 @@ impl Default for Config {
 /// This returns the peripheral singletons that can be used for creating drivers.
 ///
 /// This should only be called once at startup, otherwise it panics.
-pub fn init(
-    config: Config,
-    #[cfg(feature = "time-driver-systick")]
-    systick: SYST,
-) -> Peripherals {
+pub fn init(config: Config, #[cfg(feature = "time-driver-systick")] systick: SYST) -> Peripherals {
     critical_section::with(|cs| {
         let p = Peripherals::take_with_cs(cs);
         unsafe {
@@ -135,14 +128,12 @@ pub fn init(
             #[cfg(feature = "time-driver-systick")]
             systick_time_driver::init(cs, systick);
 
-
             #[cfg(feature = "exti")]
             exti::init(cs);
         };
         p
     })
 }
-
 
 // This must go last, so that it sees all the impl_foo! macros defined earlier.
 pub(crate) mod _generated {
@@ -158,7 +149,6 @@ pub use crate::_generated::interrupt;
 
 pub use _generated::{peripherals, Peripherals};
 pub use embassy_hal_internal::{into_ref, Peripheral, PeripheralRef};
-
 
 // developer note: this macro can't be in `embassy-hal-internal` due to the use of `$crate`.
 #[macro_export]

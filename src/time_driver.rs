@@ -4,11 +4,11 @@ use core::cell::Cell;
 use core::sync::atomic::{compiler_fence, AtomicU32, AtomicU8, Ordering};
 use core::{mem, ptr};
 
+use crate::pac::timer::{regs, TimGp16};
 use critical_section::CriticalSection;
 use embassy_sync::blocking_mutex::raw::CriticalSectionRawMutex;
 use embassy_sync::blocking_mutex::Mutex;
 use embassy_time_driver::{AlarmHandle, Driver, TICK_HZ};
-use crate::pac::timer::{regs, TimGp16};
 
 use crate::interrupt::typelevel::Interrupt;
 use crate::pac::timer::vals;

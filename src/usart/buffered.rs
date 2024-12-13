@@ -10,8 +10,8 @@ use embassy_hal_internal::{Peripheral, PeripheralRef};
 use embassy_sync::waitqueue::AtomicWaker;
 
 use super::{
-    clear_interrupt_flags, configure, rdr, reconfigure, send_break, sr, tdr, Config, ConfigError, CtsPin, Error, Info,
-    Instance, Regs, RtsPin, RxPin, TxPin,
+    clear_interrupt_flags, configure, rdr, reconfigure, send_break, sr, tdr, Config, ConfigError,
+    CtsPin, Error, Info, Instance, Regs, RtsPin, RxPin, TxPin,
 };
 use crate::gpio::{AfType, AnyPin, OutputType, Pull, SealedPin as _, Speed};
 use crate::interrupt::{self, InterruptExt};
@@ -822,7 +822,9 @@ impl<'d> embedded_hal_nb::serial::Read for BufferedUartRx<'d> {
 
 impl<'d> embedded_hal_nb::serial::Write for BufferedUartTx<'d> {
     fn write(&mut self, char: u8) -> nb::Result<(), Self::Error> {
-        self.blocking_write(&[char]).map(drop).map_err(nb::Error::Other)
+        self.blocking_write(&[char])
+            .map(drop)
+            .map_err(nb::Error::Other)
     }
 
     fn flush(&mut self) -> nb::Result<(), Self::Error> {
@@ -838,7 +840,10 @@ impl<'d> embedded_hal_nb::serial::Read for BufferedUart<'d> {
 
 impl<'d> embedded_hal_nb::serial::Write for BufferedUart<'d> {
     fn write(&mut self, char: u8) -> nb::Result<(), Self::Error> {
-        self.tx.blocking_write(&[char]).map(drop).map_err(nb::Error::Other)
+        self.tx
+            .blocking_write(&[char])
+            .map(drop)
+            .map_err(nb::Error::Other)
     }
 
     fn flush(&mut self) -> nb::Result<(), Self::Error> {

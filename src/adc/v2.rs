@@ -3,10 +3,10 @@ use embassy_hal_internal::into_ref;
 use super::blocking_delay_us;
 use crate::adc::{Adc, AdcChannel, Instance, Resolution, SampleTime};
 use crate::pac::adc::vals::Extsel;
+use crate::pac::RCC;
 use crate::peripherals::ADC;
 use crate::time::Hertz;
 use crate::{rcc, Peripheral};
-use crate::pac::RCC;
 
 // mod ringbuffered_v2;
 // pub use ringbuffered_v2::{RingBufferedAdc, Sequence};
@@ -71,7 +71,9 @@ impl Prescaler {
             2..=3 => Self::Div4,
             4..=5 => Self::Div6,
             6..=7 => Self::Div8,
-            _ => panic!("Selected PCLK frequency is too high for ADC with largest possible prescaler."),
+            _ => panic!(
+                "Selected PCLK frequency is too high for ADC with largest possible prescaler."
+            ),
         }
     }
 
@@ -202,12 +204,17 @@ where
     fn set_channel_sample_time(ch: u8, sample_time: SampleTime) {
         let sample_time = sample_time.into();
         match ch {
-            ..=9 => T::regs().smpr3().modify(|reg| reg.set_smp(ch as _, sample_time)),
-            ..=19 => T::regs().smpr2().modify(|reg| reg.set_smp((ch - 10) as _, sample_time)),
-            _ => T::regs().smpr3().modify(|reg| reg.set_smp((ch - 20) as _, sample_time)),
+            ..=9 => T::regs()
+                .smpr3()
+                .modify(|reg| reg.set_smp(ch as _, sample_time)),
+            ..=19 => T::regs()
+                .smpr2()
+                .modify(|reg| reg.set_smp((ch - 10) as _, sample_time)),
+            _ => T::regs()
+                .smpr3()
+                .modify(|reg| reg.set_smp((ch - 20) as _, sample_time)),
         }
     }
-
 
     /// Perform ADC automatic self-calibration
     pub fn calibrate() {
@@ -215,13 +222,13 @@ where
             reg.set_adon(false);
         });
 
-        while T::regs().cr2().read().adon() { }
+        while T::regs().cr2().read().adon() {}
 
         // Wait for ADC to be fully disabled
         // Compute and wait for required ADC clock cycles
 
         let adc_clock_mhz = 72_u32; // MAX
-        let cpu_clock_mhz = unsafe { rcc::get_freqs() }.sys.to_hertz().unwrap().0 / 1_000_000; 
+        let cpu_clock_mhz = unsafe { rcc::get_freqs() }.sys.to_hertz().unwrap().0 / 1_000_000;
         #[cfg(py32f072)]
         let precalibration_cycles = 2_u32;
 
@@ -239,7 +246,7 @@ where
         });
 
         // Wait for calibration reset to complete
-        while T::regs().cr2().read().rstcal() { }
+        while T::regs().cr2().read().rstcal() {}
 
         // Start calibration
         T::regs().cr2().modify(|reg| {
@@ -247,7 +254,7 @@ where
         });
 
         // Wait for calibration to complete
-        while T::regs().cr2().read().cal() { }
+        while T::regs().cr2().read().cal() {}
     }
 }
 

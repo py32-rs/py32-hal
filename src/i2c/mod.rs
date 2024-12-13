@@ -116,8 +116,7 @@ impl<'d> I2c<'d, Async> {
         peri: impl Peripheral<P = T> + 'd,
         scl: impl Peripheral<P = impl SclPin<T>> + 'd,
         sda: impl Peripheral<P = impl SdaPin<T>> + 'd,
-        _irq: impl interrupt::typelevel::Binding<T::GlobalInterrupt, GlobalInterruptHandler<T>>
-            + 'd,
+        _irq: impl interrupt::typelevel::Binding<T::GlobalInterrupt, GlobalInterruptHandler<T>> + 'd,
         // tx_dma: impl Peripheral<P = impl TxDma<T>> + 'd,
         // rx_dma: impl Peripheral<P = impl RxDma<T>> + 'd,
         freq: Hertz,
@@ -226,14 +225,19 @@ impl Timeout {
     }
 
     #[inline]
-    fn with<R>(self, fut: impl Future<Output = Result<R, Error>>) -> impl Future<Output = Result<R, Error>> {
+    fn with<R>(
+        self,
+        fut: impl Future<Output = Result<R, Error>>,
+    ) -> impl Future<Output = Result<R, Error>> {
         #[cfg(feature = "time")]
         {
             use futures_util::FutureExt;
 
-            embassy_futures::select::select(embassy_time::Timer::at(self.deadline), fut).map(|r| match r {
-                embassy_futures::select::Either::First(_) => Err(Error::Timeout),
-                embassy_futures::select::Either::Second(r) => r,
+            embassy_futures::select::select(embassy_time::Timer::at(self.deadline), fut).map(|r| {
+                match r {
+                    embassy_futures::select::Either::First(_) => Err(Error::Timeout),
+                    embassy_futures::select::Either::Second(r) => r,
+                }
             })
         }
 
@@ -322,7 +326,12 @@ impl<'d, M: Mode> embedded_hal_02::blocking::i2c::Write for I2c<'d, M> {
 impl<'d, M: Mode> embedded_hal_02::blocking::i2c::WriteRead for I2c<'d, M> {
     type Error = Error;
 
-    fn write_read(&mut self, address: u8, write: &[u8], read: &mut [u8]) -> Result<(), Self::Error> {
+    fn write_read(
+        &mut self,
+        address: u8,
+        write: &[u8],
+        read: &mut [u8],
+    ) -> Result<(), Self::Error> {
         self.blocking_write_read(address, write, read)
     }
 }
@@ -332,9 +341,9 @@ impl embedded_hal_1::i2c::Error for Error {
         match *self {
             Self::Bus => embedded_hal_1::i2c::ErrorKind::Bus,
             Self::Arbitration => embedded_hal_1::i2c::ErrorKind::ArbitrationLoss,
-            Self::Nack => {
-                embedded_hal_1::i2c::ErrorKind::NoAcknowledge(embedded_hal_1::i2c::NoAcknowledgeSource::Unknown)
-            }
+            Self::Nack => embedded_hal_1::i2c::ErrorKind::NoAcknowledge(
+                embedded_hal_1::i2c::NoAcknowledgeSource::Unknown,
+            ),
             Self::Timeout => embedded_hal_1::i2c::ErrorKind::Other,
             Self::Crc => embedded_hal_1::i2c::ErrorKind::Other,
             Self::Overrun => embedded_hal_1::i2c::ErrorKind::Overrun,
@@ -356,7 +365,12 @@ impl<'d, M: Mode> embedded_hal_1::i2c::I2c for I2c<'d, M> {
         self.blocking_write(address, write)
     }
 
-    fn write_read(&mut self, address: u8, write: &[u8], read: &mut [u8]) -> Result<(), Self::Error> {
+    fn write_read(
+        &mut self,
+        address: u8,
+        write: &[u8],
+        read: &mut [u8],
+    ) -> Result<(), Self::Error> {
         self.blocking_write_read(address, write, read)
     }
 
@@ -442,14 +456,20 @@ impl FrameOptions {
     fn send_stop(self) -> bool {
         match self {
             Self::FirstAndLastFrame | Self::LastFrame => true,
-            Self::FirstFrame | Self::FirstAndNextFrame | Self::NextFrame | Self::LastFrameNoStop => false,
+            Self::FirstFrame
+            | Self::FirstAndNextFrame
+            | Self::NextFrame
+            | Self::LastFrameNoStop => false,
         }
     }
 
     /// Sends NACK after last byte received, indicating end of read operation.
     fn send_nack(self) -> bool {
         match self {
-            Self::FirstAndLastFrame | Self::FirstFrame | Self::LastFrame | Self::LastFrameNoStop => true,
+            Self::FirstAndLastFrame
+            | Self::FirstFrame
+            | Self::LastFrame
+            | Self::LastFrameNoStop => true,
             Self::FirstAndNextFrame | Self::NextFrame => false,
         }
     }
@@ -464,7 +484,10 @@ impl FrameOptions {
 #[allow(dead_code)]
 fn operation_frames<'a, 'b: 'a>(
     operations: &'a mut [embedded_hal_1::i2c::Operation<'b>],
-) -> Result<impl IntoIterator<Item = (&'a mut embedded_hal_1::i2c::Operation<'b>, FrameOptions)>, Error> {
+) -> Result<
+    impl IntoIterator<Item = (&'a mut embedded_hal_1::i2c::Operation<'b>, FrameOptions)>,
+    Error,
+> {
     use embedded_hal_1::i2c::Operation::{Read, Write};
 
     // Check empty read buffer before starting transaction. Otherwise, we would risk halting with an

@@ -75,8 +75,14 @@ impl<'d, T: GeneralInstance4Channel> InputCapture<'d, T> {
         Self::new_inner(tim, freq, counting_mode)
     }
 
-    fn new_inner(tim: impl Peripheral<P = T> + 'd, freq: Hertz, counting_mode: CountingMode) -> Self {
-        let mut this = Self { inner: Timer::new(tim) };
+    fn new_inner(
+        tim: impl Peripheral<P = T> + 'd,
+        freq: Hertz,
+        counting_mode: CountingMode,
+    ) -> Self {
+        let mut this = Self {
+            inner: Timer::new(tim),
+        };
 
         this.inner.set_counting_mode(counting_mode);
         this.inner.set_tick_freq(freq);
@@ -125,11 +131,17 @@ impl<'d, T: GeneralInstance4Channel> InputCapture<'d, T> {
         self.inner.get_input_interrupt(channel)
     }
 
-    fn new_future(&self, channel: Channel, mode: InputCaptureMode, tisel: InputTISelection) -> InputCaptureFuture<T> {
+    fn new_future(
+        &self,
+        channel: Channel,
+        mode: InputCaptureMode,
+        tisel: InputTISelection,
+    ) -> InputCaptureFuture<T> {
         // Configuration steps from ST RM0390 (STM32F446) chapter 17.3.5
         // or ST RM0008 (STM32F103) chapter 15.3.5 Input capture mode
         self.inner.set_input_ti_selection(channel, tisel);
-        self.inner.set_input_capture_filter(channel, FilterValue::NOFILTER);
+        self.inner
+            .set_input_capture_filter(channel, FilterValue::NOFILTER);
         self.inner.set_input_capture_mode(channel, mode);
         self.inner.set_input_capture_prescaler(channel, 0);
         self.inner.enable_channel(channel, true);
@@ -155,26 +167,42 @@ impl<'d, T: GeneralInstance4Channel> InputCapture<'d, T> {
 
     /// Asynchronously wait until the pin sees any edge.
     pub async fn wait_for_any_edge(&mut self, channel: Channel) -> u32 {
-        self.new_future(channel, InputCaptureMode::BothEdges, InputTISelection::Normal)
-            .await
+        self.new_future(
+            channel,
+            InputCaptureMode::BothEdges,
+            InputTISelection::Normal,
+        )
+        .await
     }
 
     /// Asynchronously wait until the (alternate) pin sees a rising edge.
     pub async fn wait_for_rising_edge_alternate(&mut self, channel: Channel) -> u32 {
-        self.new_future(channel, InputCaptureMode::Rising, InputTISelection::Alternate)
-            .await
+        self.new_future(
+            channel,
+            InputCaptureMode::Rising,
+            InputTISelection::Alternate,
+        )
+        .await
     }
 
     /// Asynchronously wait until the (alternate) pin sees a falling edge.
     pub async fn wait_for_falling_edge_alternate(&mut self, channel: Channel) -> u32 {
-        self.new_future(channel, InputCaptureMode::Falling, InputTISelection::Alternate)
-            .await
+        self.new_future(
+            channel,
+            InputCaptureMode::Falling,
+            InputTISelection::Alternate,
+        )
+        .await
     }
 
     /// Asynchronously wait until the (alternate) pin sees any edge.
     pub async fn wait_for_any_edge_alternate(&mut self, channel: Channel) -> u32 {
-        self.new_future(channel, InputCaptureMode::BothEdges, InputTISelection::Alternate)
-            .await
+        self.new_future(
+            channel,
+            InputCaptureMode::BothEdges,
+            InputTISelection::Alternate,
+        )
+        .await
     }
 }
 
@@ -190,7 +218,8 @@ impl<T: GeneralInstance4Channel> Drop for InputCaptureFuture<T> {
             let regs = unsafe { crate::pac::timer::TimGp16::from_ptr(T::regs()) };
 
             // disable interrupt enable
-            regs.dier().modify(|w| w.set_ccie(self.channel.index(), false));
+            regs.dier()
+                .modify(|w| w.set_ccie(self.channel.index(), false));
         });
     }
 }

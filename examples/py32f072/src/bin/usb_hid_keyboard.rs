@@ -5,22 +5,20 @@
 use core::sync::atomic::{AtomicBool, Ordering};
 
 use defmt::*;
-use {defmt_rtt as _, panic_probe as _};
 use embassy_executor::Spawner;
 use embassy_futures::join::join;
 use py32_hal::bind_interrupts;
-use py32_hal::gpio::Pull;
 use py32_hal::exti::ExtiInput;
+use py32_hal::gpio::Pull;
+use py32_hal::rcc::{Pll, PllMul, PllSource, Sysclk};
 use py32_hal::time::Hertz;
-use py32_hal::rcc::{Pll, PllSource, Sysclk, PllMul};
 use py32_hal::usb::{Driver, InterruptHandler};
-
+use {defmt_rtt as _, panic_probe as _};
 
 use embassy_usb::class::hid::{HidReaderWriter, ReportId, RequestHandler, State};
 use embassy_usb::control::OutResponse;
 use embassy_usb::{Builder, Handler};
 use usbd_hid::descriptor::{KeyboardReport, SerializedDescriptor};
-
 
 bind_interrupts!(struct Irqs {
     USB => InterruptHandler<py32_hal::peripherals::USB>;
@@ -204,7 +202,9 @@ impl Handler for MyDeviceHandler {
     fn configured(&mut self, configured: bool) {
         self.configured.store(configured, Ordering::Relaxed);
         if configured {
-            info!("Device configured, it may now draw up to the configured current limit from Vbus.")
+            info!(
+                "Device configured, it may now draw up to the configured current limit from Vbus."
+            )
         } else {
             info!("Device is no longer configured, the Vbus current limit is 100mA.");
         }

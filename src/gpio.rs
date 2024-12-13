@@ -28,7 +28,9 @@ impl<'d> Flex<'d> {
     pub fn new(pin: impl Peripheral<P = impl Pin> + 'd) -> Self {
         into_ref!(pin);
         // Pin will be in disconnected state.
-        Self { pin: pin.map_into() }
+        Self {
+            pin: pin.map_into(),
+        }
     }
 
     /// Put the pin into input mode.
@@ -320,7 +322,11 @@ pub struct Output<'d> {
 impl<'d> Output<'d> {
     /// Create GPIO output driver for a [Pin] with the provided [Level] and [Speed] configuration.
     #[inline]
-    pub fn new(pin: impl Peripheral<P = impl Pin> + 'd, initial_output: Level, speed: Speed) -> Self {
+    pub fn new(
+        pin: impl Peripheral<P = impl Pin> + 'd,
+        initial_output: Level,
+        speed: Speed,
+    ) -> Self {
         let mut pin = Flex::new(pin);
         match initial_output {
             Level::High => pin.set_high(),
@@ -385,7 +391,11 @@ pub struct OutputOpenDrain<'d> {
 impl<'d> OutputOpenDrain<'d> {
     /// Create a new GPIO open drain output driver for a [Pin] with the provided [Level] and [Speed].
     #[inline]
-    pub fn new(pin: impl Peripheral<P = impl Pin> + 'd, initial_output: Level, speed: Speed) -> Self {
+    pub fn new(
+        pin: impl Peripheral<P = impl Pin> + 'd,
+        initial_output: Level,
+        speed: Speed,
+    ) -> Self {
         let mut pin = Flex::new(pin);
         match initial_output {
             Level::High => pin.set_high(),
@@ -398,7 +408,12 @@ impl<'d> OutputOpenDrain<'d> {
     /// Create a new GPIO open drain output driver for a [Pin] with the provided [Level], [Speed]
     /// and [Pull].
     #[inline]
-    pub fn new_pull(pin: impl Peripheral<P = impl Pin> + 'd, initial_output: Level, speed: Speed, pull: Pull) -> Self {
+    pub fn new_pull(
+        pin: impl Peripheral<P = impl Pin> + 'd,
+        initial_output: Level,
+        speed: Speed,
+        pull: Pull,
+    ) -> Self {
         let mut pin = Flex::new(pin);
         match initial_output {
             Level::High => pin.set_high(),

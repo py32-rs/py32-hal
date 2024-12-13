@@ -84,7 +84,7 @@ impl<'d, T: Instance> Adc<'d, T> {
         blocking_delay_us(1);
 
         // py32 adc has no adrdy
-        // while !T::regs().isr().read().adrdy() 
+        // while !T::regs().isr().read().adrdy()
 
         T::Interrupt::unpend();
         unsafe {
@@ -101,7 +101,7 @@ impl<'d, T: Instance> Adc<'d, T> {
         // Precautions
         // When the working conditions of the ADC change (VCC changes are the main factor affecting ADC offset shifts, followed by temperature changes), it is recommended to recalibrate the ADC.
         // A software calibration process must be added before using the ADC module for the first time.
-        
+
         // Operation Procedure
         // Ensure ADEN = 0 and CKMODE selects the system clock.
         // Set ADCAL = 1.
@@ -117,22 +117,22 @@ impl<'d, T: Instance> Adc<'d, T> {
         if T::regs().cr().read().aden() {
             panic!("ADC is already enabled");
         }
-    
+
         // Disable ADC DMA transfer request during calibration
-        // Note: Specificity of this PY32 serie: Calibration factor is         
-        //       available in data register and also transfered by DMA.        
+        // Note: Specificity of this PY32 serie: Calibration factor is
+        //       available in data register and also transfered by DMA.
         //       To not insert ADC calibration factor among ADC conversion data
-        //       in array variable, DMA transfer must be disabled during       
-        //       calibration.  
+        //       in array variable, DMA transfer must be disabled during
+        //       calibration.
         let backup_dma_settings = T::regs().cfgr1().read();
         T::regs().cfgr1().modify(|reg| reg.set_dmaen(false));
-        
+
         // Start ADC calibration
         T::regs().cr().modify(|reg| reg.set_adcal(true));
-        
+
         // Wait for calibration completion
         while T::regs().cr().read().adcal() {}
-        
+
         // Restore ADC DMA transfer request after calibration
         T::regs().cfgr1().modify(|reg| {
             reg.set_dmaen(backup_dma_settings.dmaen());
@@ -173,7 +173,9 @@ impl<'d, T: Instance> Adc<'d, T> {
     }
 
     pub fn set_resolution(&mut self, resolution: Resolution) {
-        T::regs().cfgr1().modify(|reg| reg.set_res(resolution.into()));
+        T::regs()
+            .cfgr1()
+            .modify(|reg| reg.set_res(resolution.into()));
     }
 
     pub fn set_ckmode(&mut self, ckmode: Ckmode) {
@@ -186,7 +188,9 @@ impl<'d, T: Instance> Adc<'d, T> {
         channel.setup();
 
         // A.7.5 Single conversion sequence code example - Software trigger
-        T::regs().chselr().write(|reg| reg.set_chselx(ch_num as usize, true));
+        T::regs()
+            .chselr()
+            .write(|reg| reg.set_chselx(ch_num as usize, true));
 
         self.convert().await
     }
@@ -197,7 +201,9 @@ impl<'d, T: Instance> Adc<'d, T> {
             reg.set_eosmp(true);
         });
 
-        T::regs().smpr().modify(|reg| reg.set_smp(self.sample_time.into()));
+        T::regs()
+            .smpr()
+            .modify(|reg| reg.set_smp(self.sample_time.into()));
         T::regs().ier().modify(|w| w.set_eocie(true));
 
         // AN1011_PY32F030_PY32F003_PY32F002A系列_ADC应用注意事项.pdf
@@ -228,7 +234,7 @@ impl<'d, T: Instance> Drop for Adc<'d, T> {
         T::regs().cr().modify(|reg| reg.set_adstp(true));
         while T::regs().cr().read().adstp() {}
 
-        // py32 ADC cant be disable by software 
+        // py32 ADC cant be disable by software
         // T::regs().cr().modify(|reg| reg.set_());
         // while T::regs().cr().read().aden() {}
 

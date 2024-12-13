@@ -2,8 +2,8 @@
 #![no_main]
 #![feature(impl_trait_in_assoc_type)]
 
-use embassy_executor::Spawner;
 use defmt::*;
+use embassy_executor::Spawner;
 use py32_hal::usart::{Config, Uart};
 use {defmt_rtt as _, panic_probe as _};
 

@@ -150,7 +150,13 @@ impl<'d, M: PeriMode> I2c<'d, M> {
         Ok(sr1)
     }
 
-    fn write_bytes(&mut self, addr: u8, bytes: &[u8], timeout: Timeout, frame: FrameOptions) -> Result<(), Error> {
+    fn write_bytes(
+        &mut self,
+        addr: u8,
+        bytes: &[u8],
+        timeout: Timeout,
+        frame: FrameOptions,
+    ) -> Result<(), Error> {
         if frame.send_start() {
             // Send a START condition
 
@@ -310,7 +316,12 @@ impl<'d, M: PeriMode> I2c<'d, M> {
     }
 
     /// Blocking write, restart, read.
-    pub fn blocking_write_read(&mut self, addr: u8, write: &[u8], read: &mut [u8]) -> Result<(), Error> {
+    pub fn blocking_write_read(
+        &mut self,
+        addr: u8,
+        write: &[u8],
+        read: &mut [u8],
+    ) -> Result<(), Error> {
         // Check empty read buffer before starting transaction. Otherwise, we would not generate the
         // stop condition below.
         if read.is_empty() {
@@ -330,7 +341,11 @@ impl<'d, M: PeriMode> I2c<'d, M> {
     /// Consecutive operations of same type are merged. See [transaction contract] for details.
     ///
     /// [transaction contract]: embedded_hal_1::i2c::I2c::transaction
-    pub fn blocking_transaction(&mut self, addr: u8, operations: &mut [Operation<'_>]) -> Result<(), Error> {
+    pub fn blocking_transaction(
+        &mut self,
+        addr: u8,
+        operations: &mut [Operation<'_>],
+    ) -> Result<(), Error> {
         let timeout = self.timeout();
 
         for (op, frame) in operation_frames(operations)? {

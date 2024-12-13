@@ -2,7 +2,9 @@
 
 use embassy_hal_internal::into_ref;
 
-use super::low_level::{CountingMode, InputCaptureMode, InputTISelection, SlaveMode, Timer, TriggerSource};
+use super::low_level::{
+    CountingMode, InputCaptureMode, InputTISelection, SlaveMode, Timer, TriggerSource,
+};
 use super::{Channel, Channel1Pin, Channel2Pin, GeneralInstance4Channel};
 use crate::gpio::{AfType, Pull};
 use crate::time::Hertz;
@@ -43,7 +45,12 @@ impl<'d, T: GeneralInstance4Channel> PwmInput<'d, T> {
         Self::new_inner(tim, freq, Channel::Ch2, Channel::Ch1)
     }
 
-    fn new_inner(tim: impl Peripheral<P = T> + 'd, freq: Hertz, ch1: Channel, ch2: Channel) -> Self {
+    fn new_inner(
+        tim: impl Peripheral<P = T> + 'd,
+        freq: Hertz,
+        ch1: Channel,
+        ch2: Channel,
+    ) -> Self {
         let mut inner = Timer::new(tim);
 
         inner.set_counting_mode(CountingMode::EdgeAlignedUp);
@@ -69,7 +76,10 @@ impl<'d, T: GeneralInstance4Channel> PwmInput<'d, T> {
 
         // Must call the `enable` function after
 
-        Self { channel: ch1, inner }
+        Self {
+            channel: ch1,
+            inner,
+        }
     }
 
     /// Enable the given channel.

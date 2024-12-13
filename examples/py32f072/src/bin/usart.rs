@@ -2,13 +2,12 @@
 #![no_main]
 #![feature(impl_trait_in_assoc_type)]
 
-use embassy_executor::Spawner;
 use defmt::*;
-use py32_hal::usart::{Config, Uart};
-use py32_hal::rcc::{Pll, PllSource, Sysclk, PllMul};
+use embassy_executor::Spawner;
+use py32_hal::rcc::{Pll, PllMul, PllSource, Sysclk};
 use py32_hal::time::Hertz;
+use py32_hal::usart::{Config, Uart};
 use {defmt_rtt as _, panic_halt as _};
-
 
 #[embassy_executor::main]
 async fn main(_spawner: Spawner) {

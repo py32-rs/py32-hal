@@ -8,12 +8,10 @@
 
 use core::mem::ManuallyDrop;
 
-use embassy_hal_internal::{into_ref, Peripheral, PeripheralRef};
 use crate::pac;
+use embassy_hal_internal::{into_ref, Peripheral, PeripheralRef};
 // Re-export useful enums
 pub use pac::timer::vals::{FilterValue, Sms as SlaveMode, Ts as TriggerSource};
-
-
 
 use super::*;
 use crate::pac::timer::vals;
@@ -81,7 +79,10 @@ pub enum CountingMode {
 impl CountingMode {
     /// Return whether this mode is edge-aligned (up or down).
     pub fn is_edge_aligned(&self) -> bool {
-        matches!(self, CountingMode::EdgeAlignedUp | CountingMode::EdgeAlignedDown)
+        matches!(
+            self,
+            CountingMode::EdgeAlignedUp | CountingMode::EdgeAlignedDown
+        )
     }
 
     /// Return whether this mode is center-aligned.
@@ -370,7 +371,9 @@ impl<'d, T: BasicNoCr2Instance> Timer<'d, T> {
 
     /// Enable/disable the update dma.
     pub fn enable_update_dma(&self, enable: bool) {
-        self.regs_basic_no_cr2().dier().modify(|r| r.set_ude(enable));
+        self.regs_basic_no_cr2()
+            .dier()
+            .modify(|r| r.set_ude(enable));
     }
 
     /// Get the update dma enable/disable state.
@@ -474,7 +477,9 @@ impl<'d, T: GeneralInstance4Channel> Timer<'d, T> {
 
     /// Clear input interrupt.
     pub fn clear_input_interrupt(&self, channel: Channel) {
-        self.regs_gp16().sr().modify(|r| r.set_ccif(channel.index(), false));
+        self.regs_gp16()
+            .sr()
+            .modify(|r| r.set_ccif(channel.index(), false));
     }
 
     /// Get input interrupt.
@@ -484,7 +489,9 @@ impl<'d, T: GeneralInstance4Channel> Timer<'d, T> {
 
     /// Enable input interrupt.
     pub fn enable_input_interrupt(&self, channel: Channel, enable: bool) {
-        self.regs_gp16().dier().modify(|r| r.set_ccie(channel.index(), enable));
+        self.regs_gp16()
+            .dier()
+            .modify(|r| r.set_ccie(channel.index(), enable));
     }
 
     /// Set input capture prescaler.
@@ -538,7 +545,9 @@ impl<'d, T: GeneralInstance4Channel> Timer<'d, T> {
 
     /// Enable/disable a channel.
     pub fn enable_channel(&self, channel: Channel, enable: bool) {
-        self.regs_gp16().ccer().modify(|w| w.set_cce(channel.index(), enable));
+        self.regs_gp16()
+            .ccer()
+            .modify(|w| w.set_cce(channel.index(), enable));
     }
 
     /// Get enable/disable state of a channel
@@ -551,11 +560,15 @@ impl<'d, T: GeneralInstance4Channel> Timer<'d, T> {
         match T::BITS {
             TimerBits::Bits16 => {
                 let value = unwrap!(u16::try_from(value));
-                self.regs_gp16().ccr(channel.index()).modify(|w| w.set_ccr(value));
+                self.regs_gp16()
+                    .ccr(channel.index())
+                    .modify(|w| w.set_ccr(value));
             }
             #[cfg(py32f072)]
             TimerBits::Bits32 => {
-                self.regs_gp32_unchecked().ccr(channel.index()).write_value(value);
+                self.regs_gp32_unchecked()
+                    .ccr(channel.index())
+                    .write_value(value);
             }
         }
     }
@@ -599,7 +612,9 @@ impl<'d, T: GeneralInstance4Channel> Timer<'d, T> {
 
     /// Set capture compare DMA enable state
     pub fn set_cc_dma_enable_state(&self, channel: Channel, ccde: bool) {
-        self.regs_gp16().dier().modify(|w| w.set_ccde(channel.index(), ccde))
+        self.regs_gp16()
+            .dier()
+            .modify(|w| w.set_ccde(channel.index(), ccde))
     }
 
     /// Set Timer Slave Mode

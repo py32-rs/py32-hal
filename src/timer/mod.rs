@@ -120,7 +120,10 @@ trait General4ChBlankSealed {
 
 /// General-purpose 16-bit timer with 4 channels instance.
 #[allow(private_bounds)]
-pub trait GeneralInstance4Channel: BasicInstance + GeneralInstance2Channel + General4ChBlankSealed {}
+pub trait GeneralInstance4Channel:
+    BasicInstance + GeneralInstance2Channel + General4ChBlankSealed
+{
+}
 
 /// General-purpose 32-bit timer with 4 channels instance.
 pub trait GeneralInstance32bit4Channel: GeneralInstance4Channel {}
@@ -134,7 +137,10 @@ pub trait AdvancedInstance1Channel: BasicNoCr2Instance + GeneralInstance1Channel
 }
 /// Advanced 16-bit timer with 2 channels instance.
 
-pub trait AdvancedInstance2Channel: BasicInstance + GeneralInstance2Channel + AdvancedInstance1Channel {}
+pub trait AdvancedInstance2Channel:
+    BasicInstance + GeneralInstance2Channel + AdvancedInstance1Channel
+{
+}
 
 /// Advanced 16-bit timer with 4 channels instance.
 pub trait AdvancedInstance4Channel: AdvancedInstance2Channel + GeneralInstance4Channel {}
@@ -325,7 +331,9 @@ pub struct UpdateInterruptHandler<T: CoreInstance> {
     _phantom: PhantomData<T>,
 }
 
-impl<T: CoreInstance> interrupt::typelevel::Handler<T::UpdateInterrupt> for UpdateInterruptHandler<T> {
+impl<T: CoreInstance> interrupt::typelevel::Handler<T::UpdateInterrupt>
+    for UpdateInterruptHandler<T>
+{
     unsafe fn on_interrupt() {
         // #[cfg(feature = "low-power")]
         // crate::low_power::on_wakeup_irq();

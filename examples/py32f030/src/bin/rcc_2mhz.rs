@@ -3,11 +3,10 @@
 #![feature(impl_trait_in_assoc_type)]
 
 use defmt::*;
+use embassy_executor::Spawner;
 use py32_hal::gpio::{Level, Output, Speed};
 use py32_hal::rcc::Hsidiv;
-use embassy_executor::Spawner;
 use {defmt_rtt as _, panic_halt as _};
-
 
 #[embassy_executor::main]
 async fn main(_spawner: Spawner) {

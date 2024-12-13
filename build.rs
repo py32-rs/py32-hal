@@ -1,4 +1,4 @@
-use std::collections::{BTreeMap, BTreeSet, HashMap/*, HashSet*/};
+use std::collections::{BTreeMap, BTreeSet, HashMap /*, HashSet*/};
 use std::fmt::Write as _;
 use std::io::Write;
 use std::path::{Path, PathBuf};
@@ -6,13 +6,13 @@ use std::process::Command;
 use std::{env, fs};
 
 use proc_macro2::{Ident, TokenStream};
-use quote::{format_ident, quote};
 use py32_metapac::metadata::ir::BitOffset;
 use py32_metapac::metadata::{
-    MemoryRegionKind, PeripheralRccKernelClock, PeripheralRccRegister, PeripheralRegisters, /*StopMode,*/
-    ALL_CHIPS, ALL_PERIPHERAL_VERSIONS,
-    METADATA,
+    MemoryRegionKind, PeripheralRccKernelClock, PeripheralRccRegister,
+    PeripheralRegisters, /*StopMode,*/
+    ALL_CHIPS, ALL_PERIPHERAL_VERSIONS, METADATA,
 };
+use quote::{format_ident, quote};
 
 #[path = "./build_common.rs"]
 mod common;
@@ -238,11 +238,14 @@ fn main() {
     };
 
     if !time_driver_singleton.is_empty() {
-        cfgs.enable(format!("time_driver_{}", time_driver_singleton.to_lowercase()));
+        cfgs.enable(format!(
+            "time_driver_{}",
+            time_driver_singleton.to_lowercase()
+        ));
     }
     for tim in [
-        "tim1", "tim2", "tim3", "tim4", "tim5", "tim8", "tim9", "tim12", "tim15", "tim20", "tim21", "tim22", "tim23",
-        "tim24",
+        "tim1", "tim2", "tim3", "tim4", "tim5", "tim8", "tim9", "tim12", "tim15", "tim20", "tim21",
+        "tim22", "tim23", "tim24",
     ] {
         cfgs.declare(format!("time_driver_{}", tim));
     }
@@ -390,7 +393,12 @@ fn main() {
         .filter_map(|p| p.registers.as_ref())
         .find(|r| r.kind == "rcc")
         .unwrap();
-    let rcc_block = rcc_registers.ir.blocks.iter().find(|b| b.name == "Rcc").unwrap();
+    let rcc_block = rcc_registers
+        .ir
+        .blocks
+        .iter()
+        .find(|b| b.name == "Rcc")
+        .unwrap();
 
     // ========
     // Generate RccPeripheral impls
@@ -507,7 +515,11 @@ fn main() {
                 .find(|i| i.name.eq_ignore_ascii_case(&fieldset_name))
                 .unwrap();
             let field_name = mux.field.to_ascii_lowercase();
-            let field = fieldset.fields.iter().find(|i| i.name == field_name).unwrap();
+            let field = fieldset
+                .fields
+                .iter()
+                .find(|i| i.name == field_name)
+                .unwrap();
             let enum_name = field.enumm.unwrap();
             let enumm = ir.enums.iter().find(|i| i.name == enum_name).unwrap();
 
@@ -562,7 +574,7 @@ fn main() {
                     .unwrap()
                     .byte_offset;
                 let reg_offset: u8 = (reg_offset / 4).try_into().unwrap();
-                
+
                 let bit_offset = &rcc_registers
                     .ir
                     .fieldsets
@@ -591,7 +603,10 @@ fn main() {
             };
             let enable_offset_and_bit = get_offset_and_bit(en_reg);
 
-            let needs_refcount = *rcc_field_count.get(&(en_reg.register, en_reg.field)).unwrap() > 1;
+            let needs_refcount = *rcc_field_count
+                .get(&(en_reg.register, en_reg.field))
+                .unwrap()
+                > 1;
             let refcount_idx = if needs_refcount {
                 let next_refcount_idx = refcount_idxs.len() as u8;
                 let refcount_idx = *refcount_idxs
@@ -682,7 +697,11 @@ fn main() {
         })
     }
 
-    let enum_names: BTreeSet<_> = clock_gen.muxes.iter().map(|(_, _, enum_name)| enum_name).collect();
+    let enum_names: BTreeSet<_> = clock_gen
+        .muxes
+        .iter()
+        .map(|(_, _, enum_name)| enum_name)
+        .collect();
 
     g.extend(quote! {
         pub mod mux {
@@ -718,7 +737,11 @@ fn main() {
     // Generate RCC
     clock_gen.clock_names.insert("sys".to_string());
     clock_gen.clock_names.insert("rtc".to_string());
-    let clock_idents: Vec<_> = clock_gen.clock_names.iter().map(|n| format_ident!("{}", n)).collect();
+    let clock_idents: Vec<_> = clock_gen
+        .clock_names
+        .iter()
+        .map(|n| format_ident!("{}", n))
+        .collect();
     g.extend(quote! {
         #[derive(Clone, Copy, Debug)]
         #[cfg_attr(feature = "defmt", derive(defmt::Format))]
@@ -1104,7 +1127,9 @@ fn main() {
 
                     let pin_name = {
                         // If we encounter a _C pin but the split_feature for this pin is not enabled, skip it
-                        if pin.pin.ends_with("_C") && !split_features.iter().any(|x| x.pin_name_with_c == pin.pin) {
+                        if pin.pin.ends_with("_C")
+                            && !split_features.iter().any(|x| x.pin_name_with_c == pin.pin)
+                        {
                             continue;
                         }
 
@@ -1132,7 +1157,9 @@ fn main() {
                     let peri = format_ident!("{}", p.name);
                     let pin_name = {
                         // If we encounter a _C pin but the split_feature for this pin is not enabled, skip it
-                        if pin.pin.ends_with("_C") && !split_features.iter().any(|x| x.pin_name_with_c == pin.pin) {
+                        if pin.pin.ends_with("_C")
+                            && !split_features.iter().any(|x| x.pin_name_with_c == pin.pin)
+                        {
                             continue;
                         }
                         format_ident!("{}", pin.pin)
@@ -1146,7 +1173,12 @@ fn main() {
                         None
                     } else if pin.signal.starts_with("IN") && pin.signal.ends_with('b') {
                         // we number STM32L1 ADC bank 1 as 0..=31, bank 2 as 32..=63
-                        let signal = pin.signal.strip_prefix("IN").unwrap().strip_suffix('b').unwrap();
+                        let signal = pin
+                            .signal
+                            .strip_prefix("IN")
+                            .unwrap()
+                            .strip_suffix('b')
+                            .unwrap();
                         Some(32u8 + signal.parse::<u8>().unwrap())
                     } else if pin.signal.starts_with("IN") {
                         Some(pin.signal.strip_prefix("IN").unwrap().parse().unwrap())
@@ -1304,7 +1336,13 @@ fn main() {
             match e {
                 "Pllp" | "Pllq" | "Pllr" | "Pllm" | "Plln" => true,
                 "Timpre" | "Pllrclkpre" => false,
-                e if e.ends_with("pre") || e.ends_with("pres") || e.ends_with("div") || e.ends_with("mul") => true,
+                e if e.ends_with("pre")
+                    || e.ends_with("pres")
+                    || e.ends_with("div")
+                    || e.ends_with("mul") =>
+                {
+                    true
+                }
                 _ => false,
             }
         }
@@ -1353,7 +1391,10 @@ fn main() {
             let mut divs = Vec::new();
             for v in e.variants {
                 let Ok(val) = parse_num(v.name) else {
-                    panic!("could not parse mul/div. enum={} variant={}", e.name, v.name)
+                    panic!(
+                        "could not parse mul/div. enum={} variant={}",
+                        e.name, v.name
+                    )
                 };
                 let variant_name = format_ident!("{}", v.name);
                 let variant = quote!(crate::pac::rcc::vals::#enum_name::#variant_name);
@@ -1428,7 +1469,12 @@ fn main() {
         flash_regions_table.push(row);
     }
 
-    let gpio_base = METADATA.peripherals.iter().find(|p| p.name == "GPIOA").unwrap().address as u32;
+    let gpio_base = METADATA
+        .peripherals
+        .iter()
+        .find(|p| p.name == "GPIOA")
+        .unwrap()
+        .address as u32;
     let gpio_stride = 0x400;
 
     for p in METADATA.peripherals {
@@ -1472,14 +1518,22 @@ fn main() {
                 let adc_num = p.name.strip_prefix("ADC").unwrap();
                 let mut adc_common = None;
                 for p2 in METADATA.peripherals {
-                    if let Some(common_nums) = p2.name.strip_prefix("ADC").and_then(|s| s.strip_suffix("_COMMON")) {
+                    if let Some(common_nums) = p2
+                        .name
+                        .strip_prefix("ADC")
+                        .and_then(|s| s.strip_suffix("_COMMON"))
+                    {
                         if common_nums.contains(adc_num) {
                             adc_common = Some(p2);
                         }
                     }
                 }
                 let adc_common = adc_common.map(|p| p.name).unwrap_or("none");
-                let row = vec![p.name.to_string(), adc_common.to_string(), "adc".to_string()];
+                let row = vec![
+                    p.name.to_string(),
+                    adc_common.to_string(),
+                    "adc".to_string(),
+                ];
                 adc_table.push(row);
             }
 
@@ -1513,7 +1567,11 @@ fn main() {
             if r.kind == "dma" || r.kind == "bdma" || r.kind == "gpdma" || r.kind == "lpdma" {
                 for irq in p.interrupts {
                     let ch_name = format!("{}_{}", p.name, irq.signal);
-                    let ch = METADATA.dma_channels.iter().find(|c| c.name == ch_name).unwrap();
+                    let ch = METADATA
+                        .dma_channels
+                        .iter()
+                        .find(|c| c.name == ch_name)
+                        .unwrap();
 
                     // Some H7 chips have BDMA1 hardcoded for DFSDM, ie no DMAMUX. It's unsupported, skip it.
                     if has_dmamux && ch.dmamux.is_none() {
@@ -1540,14 +1598,20 @@ fn main() {
         let dma = format_ident!("{}", ch.dma);
         let ch_num = ch.channel as usize;
 
-        let dma_peri = METADATA.peripherals.iter().find(|p| p.name == ch.dma).unwrap();
+        let dma_peri = METADATA
+            .peripherals
+            .iter()
+            .find(|p| p.name == ch.dma)
+            .unwrap();
         let bi = dma_peri.registers.as_ref().unwrap();
 
         let dma_info = match bi.kind {
             "dma" => quote!(crate::dma::DmaInfo::Dma(crate::pac::#dma)),
             "bdma" => quote!(crate::dma::DmaInfo::Bdma(crate::pac::#dma)),
             "gpdma" => quote!(crate::pac::#dma),
-            "lpdma" => quote!(unsafe { crate::pac::gpdma::Gpdma::from_ptr(crate::pac::#dma.as_ptr())}),
+            "lpdma" => {
+                quote!(unsafe { crate::pac::gpdma::Gpdma::from_ptr(crate::pac::#dma.as_ptr())})
+            }
             _ => panic!("bad dma channel kind {}", bi.kind),
         };
 
@@ -1663,18 +1727,16 @@ fn main() {
         if &chip_name[..9] == "py32f002a" || &chip_name[..9] == "py32f002b" {
             cfgs.push(chip_name[..6].to_owned()); // py32f0
             cfgs.push(chip_name[..9].to_owned()); // py32f002a
-            // TODO
-        }
-        else {
+                                                  // TODO
+        } else {
             cfgs.push(chip_name[..6].to_owned()); // py32f0
             cfgs.push(chip_name[..8].to_owned()); // py32f030
             cfgs.push(format!("package_{}", &chip_name[8..10]));
             cfgs.push(format!("flashsize_{}", &chip_name[10..11]));
         }
-        
+
         // cfgs.push(format!("{}x", &chip_name[..8])); // stm32f42x
         // cfgs.push(format!("{}x{}", &chip_name[..7], &chip_name[8..9])); // stm32f4x9
-        
 
         cfgs
     }

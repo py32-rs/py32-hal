@@ -111,7 +111,8 @@ impl<'d> ExtiInput<'d> {
     ///
     /// This returns immediately if the pin is already high.
     pub async fn wait_for_high(&mut self) {
-        let fut = ExtiInputFuture::new(self.pin.pin.pin.pin(), self.pin.pin.pin.port(), true, false);
+        let fut =
+            ExtiInputFuture::new(self.pin.pin.pin.pin(), self.pin.pin.pin.port(), true, false);
         if self.is_high() {
             return;
         }
@@ -122,7 +123,8 @@ impl<'d> ExtiInput<'d> {
     ///
     /// This returns immediately if the pin is already low.
     pub async fn wait_for_low(&mut self) {
-        let fut = ExtiInputFuture::new(self.pin.pin.pin.pin(), self.pin.pin.pin.port(), false, true);
+        let fut =
+            ExtiInputFuture::new(self.pin.pin.pin.pin(), self.pin.pin.pin.port(), false, true);
         if self.is_low() {
             return;
         }
@@ -212,9 +214,11 @@ impl<'a> ExtiInputFuture<'a> {
     fn new(pin: u8, port: u8, rising: bool, falling: bool) -> Self {
         critical_section::with(|_| {
             let pin = pin as usize;
-            
+
             // The port_sel of GPIOF is 2, but embassy seems to handle this automatically, requiring no extra processing.
-            exticr_regs().exticr(pin / 4).modify(|w| w.set_exti(pin % 4, port));
+            exticr_regs()
+                .exticr(pin / 4)
+                .modify(|w| w.set_exti(pin % 4, port));
             EXTI.rtsr().modify(|w| w.set_line(pin, rising));
             EXTI.ftsr().modify(|w| w.set_line(pin, falling));
 

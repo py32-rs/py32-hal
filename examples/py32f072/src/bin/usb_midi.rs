@@ -3,18 +3,17 @@
 #![feature(impl_trait_in_assoc_type)]
 
 use defmt::*;
-use {defmt_rtt as _, panic_probe as _};
 use embassy_executor::Spawner;
 use embassy_futures::join::join;
 use py32_hal::bind_interrupts;
+use py32_hal::rcc::{Pll, PllMul, PllSource, Sysclk};
 use py32_hal::time::Hertz;
-use py32_hal::rcc::{Pll, PllSource, Sysclk, PllMul};
-use py32_hal::usb::{Driver, InterruptHandler, Instance};
+use py32_hal::usb::{Driver, Instance, InterruptHandler};
+use {defmt_rtt as _, panic_probe as _};
 
 use embassy_usb::class::midi::MidiClass;
 use embassy_usb::driver::EndpointError;
 use embassy_usb::{Builder, Config};
-
 
 bind_interrupts!(struct Irqs {
     USB => InterruptHandler<py32_hal::peripherals::USB>;
@@ -105,7 +104,9 @@ impl From<EndpointError> for Disconnected {
     }
 }
 
-async fn midi_echo<'d, T: Instance + 'd>(class: &mut MidiClass<'d, Driver<'d, T>>) -> Result<(), Disconnected> {
+async fn midi_echo<'d, T: Instance + 'd>(
+    class: &mut MidiClass<'d, Driver<'d, T>>,
+) -> Result<(), Disconnected> {
     let mut buf = [0; 64];
     loop {
         let n = class.read_packet(&mut buf).await?;

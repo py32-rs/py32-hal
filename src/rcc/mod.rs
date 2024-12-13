@@ -1,5 +1,4 @@
 /// Reset and Clock Control (RCC)
-
 use core::mem::MaybeUninit;
 
 use critical_section::CriticalSection;
@@ -22,7 +21,7 @@ pub struct Clocks {
     // pub pclk2: crate::time::MaybeHertz,
     // pub pclk2_tim: crate::time::MaybeHertz,
     pub sys: crate::time::MaybeHertz,
-    
+
     pub hsi: crate::time::MaybeHertz,
     pub lse: crate::time::MaybeHertz,
     pub pll: crate::time::MaybeHertz,
@@ -30,7 +29,6 @@ pub struct Clocks {
     // pub sys: Option<crate::time::Hertz>,
     // pub usb: Option<crate::time::Hertz>,
 }
-
 
 // #[cfg(feature = "low-power")]
 // /// Must be written within a critical section
@@ -138,9 +136,9 @@ impl RccInfo {
             // Use .get_mut instead of []-operator so that we control how bounds checks happen.
             // Otherwise, core::fmt will be pulled in here in order to format the integer in the
             // out-of-bounds error.
-            if let Some(refcount) =
-                unsafe { (*core::ptr::addr_of_mut!(crate::_generated::REFCOUNTS)).get_mut(refcount_idx) }
-            {
+            if let Some(refcount) = unsafe {
+                (*core::ptr::addr_of_mut!(crate::_generated::REFCOUNTS)).get_mut(refcount_idx)
+            } {
                 *refcount += 1;
                 if *refcount > 1 {
                     return;
@@ -204,9 +202,9 @@ impl RccInfo {
             // Use .get_mut instead of []-operator so that we control how bounds checks happen.
             // Otherwise, core::fmt will be pulled in here in order to format the integer in the
             // out-of-bounds error.
-            if let Some(refcount) =
-                unsafe { (*core::ptr::addr_of_mut!(crate::_generated::REFCOUNTS)).get_mut(refcount_idx) }
-            {
+            if let Some(refcount) = unsafe {
+                (*core::ptr::addr_of_mut!(crate::_generated::REFCOUNTS)).get_mut(refcount_idx)
+            } {
                 *refcount -= 1;
                 if *refcount > 0 {
                     return;
@@ -280,7 +278,9 @@ mod util {
     }
 
     pub fn get_equal<T: Eq>(mut iter: impl Iterator<Item = T>) -> Result<Option<T>, ()> {
-        let Some(x) = iter.next() else { return Ok(None) };
+        let Some(x) = iter.next() else {
+            return Ok(None);
+        };
         if !iter.all(|y| y == x) {
             return Err(());
         }

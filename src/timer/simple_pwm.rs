@@ -32,7 +32,10 @@ macro_rules! channel_impl {
     ($new_chx:ident, $channel:ident, $pin_trait:ident) => {
         impl<'d, T: GeneralInstance4Channel> PwmPin<'d, T, $channel> {
             #[doc = concat!("Create a new ", stringify!($channel), " PWM pin instance.")]
-            pub fn $new_chx(pin: impl Peripheral<P = impl $pin_trait<T>> + 'd, output_type: OutputType) -> Self {
+            pub fn $new_chx(
+                pin: impl Peripheral<P = impl $pin_trait<T>> + 'd,
+                output_type: OutputType,
+            ) -> Self {
                 into_ref!(pin);
                 critical_section::with(|_| {
                     pin.set_low();
@@ -176,8 +179,14 @@ impl<'d, T: GeneralInstance4Channel> SimplePwm<'d, T> {
         Self::new_inner(tim, freq, counting_mode)
     }
 
-    fn new_inner(tim: impl Peripheral<P = T> + 'd, freq: Hertz, counting_mode: CountingMode) -> Self {
-        let mut this = Self { inner: Timer::new(tim) };
+    fn new_inner(
+        tim: impl Peripheral<P = T> + 'd,
+        freq: Hertz,
+        counting_mode: CountingMode,
+    ) -> Self {
+        let mut this = Self {
+            inner: Timer::new(tim),
+        };
 
         this.inner.set_counting_mode(counting_mode);
         this.set_frequency(freq);
@@ -187,7 +196,8 @@ impl<'d, T: GeneralInstance4Channel> SimplePwm<'d, T> {
         [Channel::Ch1, Channel::Ch2, Channel::Ch3, Channel::Ch4]
             .iter()
             .for_each(|&channel| {
-                this.inner.set_output_compare_mode(channel, OutputCompareMode::PwmMode1);
+                this.inner
+                    .set_output_compare_mode(channel, OutputCompareMode::PwmMode1);
 
                 this.inner.set_output_compare_preload(channel, true);
             });
@@ -292,7 +302,7 @@ impl<'d, T: GeneralInstance4Channel> SimplePwm<'d, T> {
 
     // /// Generate a sequence of PWM waveform
     // ///
-    // /// Note:  
+    // /// Note:
     // /// you will need to provide corresponding TIMx_UP DMA channel to use this method.
     // pub async fn waveform_up(
     //     &mut self,
