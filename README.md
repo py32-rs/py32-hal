@@ -31,15 +31,17 @@ Keypoints:
 
 ## Supported Devices and Peripherals
 
-Currently, supported chips are listed in `Cargo.toml` as feature flags.
+The currently supported chips are listed as feature flags in `Cargo.toml`:  
+- `py32f030f16`  
+- `py32f030k28`  
+- `py32f072c1b`  
+(More will be added soon!)
 
-Supported chip flags: `py32f030f16`, `py32f030k28`, `py32f072c1b`, More is coming...
+**Note:** The program's behavior is currently independent of the chip packaging.  
 
-Note: Currently the program behavior has nothing to do with chip packaging.
+Chips outside the list may work if you proceed cautiously, as most peripherals are quite similar across the series. In fact, the peripheral IPs within different PY32 series are often consistent. Additionally, some series share the same die, which may minimize the effort required for compatibility.  
 
-Others should work if you are careful as most peripherals are similar enough. In fact, the IPs of peripherals in different PY32 series may be consistent. Moreover, some series use the same die, so it might not require much work.
-
-For a full list of chip capabilities and peripherals, check the [py32-data](https://github.com/py32-rs/py32-data) repository.
+For a comprehensive list of chip capabilities and peripherals, refer to the [py32-data](https://github.com/py32-rs/py32-data) repository.
 
 | Family     | F002B/L020 | F030/F003/F002A | F040/F07x/MD410 | F403 |
 | ---------- | ---------- | --------------- | --------------- | ---- |
@@ -91,7 +93,7 @@ Embassy requires that any TIM used as a time-driver has at least two channels, s
 
 `time-driver-systick`: Although we do not recommend using it and there are some shortcomings, it does work. For details, please see [systick-demo](examples/systick-time-driver-f030/README.md)
 
-For PY32F07x, F040, you can use TIM15, TIM3 or TIM1.
+For PY32F07x, F040, you can use TIM15, TIM3, TIM2 or TIM1.
 
 ## Awesome List
 
@@ -102,8 +104,8 @@ For PY32F07x, F040, you can use TIM15, TIM3 or TIM1.
 All kinds of contributions are welcome.
 
 - Share your project at [Discussions](https://github.com/py32-rs/py32-hal/discussions)
-  - if your project is an open-source project, consider adding it to the awesome list (TODO)
-- Support new MCUs.
+  - if your project is an open-source project, consider adding it to the awesome list
+- Support new MCUs
 - README and Documentation, including doc comments in code
 - Writing demo code for peripherals
 - Revising the peripheral definitions at [py32-data](https://github.com/py32-rs/py32-data)
@@ -122,4 +124,4 @@ This project is licensed under the MIT or Apache-2.0 license, at your option.
 
 
 
-Some peripheral driver code has been modified from [embassy-stm32]([embassy/embassy-stm32 at main · embassy-rs/embassy](https://github.com/embassy-rs/embassy/tree/main/embassy-stm32)). Big thanks to this project and its awesome contributors!
+Some peripheral driver code has been modified from [embassy-stm32](https://github.com/embassy-rs/embassy/tree/main/embassy-stm32). Big thanks to this project and its awesome contributors!
