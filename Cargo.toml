@@ -41,9 +41,13 @@ log = { version = "0.4", optional = true }
 critical-section = "1.2"
 cfg-if = "1.0.0"
 portable-atomic = { version = "1", features = ["unsafe-assume-single-core", "require-cas"], optional = true }
-# musb = { version = "0.1.0", optional = true, features = ["prebuild"] }
+# musb = { version = "0.2.0", optional = true, features = ["prebuild"] }
 musb = { git = "https://github.com/decaday/musb.git", optional = true, features = ["prebuild"] }
 # musb = { path = "../musb", optional = true , features = ["prebuild"] }
+
+embassy-usb-driver = {version = "0.1.0", optional = true }
+usb-device = {version = "0.3.2", optional = true }
+
 
 futures-util = { version = "0.3.30", default-features = false }
 embassy-hal-internal = { version = "0.2.0", features = [
@@ -60,7 +64,7 @@ embassy-executor = { version = "0.6", features = [
     "arch-cortex-m",
 ] }
 embassy-embedded-hal = { version = "0.2.0", default-features = false }
-embassy-usb-driver = {version = "0.1.0" }
+
 
 [build-dependencies]
 # py32-metapac = { path = "../py32-data/build/py32-metapac", default-features = false, features = [
@@ -77,7 +81,7 @@ default = ["rt", "memory-x", "defmt", "embassy", "time", "exti"]
 
 rt = ["py32-metapac/rt"]
 
-defmt = ["dep:defmt", "dep:defmt-rtt", "embassy-usb-driver/defmt"]
+defmt = ["dep:defmt", "dep:defmt-rtt", "embassy-usb-driver/defmt", "musb?/defmt"]
 
 memory-x = ["py32-metapac/memory-x"]
 
@@ -87,10 +91,8 @@ time = ["dep:embassy-time", "embassy-embedded-hal/time"]
 
 exti = []
 
-# PY32F07x: the IN and OUT buffers of the same endpoint being shared
-# When this feature is enabled, the In and Out of an endpoint will not be used at the same time, except for ep0.
-# PY32F403: IN and OUT do not share FIFO, this feature is invalid
-allow-ep-shared-fifo = ["musb/allow-ep-shared-fifo"]
+embassy-usb-driver-impl = ["dep:musb","dep:embassy-usb-driver", "musb/embassy-usb-driver-impl"]
+usb-device-impl = ["dep:musb","dep:usb-device", "musb/usb-device-impl"]
 
 py32f030k28 = ["py32-metapac/py32f030k28"]
 py32f030f16 = ["py32-metapac/py32f030f16"]

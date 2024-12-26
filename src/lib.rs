@@ -46,7 +46,8 @@ pub mod usart;
 pub mod gpio;
 #[cfg(feature = "time-driver-systick")]
 pub mod systick_time_driver;
-#[cfg(feature = "py32f072c1b")]
+
+#[cfg(any(feature = "embassy-usb-driver-impl", feature = "usb-device-impl"))]
 pub mod usb;
 
 #[cfg(feature = "exti")]
