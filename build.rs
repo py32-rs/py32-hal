@@ -1,4 +1,4 @@
-use std::collections::{BTreeMap, BTreeSet, HashMap /*, HashSet*/};
+use std::collections::{BTreeMap, BTreeSet, HashMap , HashSet};
 use std::fmt::Write as _;
 use std::io::Write;
 use std::path::{Path, PathBuf};
@@ -92,8 +92,6 @@ fn main() {
                 //"dbgmcu" => {}
                 //"syscfg" => {}
                 //"dma" => {}
-                //"bdma" => {}
-                //"dmamux" => {}
 
                 // For other peripherals, one singleton per peri
                 _ => singletons.push(p.name.to_string()),
@@ -775,7 +773,7 @@ fn main() {
     // ========
     // Generate fns to enable GPIO, DMA in RCC
 
-    for kind in ["dma", "bdma", "dmamux", "gpdma", "gpio"] {
+    for kind in ["dma", "gpio", "syscfg"] {
         let mut gg = TokenStream::new();
 
         for p in METADATA.peripherals {
@@ -1229,105 +1227,101 @@ fn main() {
     // ========
     // Generate dma_trait_impl!
 
-    // let signals: HashMap<_, _> = [
-    //     // (kind, signal) => trait
-    //     (("adc", "ADC"), quote!(crate::adc::RxDma)),
-    //     (("adc", "ADC1"), quote!(crate::adc::RxDma)),
-    //     (("adc", "ADC2"), quote!(crate::adc::RxDma)),
-    //     (("adc", "ADC3"), quote!(crate::adc::RxDma)),
-    //     (("adc", "ADC4"), quote!(crate::adc::RxDma)),
-    //     (("ucpd", "RX"), quote!(crate::ucpd::RxDma)),
-    //     (("ucpd", "TX"), quote!(crate::ucpd::TxDma)),
-    //     (("usart", "RX"), quote!(crate::usart::RxDma)),
-    //     (("usart", "TX"), quote!(crate::usart::TxDma)),
-    //     (("lpuart", "RX"), quote!(crate::usart::RxDma)),
-    //     (("lpuart", "TX"), quote!(crate::usart::TxDma)),
-    //     (("sai", "A"), quote!(crate::sai::Dma<A>)),
-    //     (("sai", "B"), quote!(crate::sai::Dma<B>)),
-    //     (("spi", "RX"), quote!(crate::spi::RxDma)),
-    //     (("spi", "TX"), quote!(crate::spi::TxDma)),
-    //     (("i2c", "RX"), quote!(crate::i2c::RxDma)),
-    //     (("i2c", "TX"), quote!(crate::i2c::TxDma)),
-    //     (("dcmi", "DCMI"), quote!(crate::dcmi::FrameDma)),
-    //     (("dcmi", "PSSI"), quote!(crate::dcmi::FrameDma)),
-    //     // SDMMCv1 uses the same channel for both directions, so just implement for RX
-    //     (("sdmmc", "RX"), quote!(crate::sdmmc::SdmmcDma)),
-    //     (("quadspi", "QUADSPI"), quote!(crate::qspi::QuadDma)),
-    //     (("octospi", "OCTOSPI1"), quote!(crate::ospi::OctoDma)),
-    //     (("dac", "CH1"), quote!(crate::dac::DacDma1)),
-    //     (("dac", "CH2"), quote!(crate::dac::DacDma2)),
-    //     (("timer", "UP"), quote!(crate::timer::UpDma)),
-    //     (("hash", "IN"), quote!(crate::hash::Dma)),
-    //     (("cryp", "IN"), quote!(crate::cryp::DmaIn)),
-    //     (("cryp", "OUT"), quote!(crate::cryp::DmaOut)),
-    //     (("timer", "CH1"), quote!(crate::timer::Ch1Dma)),
-    //     (("timer", "CH2"), quote!(crate::timer::Ch2Dma)),
-    //     (("timer", "CH3"), quote!(crate::timer::Ch3Dma)),
-    //     (("timer", "CH4"), quote!(crate::timer::Ch4Dma)),
-    //     (("cordic", "WRITE"), quote!(crate::cordic::WriteDma)), // FIXME: stm32u5a crash on Cordic driver
-    //     (("cordic", "READ"), quote!(crate::cordic::ReadDma)),   // FIXME: stm32u5a crash on Cordic driver
-    // ]
-    // .into();
+    let signals: HashMap<_, _> = [
+        // (kind, signal) => trait
+        (("adc", "ADC"), quote!(crate::adc::RxDma)),
+        (("adc", "ADC1"), quote!(crate::adc::RxDma)),
+        (("adc", "ADC2"), quote!(crate::adc::RxDma)),
+        (("adc", "ADC3"), quote!(crate::adc::RxDma)),
+        (("adc", "ADC4"), quote!(crate::adc::RxDma)),
+        // (("ucpd", "RX"), quote!(crate::ucpd::RxDma)),
+        // (("ucpd", "TX"), quote!(crate::ucpd::TxDma)),
+        // (("usart", "RX"), quote!(crate::usart::RxDma)),
+        // (("usart", "TX"), quote!(crate::usart::TxDma)),
+        // (("lpuart", "RX"), quote!(crate::usart::RxDma)),
+        // (("lpuart", "TX"), quote!(crate::usart::TxDma)),
+        // (("sai", "A"), quote!(crate::sai::Dma<A>)),
+        // (("sai", "B"), quote!(crate::sai::Dma<B>)),
+        // (("spi", "RX"), quote!(crate::spi::RxDma)),
+        // (("spi", "TX"), quote!(crate::spi::TxDma)),
+        (("i2c", "RX"), quote!(crate::i2c::RxDma)),
+        (("i2c", "TX"), quote!(crate::i2c::TxDma)),
+        // (("dcmi", "DCMI"), quote!(crate::dcmi::FrameDma)),
+        // (("dcmi", "PSSI"), quote!(crate::dcmi::FrameDma)),
+        // // SDMMCv1 uses the same channel for both directions, so just implement for RX
+        // (("sdmmc", "RX"), quote!(crate::sdmmc::SdmmcDma)),
+        // (("quadspi", "QUADSPI"), quote!(crate::qspi::QuadDma)),
+        // (("octospi", "OCTOSPI1"), quote!(crate::ospi::OctoDma)),
+        // (("dac", "CH1"), quote!(crate::dac::DacDma1)),
+        // (("dac", "CH2"), quote!(crate::dac::DacDma2)),
+        // (("timer", "UP"), quote!(crate::timer::UpDma)),
+        // (("hash", "IN"), quote!(crate::hash::Dma)),
+        // (("cryp", "IN"), quote!(crate::cryp::DmaIn)),
+        // (("cryp", "OUT"), quote!(crate::cryp::DmaOut)),
+        // (("timer", "CH1"), quote!(crate::timer::Ch1Dma)),
+        // (("timer", "CH2"), quote!(crate::timer::Ch2Dma)),
+        // (("timer", "CH3"), quote!(crate::timer::Ch3Dma)),
+        // (("timer", "CH4"), quote!(crate::timer::Ch4Dma)),
+        // (("cordic", "WRITE"), quote!(crate::cordic::WriteDma)), // FIXME: stm32u5a crash on Cordic driver
+        // (("cordic", "READ"), quote!(crate::cordic::ReadDma)),   // FIXME: stm32u5a crash on Cordic driver
+    ]
+    .into();
 
-    // for p in METADATA.peripherals {
-    //     if let Some(regs) = &p.registers {
-    //         // FIXME: stm32u5a crash on Cordic driver
-    //         if chip_name.starts_with("stm32u5a") && regs.kind == "cordic" {
-    //             continue;
-    //         }
+    for p in METADATA.peripherals {
+        if let Some(regs) = &p.registers {
 
-    //         let mut dupe = HashSet::new();
-    //         for ch in p.dma_channels {
-    //             if let Some(tr) = signals.get(&(regs.kind, ch.signal)) {
-    //                 let peri = format_ident!("{}", p.name);
+            let mut dupe = HashSet::new();
+            for ch in p.dma_channels {
+                if let Some(tr) = signals.get(&(regs.kind, ch.signal)) {
+                    let peri = format_ident!("{}", p.name);
 
-    //                 let channels = if let Some(channel) = &ch.channel {
-    //                     // Chip with DMA/BDMA, without DMAMUX
-    //                     vec![*channel]
-    //                 } else if let Some(dmamux) = &ch.dmamux {
-    //                     // Chip with DMAMUX
-    //                     METADATA
-    //                         .dma_channels
-    //                         .iter()
-    //                         .filter(|ch| ch.dmamux == Some(*dmamux))
-    //                         .map(|ch| ch.name)
-    //                         .collect()
-    //                 } else if let Some(dma) = &ch.dma {
-    //                     // Chip with GPDMA
-    //                     METADATA
-    //                         .dma_channels
-    //                         .iter()
-    //                         .filter(|ch| ch.dma == *dma)
-    //                         .map(|ch| ch.name)
-    //                         .collect()
-    //                 } else {
-    //                     unreachable!();
-    //                 };
+                    let channels = if let Some(channel) = &ch.channel {
+                        // Chip with DMA/BDMA, without DMAMUX
+                        vec![*channel]
+                    } else if let Some(dmamux) = &ch.dmamux {
+                        // Chip with DMAMUX
+                        METADATA
+                            .dma_channels
+                            .iter()
+                            .filter(|ch| ch.dmamux == Some(*dmamux))
+                            .map(|ch| ch.name)
+                            .collect()
+                    } else if let Some(dma) = &ch.dma {
+                        // Chip with GPDMA
+                        METADATA
+                            .dma_channels
+                            .iter()
+                            .filter(|ch| ch.dma == *dma)
+                            .map(|ch| ch.name)
+                            .collect()
+                    } else {
+                        unreachable!();
+                    };
 
-    //                 for channel in channels {
-    //                     // Some chips have multiple request numbers for the same (peri, signal, channel) combos.
-    //                     // Ignore the dupes, picking the first one. Otherwise this causes conflicting trait impls
-    //                     let key = (ch.signal, channel.to_string());
-    //                     if !dupe.insert(key) {
-    //                         continue;
-    //                     }
+                    for channel in channels {
+                        // Some chips have multiple request numbers for the same (peri, signal, channel) combos.
+                        // Ignore the dupes, picking the first one. Otherwise this causes conflicting trait impls
+                        let key = (ch.signal, channel.to_string());
+                        if !dupe.insert(key) {
+                            continue;
+                        }
 
-    //                     let request = if let Some(request) = ch.request {
-    //                         let request = request as u8;
-    //                         quote!(#request)
-    //                     } else {
-    //                         quote!(())
-    //                     };
+                        let request = if let Some(request) = ch.request {
+                            let request = request as u8;
+                            quote!(#request)
+                        } else {
+                            quote!(())
+                        };
 
-    //                     let channel = format_ident!("{}", channel);
-    //                     g.extend(quote! {
-    //                         dma_trait_impl!(#tr, #peri, #channel, #request);
-    //                     });
-    //                 }
-    //             }
-    //         }
-    //     }
-    // }
+                        let channel = format_ident!("{}", channel);
+                        g.extend(quote! {
+                            dma_trait_impl!(#tr, #peri, #channel, #request);
+                        });
+                    }
+                }
+            }
+        }
+    }
 
     // ========
     // Generate Div/Mul impls for RCC prescalers/dividers/multipliers.
@@ -1641,30 +1635,30 @@ fn main() {
     // ========
     // Generate DMA IRQs.
 
-    // let dma_irqs: TokenStream = dma_irqs
-    //     .iter()
-    //     .map(|(irq, channels)| {
-    //         let irq = format_ident!("{}", irq);
+    let dma_irqs: TokenStream = dma_irqs
+        .iter()
+        .map(|(irq, channels)| {
+            let irq = format_ident!("{}", irq);
 
-    //         let channels = channels.iter().map(|c| format_ident!("{}", c));
+            let channels = channels.iter().map(|c| format_ident!("{}", c));
 
-    //         quote! {
-    //             #[cfg(feature = "rt")]
-    //             #[crate::interrupt]
-    //             unsafe fn #irq () {
-    //                 #(
-    //                     <crate::peripherals::#channels as crate::dma::ChannelInterrupt>::on_irq();
-    //                 )*
-    //             }
-    //         }
-    //     })
-    //     .collect();
+            quote! {
+                #[cfg(feature = "rt")]
+                #[crate::interrupt]
+                unsafe fn #irq () {
+                    #(
+                        <crate::peripherals::#channels as crate::dma::ChannelInterrupt>::on_irq();
+                    )*
+                }
+            }
+        })
+        .collect();
 
-    // g.extend(dma_irqs);
+    g.extend(dma_irqs);
 
-    // g.extend(quote! {
-    //     pub(crate) const DMA_CHANNELS: &[crate::dma::ChannelInfo] = &[#dmas];
-    // });
+    g.extend(quote! {
+        pub(crate) const DMA_CHANNELS: &[crate::dma::ChannelInfo] = &[#dmas];
+    });
 
     for irq in METADATA.interrupts {
         let name = irq.name.to_ascii_uppercase();

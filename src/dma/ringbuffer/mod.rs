@@ -1,7 +1,9 @@
-#![cfg_attr(gpdma, allow(unused))]
+// #![allow(unused)]
 
 use core::future::poll_fn;
 use core::task::{Poll, Waker};
+
+use musb::regs::info;
 
 use crate::dma::word::Word;
 
@@ -113,10 +115,10 @@ impl<'a, W: Word> ReadableDmaRingBuffer<'a, W> {
         DmaIndex::normalize(&mut self.write_index, &mut self.read_index);
 
         let diff = self.write_index.diff(self.cap(), &self.read_index);
-
         if diff < 0 {
             Err(Error::DmaUnsynced)
         } else if diff > self.cap() as isize {
+            warn!("DMA buffer overrun, diff = {}, cap = {}", diff, self.cap());
             Err(Error::Overrun)
         } else {
             Ok(diff as usize)

@@ -5,6 +5,7 @@ use core::task::{Context, Poll, Waker};
 
 use embassy_hal_internal::{into_ref, Peripheral, PeripheralRef};
 use embassy_sync::waitqueue::AtomicWaker;
+use py32_metapac::dma::vals;
 
 use super::ringbuffer::{DmaCtrl, Error, ReadableDmaRingBuffer, WritableDmaRingBuffer};
 use super::word::{Word, WordSize};
@@ -15,18 +16,13 @@ use crate::{interrupt, pac};
 pub(crate) struct ChannelInfo {
     pub(crate) dma: DmaInfo,
     pub(crate) num: usize,
-    #[cfg(feature = "_dual-core")]
-    pub(crate) irq: pac::Interrupt,
-    #[cfg(dmamux)]
-    pub(crate) dmamux: super::DmamuxInfo,
+    // #[cfg(feature = "_dual-core")]
+    // pub(crate) irq: pac::Interrupt,
 }
 
 #[derive(Clone, Copy)]
 pub(crate) enum DmaInfo {
-    #[cfg(dma)]
     Dma(pac::dma::Dma),
-    #[cfg(bdma)]
-    Bdma(pac::bdma::Dma),
 }
 
 /// DMA transfer options.
@@ -34,18 +30,14 @@ pub(crate) enum DmaInfo {
 #[cfg_attr(feature = "defmt", derive(defmt::Format))]
 #[non_exhaustive]
 pub struct TransferOptions {
-    /// Peripheral burst transfer configuration
-    #[cfg(dma)]
-    pub pburst: Burst,
-    /// Memory burst transfer configuration
-    #[cfg(dma)]
-    pub mburst: Burst,
-    /// Flow control configuration
-    #[cfg(dma)]
-    pub flow_ctrl: FlowControl,
-    /// FIFO threshold for DMA FIFO mode. If none, direct mode is used.
-    #[cfg(dma)]
-    pub fifo_threshold: Option<FifoThreshold>,
+    // /// Peripheral burst transfer configuration
+    // pub pburst: Burst,
+    // /// Memory burst transfer configuration
+    // pub mburst: Burst,
+    // /// Flow control configuration
+    // pub flow_ctrl: FlowControl,
+    // /// FIFO threshold for DMA FIFO mode. If none, direct mode is used.
+    // pub fifo_threshold: Option<FifoThreshold>,
     /// Request priority level
     pub priority: Priority,
     /// Enable circular DMA
@@ -63,14 +55,10 @@ pub struct TransferOptions {
 impl Default for TransferOptions {
     fn default() -> Self {
         Self {
-            #[cfg(dma)]
-            pburst: Burst::Single,
-            #[cfg(dma)]
-            mburst: Burst::Single,
-            #[cfg(dma)]
-            flow_ctrl: FlowControl::Dma,
-            #[cfg(dma)]
-            fifo_threshold: None,
+            // pburst: Burst::Single,
+            // mburst: Burst::Single,
+            // flow_ctrl: FlowControl::Dma,
+            // fifo_threshold: None,
             priority: Priority::VeryHigh,
             circular: false,
             half_transfer_ir: false,
@@ -93,8 +81,7 @@ pub enum Priority {
     VeryHigh,
 }
 
-#[cfg(dma)]
-impl From<Priority> for pac::dma::vals::Pl {
+impl From<Priority> for vals::Pl {
     fn from(value: Priority) -> Self {
         match value {
             Priority::Low => pac::dma::vals::Pl::LOW,
@@ -105,137 +92,21 @@ impl From<Priority> for pac::dma::vals::Pl {
     }
 }
 
-#[cfg(bdma)]
-impl From<Priority> for pac::bdma::vals::Pl {
-    fn from(value: Priority) -> Self {
-        match value {
-            Priority::Low => pac::bdma::vals::Pl::LOW,
-            Priority::Medium => pac::bdma::vals::Pl::MEDIUM,
-            Priority::High => pac::bdma::vals::Pl::HIGH,
-            Priority::VeryHigh => pac::bdma::vals::Pl::VERYHIGH,
+impl From<WordSize> for vals::Size {
+    fn from(raw: WordSize) -> Self {
+        match raw {
+            WordSize::OneByte => Self::BITS8,
+            WordSize::TwoBytes => Self::BITS16,
+            WordSize::FourBytes => Self::BITS32,
         }
     }
 }
 
-#[cfg(dma)]
-pub use dma_only::*;
-#[cfg(dma)]
-mod dma_only {
-    use pac::dma::vals;
-
-    use super::*;
-
-    impl From<WordSize> for vals::Size {
-        fn from(raw: WordSize) -> Self {
-            match raw {
-                WordSize::OneByte => Self::BITS8,
-                WordSize::TwoBytes => Self::BITS16,
-                WordSize::FourBytes => Self::BITS32,
-            }
-        }
-    }
-
-    impl From<Dir> for vals::Dir {
-        fn from(raw: Dir) -> Self {
-            match raw {
-                Dir::MemoryToPeripheral => Self::MEMORYTOPERIPHERAL,
-                Dir::PeripheralToMemory => Self::PERIPHERALTOMEMORY,
-            }
-        }
-    }
-
-    /// DMA transfer burst setting.
-    #[derive(Debug, Copy, Clone, PartialEq, Eq)]
-    #[cfg_attr(feature = "defmt", derive(defmt::Format))]
-    pub enum Burst {
-        /// Single transfer
-        Single,
-        /// Incremental burst of 4 beats
-        Incr4,
-        /// Incremental burst of 8 beats
-        Incr8,
-        /// Incremental burst of 16 beats
-        Incr16,
-    }
-
-    impl From<Burst> for vals::Burst {
-        fn from(burst: Burst) -> Self {
-            match burst {
-                Burst::Single => vals::Burst::SINGLE,
-                Burst::Incr4 => vals::Burst::INCR4,
-                Burst::Incr8 => vals::Burst::INCR8,
-                Burst::Incr16 => vals::Burst::INCR16,
-            }
-        }
-    }
-
-    /// DMA flow control setting.
-    #[derive(Debug, Copy, Clone, PartialEq, Eq)]
-    #[cfg_attr(feature = "defmt", derive(defmt::Format))]
-    pub enum FlowControl {
-        /// Flow control by DMA
-        Dma,
-        /// Flow control by peripheral
-        Peripheral,
-    }
-
-    impl From<FlowControl> for vals::Pfctrl {
-        fn from(flow: FlowControl) -> Self {
-            match flow {
-                FlowControl::Dma => vals::Pfctrl::DMA,
-                FlowControl::Peripheral => vals::Pfctrl::PERIPHERAL,
-            }
-        }
-    }
-
-    /// DMA FIFO threshold.
-    #[derive(Debug, Copy, Clone, PartialEq, Eq)]
-    #[cfg_attr(feature = "defmt", derive(defmt::Format))]
-    pub enum FifoThreshold {
-        /// 1/4 full FIFO
-        Quarter,
-        /// 1/2 full FIFO
-        Half,
-        /// 3/4 full FIFO
-        ThreeQuarters,
-        /// Full FIFO
-        Full,
-    }
-
-    impl From<FifoThreshold> for vals::Fth {
-        fn from(value: FifoThreshold) -> Self {
-            match value {
-                FifoThreshold::Quarter => vals::Fth::QUARTER,
-                FifoThreshold::Half => vals::Fth::HALF,
-                FifoThreshold::ThreeQuarters => vals::Fth::THREEQUARTERS,
-                FifoThreshold::Full => vals::Fth::FULL,
-            }
-        }
-    }
-}
-
-#[cfg(bdma)]
-mod bdma_only {
-    use pac::bdma::vals;
-
-    use super::*;
-
-    impl From<WordSize> for vals::Size {
-        fn from(raw: WordSize) -> Self {
-            match raw {
-                WordSize::OneByte => Self::BITS8,
-                WordSize::TwoBytes => Self::BITS16,
-                WordSize::FourBytes => Self::BITS32,
-            }
-        }
-    }
-
-    impl From<Dir> for vals::Dir {
-        fn from(raw: Dir) -> Self {
-            match raw {
-                Dir::MemoryToPeripheral => Self::FROMMEMORY,
-                Dir::PeripheralToMemory => Self::FROMPERIPHERAL,
-            }
+impl From<Dir> for vals::Dir {
+    fn from(raw: Dir) -> Self {
+        match raw {
+            Dir::MemoryToPeripheral => Self::MEMORYTOPERIPHERAL,
+            Dir::PeripheralToMemory => Self::PERIPHERALTOMEMORY,
         }
     }
 }
@@ -255,23 +126,21 @@ impl ChannelState {
 /// safety: must be called only once
 pub(crate) unsafe fn init(
     cs: critical_section::CriticalSection,
-    #[cfg(dma)] dma_priority: interrupt::Priority,
-    #[cfg(bdma)] bdma_priority: interrupt::Priority,
+    dma_priority: interrupt::Priority,
 ) {
     foreach_interrupt! {
         ($peri:ident, dma, $block:ident, $signal_name:ident, $irq:ident) => {
             crate::interrupt::typelevel::$irq::set_priority_with_cs(cs, dma_priority);
-            #[cfg(not(feature = "_dual-core"))]
+            // #[cfg(not(feature = "_dual-core"))]
             crate::interrupt::typelevel::$irq::enable();
         };
         ($peri:ident, bdma, $block:ident, $signal_name:ident, $irq:ident) => {
             crate::interrupt::typelevel::$irq::set_priority_with_cs(cs, bdma_priority);
-            #[cfg(not(feature = "_dual-core"))]
+            // #[cfg(not(feature = "_dual-core"))]
             crate::interrupt::typelevel::$irq::enable();
         };
     }
     crate::_generated::init_dma();
-    crate::_generated::init_bdma();
 }
 
 impl AnyChannel {
@@ -280,53 +149,34 @@ impl AnyChannel {
         let info = self.info();
         let state = &STATE[self.id as usize];
         match self.info().dma {
-            #[cfg(dma)]
             DmaInfo::Dma(r) => {
                 let cr = r.st(info.num).cr();
-                let isr = r.isr(info.num / 4).read();
-
-                if isr.teif(info.num % 4) {
-                    panic!("DMA: error on DMA@{:08x} channel {}", r.as_ptr() as u32, info.num);
-                }
-
-                if isr.htif(info.num % 4) && cr.read().htie() {
-                    // Acknowledge half transfer complete interrupt
-                    r.ifcr(info.num / 4).write(|w| w.set_htif(info.num % 4, true));
-                } else if isr.tcif(info.num % 4) && cr.read().tcie() {
-                    // Acknowledge  transfer complete interrupt
-                    r.ifcr(info.num / 4).write(|w| w.set_tcif(info.num % 4, true));
-                    state.complete_count.fetch_add(1, Ordering::Release);
-                } else {
-                    return;
-                }
-                state.waker.wake();
-            }
-            #[cfg(bdma)]
-            DmaInfo::Bdma(r) => {
                 let isr = r.isr().read();
-                let cr = r.ch(info.num).cr();
 
                 if isr.teif(info.num) {
-                    panic!("DMA: error on BDMA@{:08x} channel {}", r.as_ptr() as u32, info.num);
+                    panic!("DMA: error on DMA@{:08x} channel {}", r.as_ptr() as u32, info.num);
                 }
 
                 if isr.htif(info.num) && cr.read().htie() {
                     // Acknowledge half transfer complete interrupt
                     r.ifcr().write(|w| w.set_htif(info.num, true));
+                    
                 } else if isr.tcif(info.num) && cr.read().tcie() {
-                    // Acknowledge transfer complete interrupt
+                    // Acknowledge  transfer complete interrupt
                     r.ifcr().write(|w| w.set_tcif(info.num, true));
-                    #[cfg(not(armv6m))]
-                    state.complete_count.fetch_add(1, Ordering::Release);
-                    #[cfg(armv6m)]
-                    critical_section::with(|_| {
-                        let x = state.complete_count.load(Ordering::Relaxed);
-                        state.complete_count.store(x + 1, Ordering::Release);
-                    })
+
+                    let count = state.complete_count.load(Ordering::Acquire);
+                    state.complete_count.store(count + 1, Ordering::Release);
+
+                    if r.st(info.num).ndtr().read() == 0 {
+                        // Disable the channel.
+                        r.st(info.num).cr().modify(|w| {
+                            w.set_en(false);
+                        });
+                    }
                 } else {
                     return;
                 }
-
                 state.waker.wake();
             }
         }
@@ -334,7 +184,7 @@ impl AnyChannel {
 
     unsafe fn configure(
         &self,
-        _request: Request,
+        request: Request,
         dir: Dir,
         peri_addr: *const u32,
         mem_addr: *mut u32,
@@ -344,19 +194,30 @@ impl AnyChannel {
         options: TransferOptions,
     ) {
         let info = self.info();
-        #[cfg(feature = "_dual-core")]
-        {
-            use embassy_hal_internal::interrupt::InterruptExt as _;
-            info.irq.enable();
-        }
 
-        #[cfg(dmamux)]
-        super::dmamux::configure_dmamux(&info.dmamux, _request);
+        // #[cfg(feature = "_dual-core")]
+        // {
+        //     use embassy_hal_internal::interrupt::InterruptExt as _;
+        //     info.irq.enable();
+        // }
 
         assert!(mem_len > 0 && mem_len <= 0xFFFF);
 
+        match info.num / 4 {
+            0 => {
+                pac::SYSCFG.cfgr3().modify(|w| {
+                    w.set_dma_map(info.num % 4, request);
+                });
+            }
+            1 => {
+                pac::SYSCFG.cfgr4().modify(|w| {
+                    w.set_dma_map(info.num % 4, request);
+                });
+            }
+            _ => panic!("Invalid DMA channel number"),
+        }
+
         match self.info().dma {
-            #[cfg(dma)]
             DmaInfo::Dma(r) => {
                 let ch = r.st(info.num);
 
@@ -366,18 +227,9 @@ impl AnyChannel {
                 self.clear_irqs();
 
                 ch.par().write_value(peri_addr as u32);
-                ch.m0ar().write_value(mem_addr as u32);
-                ch.ndtr().write_value(pac::dma::regs::Ndtr(mem_len as _));
-                ch.fcr().write(|w| {
-                    if let Some(fth) = options.fifo_threshold {
-                        // FIFO mode
-                        w.set_dmdis(pac::dma::vals::Dmdis::DISABLED);
-                        w.set_fth(fth.into());
-                    } else {
-                        // Direct mode
-                        w.set_dmdis(pac::dma::vals::Dmdis::ENABLED);
-                    }
-                });
+                ch.mar().write_value(mem_addr as u32);
+                ch.ndtr().write_value(mem_len as _);
+
                 ch.cr().write(|w| {
                     w.set_dir(dir.into());
                     w.set_msize(data_size.into());
@@ -385,44 +237,12 @@ impl AnyChannel {
                     w.set_pl(options.priority.into());
                     w.set_minc(incr_mem);
                     w.set_pinc(false);
+                    w.set_circ(options.circular);
+                   
                     w.set_teie(true);
                     w.set_htie(options.half_transfer_ir);
                     w.set_tcie(options.complete_transfer_ir);
-                    w.set_circ(options.circular);
-                    #[cfg(dma_v1)]
-                    w.set_trbuff(true);
-                    #[cfg(dma_v2)]
-                    w.set_chsel(_request);
-                    w.set_pburst(options.pburst.into());
-                    w.set_mburst(options.mburst.into());
-                    w.set_pfctrl(options.flow_ctrl.into());
-                    w.set_en(false); // don't start yet
-                });
-            }
-            #[cfg(bdma)]
-            DmaInfo::Bdma(r) => {
-                #[cfg(bdma_v2)]
-                critical_section::with(|_| r.cselr().modify(|w| w.set_cs(info.num, _request)));
-
-                let state: &ChannelState = &STATE[self.id as usize];
-                let ch = r.ch(info.num);
-
-                state.complete_count.store(0, Ordering::Release);
-                self.clear_irqs();
-
-                ch.par().write_value(peri_addr as u32);
-                ch.mar().write_value(mem_addr as u32);
-                ch.ndtr().write(|w| w.set_ndt(mem_len as u16));
-                ch.cr().write(|w| {
-                    w.set_psize(data_size.into());
-                    w.set_msize(data_size.into());
-                    w.set_minc(incr_mem);
-                    w.set_dir(dir.into());
-                    w.set_teie(true);
-                    w.set_tcie(options.complete_transfer_ir);
-                    w.set_htie(options.half_transfer_ir);
-                    w.set_circ(options.circular);
-                    w.set_pl(options.priority.into());
+                    
                     w.set_en(false); // don't start yet
                 });
             }
@@ -432,15 +252,9 @@ impl AnyChannel {
     fn start(&self) {
         let info = self.info();
         match self.info().dma {
-            #[cfg(dma)]
             DmaInfo::Dma(r) => {
                 let ch = r.st(info.num);
                 ch.cr().modify(|w| w.set_en(true))
-            }
-            #[cfg(bdma)]
-            DmaInfo::Bdma(r) => {
-                let ch = r.ch(info.num);
-                ch.cr().modify(|w| w.set_en(true));
             }
         }
     }
@@ -448,23 +262,12 @@ impl AnyChannel {
     fn clear_irqs(&self) {
         let info = self.info();
         match self.info().dma {
-            #[cfg(dma)]
             DmaInfo::Dma(r) => {
-                let isrn = info.num / 4;
-                let isrbit = info.num % 4;
-
-                r.ifcr(isrn).write(|w| {
-                    w.set_htif(isrbit, true);
-                    w.set_tcif(isrbit, true);
-                    w.set_teif(isrbit, true);
-                });
-            }
-            #[cfg(bdma)]
-            DmaInfo::Bdma(r) => {
                 r.ifcr().write(|w| {
-                    w.set_htif(info.num, true);
-                    w.set_tcif(info.num, true);
-                    w.set_teif(info.num, true);
+                    w.set_gif(info.num, true);
+                    // w.set_htif(info.num, true);
+                    // w.set_tcif(info.num, true);
+                    // w.set_teif(info.num, true);
                 });
             }
         }
@@ -473,18 +276,9 @@ impl AnyChannel {
     fn request_stop(&self) {
         let info = self.info();
         match self.info().dma {
-            #[cfg(dma)]
             DmaInfo::Dma(r) => {
                 // Disable the channel. Keep the IEs enabled so the irqs still fire.
                 r.st(info.num).cr().write(|w| {
-                    w.set_teie(true);
-                    w.set_tcie(true);
-                });
-            }
-            #[cfg(bdma)]
-            DmaInfo::Bdma(r) => {
-                // Disable the channel. Keep the IEs enabled so the irqs still fire.
-                r.ch(info.num).cr().write(|w| {
                     w.set_teie(true);
                     w.set_tcie(true);
                 });
@@ -495,17 +289,9 @@ impl AnyChannel {
     fn request_pause(&self) {
         let info = self.info();
         match self.info().dma {
-            #[cfg(dma)]
             DmaInfo::Dma(r) => {
                 // Disable the channel without overwriting the existing configuration
                 r.st(info.num).cr().modify(|w| {
-                    w.set_en(false);
-                });
-            }
-            #[cfg(bdma)]
-            DmaInfo::Bdma(r) => {
-                // Disable the channel without overwriting the existing configuration
-                r.ch(info.num).cr().modify(|w| {
                     w.set_en(false);
                 });
             }
@@ -515,39 +301,21 @@ impl AnyChannel {
     fn is_running(&self) -> bool {
         let info = self.info();
         match self.info().dma {
-            #[cfg(dma)]
             DmaInfo::Dma(r) => r.st(info.num).cr().read().en(),
-            #[cfg(bdma)]
-            DmaInfo::Bdma(r) => {
-                let state: &ChannelState = &STATE[self.id as usize];
-                let ch = r.ch(info.num);
-                let en = ch.cr().read().en();
-                let circular = ch.cr().read().circ();
-                let tcif = state.complete_count.load(Ordering::Acquire) != 0;
-                en && (circular || !tcif)
-            }
         }
     }
 
     fn get_remaining_transfers(&self) -> u16 {
         let info = self.info();
         match self.info().dma {
-            #[cfg(dma)]
-            DmaInfo::Dma(r) => r.st(info.num).ndtr().read().ndt(),
-            #[cfg(bdma)]
-            DmaInfo::Bdma(r) => r.ch(info.num).ndtr().read().ndt(),
+            DmaInfo::Dma(r) => r.st(info.num).ndtr().read() as _,
         }
     }
 
     fn disable_circular_mode(&self) {
         let info = self.info();
         match self.info().dma {
-            #[cfg(dma)]
             DmaInfo::Dma(regs) => regs.st(info.num).cr().modify(|w| {
-                w.set_circ(false);
-            }),
-            #[cfg(bdma)]
-            DmaInfo::Bdma(regs) => regs.ch(info.num).cr().modify(|w| {
                 w.set_circ(false);
             }),
         }
@@ -744,7 +512,7 @@ impl<'a> Future for Transfer<'a> {
         let state: &ChannelState = &STATE[self.channel.id as usize];
 
         state.waker.register(cx.waker());
-
+        
         if self.is_running() {
             Poll::Pending
         } else {

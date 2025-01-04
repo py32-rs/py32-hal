@@ -1,10 +1,8 @@
 //! Direct Memory Access (DMA)
 #![macro_use]
 
-#[cfg(any(bdma, dma))]
-mod dma_bdma;
-#[cfg(any(bdma, dma))]
-pub use dma_bdma::*;
+mod dma;
+pub use dma::*;
 
 mod util;
 pub(crate) use util::*;
@@ -24,11 +22,8 @@ enum Dir {
 }
 
 /// DMA request type alias. (also known as DMA channel number in some chips)
-#[cfg(any(dma_v2, bdma_v2, gpdma, dmamux))]
 pub type Request = u8;
-/// DMA request type alias. (also known as DMA channel number in some chips)
-#[cfg(not(any(dma_v2, bdma_v2, gpdma, dmamux)))]
-pub type Request = ();
+// pub type Request = ();
 
 pub(crate) trait SealedChannel {
     fn id(&self) -> u8;
@@ -112,20 +107,10 @@ impl_peripheral!(NoDma);
 // safety: must be called only once at startup
 pub(crate) unsafe fn init(
     cs: critical_section::CriticalSection,
-    #[cfg(bdma)] bdma_priority: interrupt::Priority,
-    #[cfg(dma)] dma_priority: interrupt::Priority,
-    #[cfg(gpdma)] gpdma_priority: interrupt::Priority,
+    dma_priority: interrupt::Priority,
 ) {
-    #[cfg(any(dma, bdma))]
-    dma_bdma::init(
+    dma::init(
         cs,
-        #[cfg(dma)]
         dma_priority,
-        #[cfg(bdma)]
-        bdma_priority,
     );
-    #[cfg(gpdma)]
-    gpdma::init(cs, gpdma_priority);
-    #[cfg(dmamux)]
-    dmamux::init(cs);
 }

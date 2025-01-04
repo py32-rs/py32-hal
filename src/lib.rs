@@ -6,7 +6,7 @@ mod fmt;
 include!(concat!(env!("OUT_DIR"), "/_macros.rs"));
 
 mod macros;
-
+use embassy_hal_internal::interrupt::Priority;
 pub use py32_metapac as pac;
 
 /// Operating modes for peripherals.
@@ -79,11 +79,11 @@ pub struct Config {
     // #[cfg(bdma)]
     // pub bdma_interrupt_priority: Priority,
 
-    // /// DMA interrupt priority.
-    // ///
-    // /// Defaults to P0 (highest).
-    // #[cfg(dma)]
-    // pub dma_interrupt_priority: Priority,
+    /// DMA interrupt priority.
+    ///
+    /// Defaults to P0 (highest).
+    #[cfg(dma)]
+    pub dma_interrupt_priority: Priority,
 
     // /// GPDMA interrupt priority.
     // ///
@@ -102,8 +102,8 @@ impl Default for Config {
             // enable_independent_io_supply: true,
             // #[cfg(bdma)]
             // bdma_interrupt_priority: Priority::P0,
-            // #[cfg(dma)]
-            // dma_interrupt_priority: Priority::P0,
+            #[cfg(dma)]
+            dma_interrupt_priority: Priority::P0,
             // #[cfg(gpdma)]
             // gpdma_interrupt_priority: Priority::P0,
         }
@@ -120,6 +120,8 @@ pub fn init(config: Config, #[cfg(feature = "time-driver-systick")] systick: SYS
         let p = Peripherals::take_with_cs(cs);
         unsafe {
             rcc::init(config.rcc);
+            crate::_generated::init_syscfg();
+
             gpio::init(cs);
 
             // must be after rcc init
@@ -131,6 +133,8 @@ pub fn init(config: Config, #[cfg(feature = "time-driver-systick")] systick: SYS
 
             #[cfg(feature = "exti")]
             exti::init(cs);
+
+            dma::init(cs, config.dma_interrupt_priority);
         };
         p
     })
