@@ -12,7 +12,7 @@ use embassy_sync::waitqueue::AtomicWaker;
 #[cfg(feature = "time")]
 use embassy_time::{Duration, Instant};
 
-// use crate::dma::ChannelAndRequest;
+use crate::dma::ChannelAndRequest;
 use crate::gpio::{AfType, AnyPin, OutputType, SealedPin as _, Speed};
 use crate::interrupt::typelevel::Interrupt;
 use crate::mode::{Async, Blocking, Mode};
@@ -99,12 +99,12 @@ impl Config {
 /// I2C driver.
 pub struct I2c<'d, M: Mode> {
     info: &'static Info,
-    _state: &'static State,
+    state: &'static State,
     kernel_clock: Hertz,
     scl: Option<PeripheralRef<'d, AnyPin>>,
     sda: Option<PeripheralRef<'d, AnyPin>>,
-    // tx_dma: Option<ChannelAndRequest<'d>>,
-    // rx_dma: Option<ChannelAndRequest<'d>>,
+    tx_dma: Option<ChannelAndRequest<'d>>,
+    rx_dma: Option<ChannelAndRequest<'d>>,
     #[cfg(feature = "time")]
     timeout: Duration,
     _phantom: PhantomData<M>,
@@ -117,8 +117,8 @@ impl<'d> I2c<'d, Async> {
         scl: impl Peripheral<P = impl SclPin<T>> + 'd,
         sda: impl Peripheral<P = impl SdaPin<T>> + 'd,
         _irq: impl interrupt::typelevel::Binding<T::GlobalInterrupt, GlobalInterruptHandler<T>> + 'd,
-        // tx_dma: impl Peripheral<P = impl TxDma<T>> + 'd,
-        // rx_dma: impl Peripheral<P = impl RxDma<T>> + 'd,
+        tx_dma: impl Peripheral<P = impl TxDma<T>> + 'd,
+        rx_dma: impl Peripheral<P = impl RxDma<T>> + 'd,
         freq: Hertz,
         config: Config,
     ) -> Self {
@@ -126,8 +126,8 @@ impl<'d> I2c<'d, Async> {
             peri,
             new_pin!(scl, config.scl_af()),
             new_pin!(sda, config.sda_af()),
-            // new_dma!(tx_dma),
-            // new_dma!(rx_dma),
+            new_dma!(tx_dma),
+            new_dma!(rx_dma),
             freq,
             config,
         )
@@ -147,8 +147,8 @@ impl<'d> I2c<'d, Blocking> {
             peri,
             new_pin!(scl, config.scl_af()),
             new_pin!(sda, config.sda_af()),
-            // None,
-            // None,
+            None,
+            None,
             freq,
             config,
         )
@@ -161,8 +161,8 @@ impl<'d, M: Mode> I2c<'d, M> {
         _peri: impl Peripheral<P = T> + 'd,
         scl: Option<PeripheralRef<'d, AnyPin>>,
         sda: Option<PeripheralRef<'d, AnyPin>>,
-        // tx_dma: Option<ChannelAndRequest<'d>>,
-        // rx_dma: Option<ChannelAndRequest<'d>>,
+        tx_dma: Option<ChannelAndRequest<'d>>,
+        rx_dma: Option<ChannelAndRequest<'d>>,
         freq: Hertz,
         config: Config,
     ) -> Self {
@@ -170,12 +170,12 @@ impl<'d, M: Mode> I2c<'d, M> {
 
         let mut this = Self {
             info: T::info(),
-            _state: T::state(),
+            state: T::state(),
             kernel_clock: T::frequency(),
             scl,
             sda,
-            // tx_dma,
-            // rx_dma,
+            tx_dma,
+            rx_dma,
             #[cfg(feature = "time")]
             timeout: config.timeout,
             _phantom: PhantomData,
@@ -270,8 +270,8 @@ peri_trait!(
 
 pin_trait!(SclPin, Instance);
 pin_trait!(SdaPin, Instance);
-// dma_trait!(RxDma, Instance);
-// dma_trait!(TxDma, Instance);
+dma_trait!(RxDma, Instance);
+dma_trait!(TxDma, Instance);
 
 /// Global interrupt handler.
 pub struct GlobalInterruptHandler<T: Instance> {
@@ -383,27 +383,27 @@ impl<'d, M: Mode> embedded_hal_1::i2c::I2c for I2c<'d, M> {
     }
 }
 
-// impl<'d> embedded_hal_async::i2c::I2c for I2c<'d, Async> {
-//     async fn read(&mut self, address: u8, read: &mut [u8]) -> Result<(), Self::Error> {
-//         self.read(address, read).await
-//     }
+impl<'d> embedded_hal_async::i2c::I2c for I2c<'d, Async> {
+    async fn read(&mut self, address: u8, read: &mut [u8]) -> Result<(), Self::Error> {
+        self.read(address, read).await
+    }
 
-//     async fn write(&mut self, address: u8, write: &[u8]) -> Result<(), Self::Error> {
-//         self.write(address, write).await
-//     }
+    async fn write(&mut self, address: u8, write: &[u8]) -> Result<(), Self::Error> {
+        self.write(address, write).await
+    }
 
-//     async fn write_read(&mut self, address: u8, write: &[u8], read: &mut [u8]) -> Result<(), Self::Error> {
-//         self.write_read(address, write, read).await
-//     }
+    async fn write_read(&mut self, address: u8, write: &[u8], read: &mut [u8]) -> Result<(), Self::Error> {
+        self.write_read(address, write, read).await
+    }
 
-//     async fn transaction(
-//         &mut self,
-//         address: u8,
-//         operations: &mut [embedded_hal_1::i2c::Operation<'_>],
-//     ) -> Result<(), Self::Error> {
-//         self.transaction(address, operations).await
-//     }
-// }
+    async fn transaction(
+        &mut self,
+        address: u8,
+        operations: &mut [embedded_hal_1::i2c::Operation<'_>],
+    ) -> Result<(), Self::Error> {
+        self.transaction(address, operations).await
+    }
+}
 
 /// Frame type in I2C transaction.
 ///
