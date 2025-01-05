@@ -4,7 +4,7 @@ use super::blocking_delay_us;
 use crate::adc::{Adc, AdcChannel, Instance, Resolution, SampleTime};
 use crate::pac::adc::vals::Extsel;
 use crate::pac::RCC;
-use crate::peripherals::ADC;
+use crate::peripherals::ADC1;
 use crate::time::Hertz;
 use crate::{rcc, Peripheral};
 
@@ -17,8 +17,8 @@ pub const VREF_DEFAULT_MV: u32 = 3300;
 pub const VREF_CALIB_MV: u32 = 3300;
 
 pub struct VrefInt;
-impl AdcChannel<ADC> for VrefInt {}
-impl super::SealedAdcChannel<ADC> for VrefInt {
+impl AdcChannel<ADC1> for VrefInt {}
+impl super::SealedAdcChannel<ADC1> for VrefInt {
     fn channel(&self) -> u8 {
         17
     }
@@ -32,8 +32,8 @@ impl VrefInt {
 }
 
 pub struct Temperature;
-impl AdcChannel<ADC> for Temperature {}
-impl super::SealedAdcChannel<ADC> for Temperature {
+impl AdcChannel<ADC1> for Temperature {}
+impl super::SealedAdcChannel<ADC1> for Temperature {
     fn channel(&self) -> u8 {
         16
     }
@@ -47,8 +47,8 @@ impl Temperature {
 }
 
 // pub struct Vbat;
-// impl AdcChannel<ADC> for Vbat {}
-// impl super::SealedAdcChannel<ADC> for Vbat {
+// impl AdcChannel<ADC1> for Vbat {}
+// impl super::SealedAdcChannel<ADC1> for Vbat {
 //     fn channel(&self) -> u8 {
 //         18
 //     }
