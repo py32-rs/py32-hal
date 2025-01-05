@@ -42,6 +42,7 @@ pub mod time;
 pub mod time_driver;
 pub mod timer;
 pub mod usart;
+pub mod flash;
 
 pub mod gpio;
 #[cfg(feature = "time-driver-systick")]
@@ -131,6 +132,8 @@ pub fn init(config: Config, #[cfg(feature = "time-driver-systick")] systick: SYS
 
             #[cfg(feature = "exti")]
             exti::init(cs);
+
+            rcc::enable_and_reset_with_cs::<peripherals::FLASH>(cs);
         };
         p
     })
