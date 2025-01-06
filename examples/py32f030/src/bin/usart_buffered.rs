@@ -6,7 +6,7 @@ use defmt::*;
 use embassy_executor::Spawner;
 use embedded_io_async::Read;
 use embedded_io_async::Write;
-use py32_hal::time::Hertz;
+use py32_hal::rcc::HsiFs;
 use py32_hal::usart::{BufferedUart, Config};
 use py32_hal::{bind_interrupts, peripherals, usart};
 use {defmt_rtt as _, panic_probe as _};
@@ -18,7 +18,7 @@ bind_interrupts!(struct Irqs {
 #[embassy_executor::main]
 async fn main(_spawner: Spawner) {
     let mut cfg: py32_hal::Config = Default::default();
-    cfg.rcc.hsi = Some(Hertz::mhz(24));
+    cfg.rcc.hsi = Some(HsiFs::HSI_24MHZ);
     let p = py32_hal::init(cfg);
     info!("Hello World!");
 

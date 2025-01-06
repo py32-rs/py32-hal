@@ -5,7 +5,7 @@
 use embassy_executor::Spawner;
 use embassy_time::Timer;
 use py32_hal::gpio::{Level, Output, Speed};
-use py32_hal::rcc::{Pll, PllSource, Sysclk};
+use py32_hal::rcc::{Pll, PllSource, Sysclk, HsiFs};
 use py32_hal::time::Hertz;
 
 use cortex_m::Peripherals;
@@ -18,7 +18,7 @@ async fn main(_spawner: Spawner) {
     let systick = cp.SYST;
 
     let mut cfg: py32_hal::Config = Default::default();
-    cfg.rcc.hsi = Some(Hertz::mhz(24));
+    cfg.rcc.hsi = Some(HsiFs::HSI_24MHZ);
     cfg.rcc.pll = Some(Pll {
         src: PllSource::HSI,
     });

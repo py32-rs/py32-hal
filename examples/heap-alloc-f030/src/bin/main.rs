@@ -4,8 +4,7 @@
 
 use defmt::*;
 use embassy_executor::Spawner;
-use py32_hal::rcc::{Pll, PllSource, Sysclk};
-use py32_hal::time::Hertz;
+use py32_hal::rcc::{Pll, PllSource, Sysclk, HsiFs};
 use {defmt_rtt as _, panic_probe as _};
 
 extern crate alloc;
@@ -28,7 +27,7 @@ struct Foo {
 async fn main(_spawner: Spawner) {
     info!("Hello world!");
     let mut cfg: py32_hal::Config = Default::default();
-    cfg.rcc.hsi = Some(Hertz::mhz(24));
+    cfg.rcc.hsi = Some(HsiFs::HSI_24MHZ);
     cfg.rcc.pll = Some(Pll {
         src: PllSource::HSI,
     });

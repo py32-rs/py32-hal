@@ -4,9 +4,9 @@
 
 use defmt::{info, unwrap};
 use embassy_executor::Spawner;
-use py32_hal::time::Hertz;
 use py32_hal::mode::Blocking;
 use py32_hal::flash::Flash;
+use py32_hal::rcc::HsiFs;
 use {defmt_rtt as _, panic_probe as _};
 
 const TEST_DATA: [u8; 256] = [
@@ -26,7 +26,7 @@ const TEST_DATA: [u8; 256] = [
 #[embassy_executor::main]
 async fn main(_spawner: Spawner) {
     let mut cfg: py32_hal::Config = Default::default();
-    cfg.rcc.hsi = Some(Hertz::mhz(24));
+    cfg.rcc.hsi = Some(HsiFs::HSI_22_12MHZ);
     // cfg.rcc.pll = Some(Pll {
     //     src: PllSource::HSI,
     //     mul: PllMul::MUL3,
