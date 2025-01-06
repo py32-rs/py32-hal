@@ -4,6 +4,7 @@ use core::sync::atomic::{fence, Ordering};
 use embassy_hal_internal::drop::OnDrop;
 use embassy_hal_internal::{into_ref, Peripheral, PeripheralRef};
 use embedded_storage::nor_flash::{NorFlashError, NorFlashErrorKind};
+use crate::pac::rcc::vals::HsiFs;
 
 use crate::mode::{Async, Blocking};
 use crate::peripherals::FLASH;
@@ -47,8 +48,11 @@ pub enum FlashUnit {
 
 /// Internal flash memory driver.
 pub struct Flash<'d, MODE = Async> {
-    pub(crate) inner: PeripheralRef<'d, FLASH>,
+    pub(crate) _inner: PeripheralRef<'d, FLASH>,
     pub(crate) _mode: PhantomData<MODE>,
+    // size_of::<Option<crate::pac::rcc::vals::HsiFs>>() == 1 byte
+    // TODO: PY32F072 timing regs reset value is 24mhz. Should we use that?
+    pub(crate) timing_configured: Option<HsiFs>,
 }
 
 impl<'d> Flash<'d, Blocking> {
@@ -56,9 +60,14 @@ impl<'d> Flash<'d, Blocking> {
     pub fn new_blocking(p: impl Peripheral<P = FLASH> + 'd) -> Self {
         into_ref!(p);
 
+        // unsafe { low_level::timing_sequence_config() };
+        // let ts1 = crate::pac::FLASH.ts1().read().ts1();
+        // info!("FLASH TS1: 0x{:x}", ts1 as u16);
+
         Self {
-            inner: p,
+            _inner: p,
             _mode: PhantomData,
+            timing_configured: None,
         }
     }
 }
@@ -95,7 +104,7 @@ impl<'d, MODE> Flash<'d, MODE> {
         let mut address = FLASH_BASE + offset;
         trace!("Writing {} bytes at 0x{:x}", bytes.len(), address);
         for chunk in bytes.chunks(WRITE_SIZE) {
-            unsafe { write_chunk_with_critical_section(address, chunk) }?;
+            unsafe { write_chunk_with_critical_section(address, chunk, self.timing_configured) }?;
             address += WRITE_SIZE as u32;
         }
         Ok(())
@@ -124,12 +133,12 @@ impl<'d, MODE> Flash<'d, MODE> {
             if use_sector {
                 let sector = get_sector(address);
                 trace!("Erasing sector: {:?}", sector);
-                unsafe { erase_unit_unlocked(&FlashUnit::Sector(sector)) }?;
+                unsafe { erase_unit_with_critical_section(&FlashUnit::Sector(sector), self.timing_configured) }?;
                 address += SECTOR_SIZE;
             } else {
                 let page = get_page(address);
                 trace!("Erasing page: {:?}", page);
-                unsafe { erase_unit_unlocked(&FlashUnit::Page(page)) }?;
+                unsafe { erase_unit_with_critical_section(&FlashUnit::Page(page), self.timing_configured) }?;
                 address += PAGE_SIZE;
             }
         }
@@ -137,7 +146,7 @@ impl<'d, MODE> Flash<'d, MODE> {
     }
 }
 
-#[cfg(py32f072)]
+// #[cfg(py32f072)]
 pub mod values {
     pub const WRITE_SIZE: usize = 0x100;
     pub const READ_SIZE: usize = 1;
@@ -152,10 +161,12 @@ pub mod values {
 }
 use values::*;
 
-pub(super) unsafe fn write_chunk_unlocked(address: u32, chunk: &[u8]) -> Result<(), Error> {
+pub(super) unsafe fn write_chunk_unlocked(address: u32, chunk: &[u8], timing_configured: Option<HsiFs>) -> Result<(), Error> {
     low_level::clear_all_err();
     fence(Ordering::SeqCst);
     low_level::unlock();
+    fence(Ordering::SeqCst);
+    low_level::timing_sequence_config(timing_configured);
     fence(Ordering::SeqCst);
     low_level::enable_blocking_write();
     fence(Ordering::SeqCst);
@@ -169,14 +180,16 @@ pub(super) unsafe fn write_chunk_unlocked(address: u32, chunk: &[u8]) -> Result<
     low_level::blocking_write(address, unwrap!(chunk.try_into()))
 }
 
-pub(super) unsafe fn write_chunk_with_critical_section(address: u32, chunk: &[u8]) -> Result<(), Error> {
-    critical_section::with(|_| write_chunk_unlocked(address, chunk))
+pub(super) unsafe fn write_chunk_with_critical_section(address: u32, chunk: &[u8], timing_configured: Option<HsiFs>) -> Result<(), Error> {
+    critical_section::with(|_| write_chunk_unlocked(address, chunk, timing_configured))
 }
 
-pub(super) unsafe fn erase_unit_unlocked(unit: &FlashUnit) -> Result<(), Error> {
+pub(super) unsafe fn erase_unit_unlocked(unit: &FlashUnit, timing_configured: Option<HsiFs>) -> Result<(), Error> {
     low_level::clear_all_err();
     fence(Ordering::SeqCst);
     low_level::unlock();
+    fence(Ordering::SeqCst);
+    low_level::timing_sequence_config(timing_configured);
     fence(Ordering::SeqCst);
 
     let _on_drop = OnDrop::new(|| low_level::lock());
@@ -184,8 +197,8 @@ pub(super) unsafe fn erase_unit_unlocked(unit: &FlashUnit) -> Result<(), Error> 
     low_level::blocking_erase_unit(unit)
 }
 
-pub(super) unsafe fn erase_unit_with_critical_section(unit: &FlashUnit) -> Result<(), Error> {
-    critical_section::with(|_| erase_unit_unlocked(unit))
+pub(super) unsafe fn erase_unit_with_critical_section(unit: &FlashUnit, timing_configured: Option<HsiFs>) -> Result<(), Error> {
+    critical_section::with(|_| erase_unit_unlocked(unit, timing_configured))
 }
 
 pub(super) fn get_sector(address: u32) -> FlashSector {

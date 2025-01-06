@@ -2,6 +2,7 @@ use core::ptr::write_volatile;
 use core::sync::atomic::{fence, Ordering};
 
 use crate::pac;
+use crate::pac::rcc::vals::HsiFs;
 
 use super::{Error, FlashUnit};
 use super::values::*;
@@ -15,35 +16,6 @@ pub(crate) unsafe fn unlock() {
         pac::FLASH.keyr().write_value(0x4567_0123);
         pac::FLASH.keyr().write_value(0xCDEF_89AB);
     }
-}
-
-// unsafe fn timing_sequence_config() {
-//     let hsifs = pac::RCC.icscr().read().hsi_fs();
-
-//     let timing = get_timing_sequence(hsifs);
-
-//     pac::FLASH.ts0().write(|w| w.set_ts0(timing.ts0));
-//     pac::FLASH.ts1().write(|w| w.set_ts1(timing.ts1));
-//     pac::FLASH.ts3().write(|w| w.set_ts3(timing.ts3));
-//     pac::FLASH.ts2p().write(|w| w.set_ts2p(timing.ts2p));
-//     pac::FLASH.tps3().write(|w| w.set_tps3(timing.tps3));
-//     pac::FLASH.pertpe().write(|w| w.set_pertpe(timing.pertpe));
-//     pac::FLASH.smertpe().write(|w| w.set_smertpe(timing.smertpe));
-//     pac::FLASH.prgtpe().write(|w| w.set_prgtpe(timing.prgtpe));
-//     pac::FLASH.pretpe().write(|w| w.set_pretpe(timing.pretpe));
-
-// }
-
-struct Timing {
-    ts0: u8,
-    ts1: u16,
-    ts3: u8,
-    ts2p: u8,
-    tps3: u16,
-    pertpe: u32,
-    smertpe: u32,
-    prgtpe: u16,
-    pretpe: u16,
 }
 
 pub(crate) unsafe fn enable_blocking_write() {
@@ -75,7 +47,7 @@ pub(crate) unsafe fn blocking_write(start_address: u32, buf: &[u8; WRITE_SIZE]) 
     
     if !pac::FLASH.sr().read().eop() {
         trace!("FLASH: EOP not set");
-        info!("FLASH SR.wrperr: {}", pac::FLASH.sr().read().wrperr());
+        trace!("FLASH SR.wrperr: {}", pac::FLASH.sr().read().wrperr());
         Err(Error::Prog)
     } else {
         pac::FLASH.sr().modify(|w| w.set_eop(true));
@@ -147,4 +119,22 @@ pub(crate) unsafe fn clear_all_err() {
     // read and write back the same value.
     // This clears all "write 1 to clear" bits.
     pac::FLASH.sr().modify(|_| {});
+}
+
+pub(crate) unsafe fn timing_sequence_config(configured: Option<HsiFs>) {
+    let hsifs = pac::RCC.icscr().read().hsi_fs();
+
+    if Some(hsifs) != configured {
+        let eppara = pac::CONFIGBYTES.eppara(hsifs as usize);
+
+        pac::FLASH.ts0().write(|w| w.set_ts0(eppara.eppara0().read().ts0()));
+        pac::FLASH.ts1().write(|w| w.set_ts1(eppara.eppara0().read().ts1()));
+        pac::FLASH.ts3().write(|w| w.set_ts3(eppara.eppara0().read().ts3()));
+        pac::FLASH.ts2p().write(|w| w.set_ts2p(eppara.eppara1().read().ts2p()));
+        pac::FLASH.tps3().write(|w| w.set_tps3(eppara.eppara1().read().tps3()));
+        pac::FLASH.pertpe().write(|w| w.set_pertpe(eppara.eppara2().read().pertpe()));
+        pac::FLASH.smertpe().write(|w| w.set_smertpe(eppara.eppara3().read().smertpe()));
+        pac::FLASH.pretpe().write(|w| w.set_pretpe(eppara.eppara4().read().pretpe()));
+        pac::FLASH.prgtpe().write(|w| w.set_prgtpe(eppara.eppara4().read().prgtpe()));
+    }
 }
