@@ -5,7 +5,7 @@
 use defmt::*;
 use embassy_executor::Spawner;
 use py32_hal::gpio::{Level, Output, Speed};
-use py32_hal::rcc::{Pll, PllMul, PllSource, Sysclk, HsiFs};
+use py32_hal::rcc::{HsiFs, Pll, PllMul, PllSource, Sysclk};
 use {defmt_rtt as _, panic_halt as _};
 
 #[embassy_executor::main]

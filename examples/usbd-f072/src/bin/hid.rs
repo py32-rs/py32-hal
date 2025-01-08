@@ -5,7 +5,7 @@
 use defmt::*;
 use py32_hal::bind_interrupts;
 use py32_hal::gpio::{Input, Level, Output, Pull, Speed};
-use py32_hal::rcc::{Pll, PllMul, PllSource, Sysclk, HsiFs};
+use py32_hal::rcc::{HsiFs, Pll, PllMul, PllSource, Sysclk};
 use py32_hal::usb::{self, InterruptHandler};
 use {defmt_rtt as _, panic_probe as _};
 
@@ -40,7 +40,7 @@ fn main() -> ! {
     let mut keyboard = UsbHidClassBuilder::new()
         .add_device(usbd_human_interface_device::device::keyboard::BootKeyboardConfig::default())
         .build(&usb_bus_allocator);
-    
+
     //https://pid.codes
     let mut usb_dev = UsbDeviceBuilder::new(&usb_bus_allocator, UsbVidPid(0x1209, 0x0001))
         .strings(&[StringDescriptors::default()

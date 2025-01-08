@@ -7,7 +7,7 @@ pub use crate::pac::rcc::vals::{
     Hpre as AHBPrescaler, HsiFs, Hsidiv, Ppre as APBPrescaler, Sw as Sysclk,
 };
 
-use crate::pac::{FLASH, RCC, CONFIGBYTES};
+use crate::pac::{CONFIGBYTES, FLASH, RCC};
 use crate::time::Hertz;
 
 // /// HSI speed

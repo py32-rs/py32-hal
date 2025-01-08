@@ -4,7 +4,7 @@
 
 use defmt::*;
 use embassy_executor::Spawner;
-use py32_hal::rcc::{Pll, PllSource, Sysclk, HsiFs};
+use py32_hal::rcc::{HsiFs, Pll, PllSource, Sysclk};
 use {defmt_rtt as _, panic_probe as _};
 
 extern crate alloc;
@@ -13,9 +13,9 @@ use embedded_alloc::LlffHeap as Heap;
 #[global_allocator]
 static HEAP: Heap = Heap::empty();
 
-use alloc::vec::*;
-use alloc::string::*;
 use alloc::boxed::Box;
+use alloc::string::*;
+use alloc::vec::*;
 
 #[derive(Debug, defmt::Format)]
 struct Foo {

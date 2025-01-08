@@ -6,7 +6,7 @@ use defmt::*;
 use embassy_executor::Spawner;
 use embassy_futures::join::join;
 use py32_hal::bind_interrupts;
-use py32_hal::rcc::{Pll, PllMul, PllSource, Sysclk, HsiFs};
+use py32_hal::rcc::{HsiFs, Pll, PllMul, PllSource, Sysclk};
 use py32_hal::usb::{Driver, Instance, InterruptHandler};
 use {defmt_rtt as _, panic_probe as _};
 

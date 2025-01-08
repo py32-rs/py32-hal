@@ -6,7 +6,7 @@ use defmt::*;
 use embassy_executor::Spawner;
 use embassy_time::Timer;
 use py32_hal::adc::{Adc, SampleTime};
-use py32_hal::rcc::{Pll, PllMul, PllSource, Sysclk, HsiFs};
+use py32_hal::rcc::{HsiFs, Pll, PllMul, PllSource, Sysclk};
 use {defmt_rtt as _, panic_probe as _};
 
 #[embassy_executor::main]

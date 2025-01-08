@@ -4,25 +4,22 @@
 /// featuring a fixed FIFO size and with some register functionalities masked.
 ///
 /// See more: https://github.com/decaday/musb
-
 use core::marker::PhantomData;
 
 #[cfg(feature = "embassy-usb-driver-impl")]
 use embassy_usb_driver as driver;
 #[cfg(feature = "embassy-usb-driver-impl")]
 use embassy_usb_driver::EndpointType;
-#[cfg(feature = "embassy-usb-driver-impl")]
-use musb::{MusbDriver, In, Out, Bus, ControlPipe, Endpoint};
 #[cfg(feature = "usb-device-impl")]
 pub use musb::UsbdBus;
+#[cfg(feature = "embassy-usb-driver-impl")]
+use musb::{Bus, ControlPipe, Endpoint, In, MusbDriver, Out};
 
 use musb::UsbInstance;
 
 use crate::interrupt::typelevel::Interrupt;
 use crate::rcc::{self, RccPeripheral};
 use crate::{interrupt, Peripheral};
-
-
 
 /// Interrupt handler.
 pub struct InterruptHandler<T: Instance> {

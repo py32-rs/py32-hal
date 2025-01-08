@@ -1,10 +1,10 @@
 use core::marker::PhantomData;
 use core::sync::atomic::{fence, Ordering};
 
+use crate::pac::rcc::vals::HsiFs;
 use embassy_hal_internal::drop::OnDrop;
 use embassy_hal_internal::{into_ref, Peripheral, PeripheralRef};
 use embedded_storage::nor_flash::{NorFlashError, NorFlashErrorKind};
-use crate::pac::rcc::vals::HsiFs;
 
 use crate::mode::{Async, Blocking};
 use crate::peripherals::FLASH;
@@ -17,7 +17,7 @@ pub mod values {
 
     pub const WRITE_SIZE: usize = PAGE_SIZE;
     pub const READ_SIZE: usize = 1;
-    
+
     pub const FLASH_SIZE: usize = crate::pac::FLASH_SIZE;
     pub const FLASH_BASE: usize = crate::pac::FLASH_BASE;
 }
@@ -95,7 +95,8 @@ impl<'d, MODE> Flash<'d, MODE> {
         }
 
         let start_address = FLASH_BASE as u32 + offset;
-        let flash_data = unsafe { core::slice::from_raw_parts(start_address as *const u8, bytes.len()) };
+        let flash_data =
+            unsafe { core::slice::from_raw_parts(start_address as *const u8, bytes.len()) };
         bytes.copy_from_slice(flash_data);
         Ok(())
     }
@@ -112,7 +113,7 @@ impl<'d, MODE> Flash<'d, MODE> {
         if offset % WRITE_SIZE as u32 != 0 || bytes.len() % WRITE_SIZE != 0 {
             return Err(Error::Unaligned);
         }
-    
+
         let mut address = FLASH_BASE as u32 + offset;
         trace!("Writing {} bytes at 0x{:x}", bytes.len(), address);
         for chunk in bytes.chunks(WRITE_SIZE) {
@@ -138,19 +139,31 @@ impl<'d, MODE> Flash<'d, MODE> {
             (Err(_), Ok(_)) => false,
         };
 
-        trace!("Erasing from 0x{:x} to 0x{:x}, use_sector: {}", start_address, end_address, use_sector);
+        trace!(
+            "Erasing from 0x{:x} to 0x{:x}, use_sector: {}",
+            start_address,
+            end_address,
+            use_sector
+        );
 
         let mut address = start_address;
         while address < end_address {
             if use_sector {
                 let sector = get_sector(address);
                 trace!("Erasing sector: {:?}", sector);
-                unsafe { erase_unit_with_critical_section(&FlashUnit::Sector(sector), self.timing_configured) }?;
+                unsafe {
+                    erase_unit_with_critical_section(
+                        &FlashUnit::Sector(sector),
+                        self.timing_configured,
+                    )
+                }?;
                 address += SECTOR_SIZE as u32;
             } else {
                 let page = get_page(address);
                 trace!("Erasing page: {:?}", page);
-                unsafe { erase_unit_with_critical_section(&FlashUnit::Page(page), self.timing_configured) }?;
+                unsafe {
+                    erase_unit_with_critical_section(&FlashUnit::Page(page), self.timing_configured)
+                }?;
                 address += PAGE_SIZE as u32;
             }
         }
@@ -158,8 +171,11 @@ impl<'d, MODE> Flash<'d, MODE> {
     }
 }
 
-
-pub(super) unsafe fn write_chunk_unlocked(address: u32, chunk: &[u8], timing_configured: Option<HsiFs>) -> Result<(), Error> {
+pub(super) unsafe fn write_chunk_unlocked(
+    address: u32,
+    chunk: &[u8],
+    timing_configured: Option<HsiFs>,
+) -> Result<(), Error> {
     low_level::clear_all_err();
     fence(Ordering::SeqCst);
     low_level::unlock();
@@ -178,11 +194,18 @@ pub(super) unsafe fn write_chunk_unlocked(address: u32, chunk: &[u8], timing_con
     low_level::blocking_write(address, unwrap!(chunk.try_into()))
 }
 
-pub(super) unsafe fn write_chunk_with_critical_section(address: u32, chunk: &[u8], timing_configured: Option<HsiFs>) -> Result<(), Error> {
+pub(super) unsafe fn write_chunk_with_critical_section(
+    address: u32,
+    chunk: &[u8],
+    timing_configured: Option<HsiFs>,
+) -> Result<(), Error> {
     critical_section::with(|_| write_chunk_unlocked(address, chunk, timing_configured))
 }
 
-pub(super) unsafe fn erase_unit_unlocked(unit: &FlashUnit, timing_configured: Option<HsiFs>) -> Result<(), Error> {
+pub(super) unsafe fn erase_unit_unlocked(
+    unit: &FlashUnit,
+    timing_configured: Option<HsiFs>,
+) -> Result<(), Error> {
     low_level::clear_all_err();
     fence(Ordering::SeqCst);
     low_level::unlock();
@@ -195,7 +218,10 @@ pub(super) unsafe fn erase_unit_unlocked(unit: &FlashUnit, timing_configured: Op
     low_level::blocking_erase_unit(unit)
 }
 
-pub(super) unsafe fn erase_unit_with_critical_section(unit: &FlashUnit, timing_configured: Option<HsiFs>) -> Result<(), Error> {
+pub(super) unsafe fn erase_unit_with_critical_section(
+    unit: &FlashUnit,
+    timing_configured: Option<HsiFs>,
+) -> Result<(), Error> {
     critical_section::with(|_| erase_unit_unlocked(unit, timing_configured))
 }
 
@@ -213,10 +239,7 @@ pub(super) fn get_page(address: u32) -> FlashPage {
     }
 }
 
-pub(super) fn ensure_sector_aligned(
-    start_address: u32,
-    end_address: u32,
-) -> Result<(), Error> {
+pub(super) fn ensure_sector_aligned(start_address: u32, end_address: u32) -> Result<(), Error> {
     let mut address = start_address;
     while address < end_address {
         let sector = get_sector(address);
@@ -231,10 +254,7 @@ pub(super) fn ensure_sector_aligned(
     Ok(())
 }
 
-pub(super) fn ensure_page_aligned(
-    start_address: u32,
-    end_address: u32,
-) -> Result<(), Error> {
+pub(super) fn ensure_page_aligned(start_address: u32, end_address: u32) -> Result<(), Error> {
     let mut address = start_address;
     while address < end_address {
         let page = get_page(address);

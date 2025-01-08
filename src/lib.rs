@@ -35,6 +35,7 @@ pub mod mode {
 
 pub mod adc;
 pub mod dma;
+pub mod flash;
 pub mod i2c;
 pub mod rcc;
 pub mod time;
@@ -42,7 +43,6 @@ pub mod time;
 pub mod time_driver;
 pub mod timer;
 pub mod usart;
-pub mod flash;
 
 pub mod gpio;
 #[cfg(feature = "time-driver-systick")]

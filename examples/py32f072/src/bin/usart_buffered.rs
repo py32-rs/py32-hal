@@ -6,7 +6,7 @@ use defmt::*;
 use embassy_executor::Spawner;
 use embedded_io_async::Read;
 use embedded_io_async::Write;
-use py32_hal::rcc::{Pll, PllMul, PllSource, Sysclk, HsiFs};
+use py32_hal::rcc::{HsiFs, Pll, PllMul, PllSource, Sysclk};
 use py32_hal::usart::{BufferedUart, Config};
 use py32_hal::{bind_interrupts, peripherals, usart};
 use {defmt_rtt as _, panic_halt as _};
