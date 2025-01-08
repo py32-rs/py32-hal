@@ -32,7 +32,7 @@ pub(crate) unsafe fn blocking_write(start_address: u32, buf: &[u8; WRITE_SIZE]) 
 
     let mut address = start_address;
     for (idx, val) in buf.chunks(4).enumerate() {
-        if idx == 63 {
+        if idx == PAGE_SIZE / 4 - 1 {
             fence(Ordering::SeqCst);
             pac::FLASH.cr().modify(|w| w.set_pgstrt(true));
         }

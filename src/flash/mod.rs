@@ -11,6 +11,18 @@ use crate::peripherals::FLASH;
 
 mod low_level;
 
+pub mod values {
+    pub const PAGE_SIZE: usize = crate::pac::PAGE_SIZE;
+    pub const SECTOR_SIZE: usize = crate::pac::SECTOR_SIZE;
+
+    pub const WRITE_SIZE: usize = PAGE_SIZE;
+    pub const READ_SIZE: usize = 1;
+    
+    pub const FLASH_SIZE: usize = crate::pac::FLASH_SIZE;
+    pub const FLASH_BASE: usize = crate::pac::FLASH_BASE;
+}
+use values::*;
+
 #[allow(missing_docs)]
 #[derive(Debug, Copy, Clone, PartialEq, Eq)]
 #[cfg_attr(feature = "defmt", derive(defmt::Format))]
@@ -82,7 +94,7 @@ impl<'d, MODE> Flash<'d, MODE> {
             return Err(Error::Size);
         }
 
-        let start_address = FLASH_BASE + offset;
+        let start_address = FLASH_BASE as u32 + offset;
         let flash_data = unsafe { core::slice::from_raw_parts(start_address as *const u8, bytes.len()) };
         bytes.copy_from_slice(flash_data);
         Ok(())
@@ -101,7 +113,7 @@ impl<'d, MODE> Flash<'d, MODE> {
             return Err(Error::Unaligned);
         }
     
-        let mut address = FLASH_BASE + offset;
+        let mut address = FLASH_BASE as u32 + offset;
         trace!("Writing {} bytes at 0x{:x}", bytes.len(), address);
         for chunk in bytes.chunks(WRITE_SIZE) {
             unsafe { write_chunk_with_critical_section(address, chunk, self.timing_configured) }?;
@@ -115,8 +127,8 @@ impl<'d, MODE> Flash<'d, MODE> {
     /// NOTE: `from` and `to` are offsets from the flash start, NOT an absolute address.
     /// For example, to erase address `0x0801_0000` you have to use offset `0x1_0000`.
     pub fn blocking_erase(&mut self, from: u32, to: u32) -> Result<(), Error> {
-        let start_address = FLASH_BASE + from;
-        let end_address = FLASH_BASE + to;
+        let start_address = FLASH_BASE as u32 + from;
+        let end_address = FLASH_BASE as u32 + to;
 
         let sector_ret = ensure_sector_aligned(start_address, end_address);
         let page_ret = ensure_page_aligned(start_address, end_address);
@@ -134,32 +146,18 @@ impl<'d, MODE> Flash<'d, MODE> {
                 let sector = get_sector(address);
                 trace!("Erasing sector: {:?}", sector);
                 unsafe { erase_unit_with_critical_section(&FlashUnit::Sector(sector), self.timing_configured) }?;
-                address += SECTOR_SIZE;
+                address += SECTOR_SIZE as u32;
             } else {
                 let page = get_page(address);
                 trace!("Erasing page: {:?}", page);
                 unsafe { erase_unit_with_critical_section(&FlashUnit::Page(page), self.timing_configured) }?;
-                address += PAGE_SIZE;
+                address += PAGE_SIZE as u32;
             }
         }
         Ok(())
     }
 }
 
-// #[cfg(py32f072)]
-pub mod values {
-    pub const WRITE_SIZE: usize = 0x100;
-    pub const READ_SIZE: usize = 1;
-    pub const FLASH_SIZE: usize = 0x20000;
-
-    pub const PAGE_SIZE: u32 = 0x100; // 256 Bytes
-    pub const SECTOR_SIZE: u32 = 0x2000; // 8K Bytes
-    pub const FLASH_BASE: u32 = 0x0800_0000;
-    
-
-    pub const FLASH_TIMING_PARAM: [u32; 8] = [0x1FFF011C, 0x1FFF011C, 0x1FFF011C, 0x1FFF011C, 0x1FFF011C, 0x1FFF0130, 0x1FFF011C, 0x1FFF011C];
-}
-use values::*;
 
 pub(super) unsafe fn write_chunk_unlocked(address: u32, chunk: &[u8], timing_configured: Option<HsiFs>) -> Result<(), Error> {
     low_level::clear_all_err();
@@ -202,16 +200,16 @@ pub(super) unsafe fn erase_unit_with_critical_section(unit: &FlashUnit, timing_c
 }
 
 pub(super) fn get_sector(address: u32) -> FlashSector {
-    let index = (address - FLASH_BASE) / SECTOR_SIZE;
+    let index = (address - FLASH_BASE as u32) / SECTOR_SIZE as u32;
     FlashSector {
-        start: FLASH_BASE + index * SECTOR_SIZE,
+        start: FLASH_BASE as u32 + index * SECTOR_SIZE as u32,
     }
 }
 
 pub(super) fn get_page(address: u32) -> FlashPage {
-    let index = (address - FLASH_BASE) / PAGE_SIZE;
+    let index = (address - FLASH_BASE as u32) / PAGE_SIZE as u32;
     FlashPage {
-        start: FLASH_BASE + index * PAGE_SIZE,
+        start: FLASH_BASE as u32 + index * PAGE_SIZE as u32,
     }
 }
 
@@ -225,7 +223,7 @@ pub(super) fn ensure_sector_aligned(
         if sector.start != address {
             return Err(Error::Unaligned);
         }
-        address += SECTOR_SIZE;
+        address += SECTOR_SIZE as u32;
     }
     if address != end_address {
         return Err(Error::Unaligned);
@@ -243,7 +241,7 @@ pub(super) fn ensure_page_aligned(
         if page.start != address {
             return Err(Error::Unaligned);
         }
-        address += PAGE_SIZE;
+        address += PAGE_SIZE as u32;
     }
     if address != end_address {
         return Err(Error::Unaligned);
@@ -269,7 +267,7 @@ impl<MODE> embedded_storage::nor_flash::ReadNorFlash for Flash<'_, MODE> {
 
 impl<MODE> embedded_storage::nor_flash::NorFlash for Flash<'_, MODE> {
     const WRITE_SIZE: usize = WRITE_SIZE;
-    const ERASE_SIZE: usize = PAGE_SIZE as usize;
+    const ERASE_SIZE: usize = PAGE_SIZE;
 
     fn write(&mut self, offset: u32, bytes: &[u8]) -> Result<(), Self::Error> {
         self.blocking_write(offset, bytes)
