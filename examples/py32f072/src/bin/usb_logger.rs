@@ -19,8 +19,7 @@ use {defmt_rtt as _, panic_probe as _};
 // use embassy_executor::Spawner;
 // use embassy_time::Timer;
 // use py32_hal::bind_interrupts;
-// use py32_hal::time::Hertz;
-// use py32_hal::rcc::{Pll, PllSource, Sysclk, PllMul};
+// use py32_hal::rcc::{Pll, PllMul, PllSource, Sysclk, HsiFs};
 // use py32_hal::usb::{Driver, InterruptHandler};
 
 // bind_interrupts!(struct Irqs {
@@ -37,7 +36,7 @@ use {defmt_rtt as _, panic_probe as _};
 //     let mut cfg: py32_hal::Config = Default::default();
 
 //     // PY32 USB uses PLL as the clock source and can only run at 48Mhz.
-//     cfg.rcc.hsi = Some(Hertz::mhz(16));
+//     cfg.rcc.hsi = Some(HsiFs::HSI_16MHZ);
 //     cfg.rcc.pll = Some(Pll {
 //         src: PllSource::HSI,
 //         mul: PllMul::MUL3,

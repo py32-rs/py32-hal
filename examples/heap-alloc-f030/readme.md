@@ -16,11 +16,13 @@ $ rustup component add llvm-tools
 
 - 1024 bytes configuration:
   ```
+  0000001c b main::HEAP
   00000400 b main::____embassy_main_task::{{closure}}::HEAP_MEM
   ```
 
 - 4096 bytes configuration:
   ```
+  0000001c b main::HEAP
   00001000 b main::____embassy_main_task::{{closure}}::HEAP_MEM
   ```
 
