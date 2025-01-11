@@ -3,11 +3,10 @@ use core::mem;
 use core::sync::atomic::{compiler_fence, Ordering};
 
 use embassy_hal_internal::{into_ref, Peripheral};
-use stm32_metapac::adc::vals::SampleTime;
+use py32_metapac::adc::vals::SampleTime;
 
 use crate::adc::{Adc, AdcChannel, Instance, RxDma};
 use crate::dma::{Priority, ReadableRingBuffer, TransferOptions};
-use crate::pac::adc::vals;
 use crate::rcc;
 
 #[cfg_attr(feature = "defmt", derive(defmt::Format))]
@@ -309,16 +308,13 @@ impl<'d, T: Instance> RingBufferedAdc<'d, T> {
             w.set_dma(true);
             // Enable continuous conversions
             w.set_cont(true);
-            // DMA requests are issues as long as DMA=1 and data are converted.
-            w.set_dds(vals::Dds::CONTINUOUS);
-            // EOC flag is set at the end of each conversion.
-            w.set_eocs(vals::Eocs::EACHCONVERSION);
         });
 
         // Begin ADC conversions
         T::regs().cr2().modify(|reg| {
             reg.set_adon(true);
             reg.set_swstart(true);
+            reg.set_exttrig(true);
         });
 
         super::blocking_delay_us(3);

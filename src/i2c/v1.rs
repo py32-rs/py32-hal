@@ -11,7 +11,6 @@ use embassy_embedded_hal::SetConfig;
 use embassy_futures::select::{select, Either};
 use embassy_hal_internal::drop::OnDrop;
 use embedded_hal_1::i2c::Operation;
-use musb::regs::info;
 
 use super::*;
 use crate::mode::Mode as PeriMode;

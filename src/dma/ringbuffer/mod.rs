@@ -3,8 +3,6 @@
 use core::future::poll_fn;
 use core::task::{Poll, Waker};
 
-use musb::regs::info;
-
 use crate::dma::word::Word;
 
 pub trait DmaCtrl {
