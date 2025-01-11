@@ -1,10 +1,12 @@
 // use crate::pac::flash::vals::Latency;
 use crate::pac::rcc::vals::Pllsrc;
 // pub use crate::pac::rcc::vals::Prediv as PllPreDiv;
+#[cfg(rcc_f030)]
+use crate::pac::rcc::vals::HseFreq;
 #[cfg(rcc_f072)]
 pub use crate::pac::rcc::vals::Pllmul as PllMul;
 pub use crate::pac::rcc::vals::{
-    Hpre as AHBPrescaler, HseFreq, HsiFs, Hsidiv, Ppre as APBPrescaler, Sw as Sysclk,
+    Hpre as AHBPrescaler, HsiFs, Hsidiv, Ppre as APBPrescaler, Sw as Sysclk,
 };
 
 use crate::pac::{CONFIGBYTES, FLASH, RCC};
