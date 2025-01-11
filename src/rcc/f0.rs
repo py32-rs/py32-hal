@@ -4,7 +4,7 @@ use crate::pac::rcc::vals::Pllsrc;
 #[cfg(rcc_f072)]
 pub use crate::pac::rcc::vals::Pllmul as PllMul;
 pub use crate::pac::rcc::vals::{
-    Hpre as AHBPrescaler, HsiFs, Hsidiv, Ppre as APBPrescaler, Sw as Sysclk,
+    Hpre as AHBPrescaler, HseFreq, HsiFs, Hsidiv, Ppre as APBPrescaler, Sw as Sysclk,
 };
 
 use crate::pac::{CONFIGBYTES, FLASH, RCC};
@@ -138,6 +138,14 @@ pub(crate) unsafe fn init(config: Config) {
                 HseMode::Oscillator => assert!(max::HSE_OSC.contains(&hse.freq)),
             }
 
+            #[cfg(rcc_f030)]
+            RCC.ecscr().modify(|w| {
+                w.set_hse_freq(match hse.freq.0 {
+                    ..=8_000_000 => HseFreq::RANGE1,
+                    ..=16_000_000 => HseFreq::RANGE2,
+                    _ => HseFreq::RANGE3,
+                })
+            });
             RCC.cr()
                 .modify(|w| w.set_hsebyp(hse.mode != HseMode::Oscillator));
             RCC.cr().modify(|w| w.set_hseon(true));
