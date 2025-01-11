@@ -1457,8 +1457,8 @@ fn main() {
         let settings = m.settings.as_ref().unwrap();
         let row = vec![
             get_flash_region_type_name(m.name),
-            settings.write_size.to_string(),
-            settings.erase_size.to_string(),
+            settings.page_size.to_string(),
+            settings.sector_size.to_string(),
         ];
         flash_regions_table.push(row);
     }

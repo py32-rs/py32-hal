@@ -56,6 +56,7 @@ For a comprehensive list of chip capabilities and peripherals, refer to the [py3
 | SPI        |            |                 |                 |      |
 | ADC        |            | ✅+              | ✅               |      |
 | RTC        |            |                 |                 |      |
+| FLASH      |            | ✅               | ✅               |      |
 | Timer(PWM) |            | ✅               | ❓               |      |
 | USB        | N/A        | N/A             | ✅+              |      |
 | DAC        | N/A        | N/A             |                 |      |
@@ -91,9 +92,9 @@ This crate provides an implementation of the Embassy `time-driver`.
 
 Embassy requires that any TIM used as a time-driver has at least two channels, so only TIM1 and TIM3 are available for the PY32F030, 003, and 002A series. You can select either `time-driver-tim3` or `time-driver-tim1` to specify the TIM to use.
 
-`time-driver-systick`: Although we do not recommend using it and there are some shortcomings, it does work. For details, please see [systick-demo](examples/systick-time-driver-f030/README.md)
-
 For PY32F07x, F040, you can use TIM15, TIM3, TIM2 or TIM1.
+
+`time-driver-systick`: Although we do not recommend using it and there are some shortcomings, it does work. For details, please see [systick-demo](examples/systick-time-driver-f030/README.md)
 
 ## Awesome List
 

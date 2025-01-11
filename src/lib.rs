@@ -35,6 +35,7 @@ pub mod mode {
 
 pub mod adc;
 pub mod dma;
+pub mod flash;
 pub mod i2c;
 pub mod rcc;
 pub mod time;
@@ -134,7 +135,10 @@ pub fn init(config: Config, #[cfg(feature = "time-driver-systick")] systick: SYS
             #[cfg(feature = "exti")]
             exti::init(cs);
 
+
             dma::init(cs, config.dma_interrupt_priority);
+
+            rcc::enable_and_reset_with_cs::<peripherals::FLASH>(cs);
         };
         p
     })

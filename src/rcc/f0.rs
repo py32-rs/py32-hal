@@ -7,7 +7,7 @@ pub use crate::pac::rcc::vals::{
     Hpre as AHBPrescaler, HsiFs, Hsidiv, Ppre as APBPrescaler, Sw as Sysclk,
 };
 
-use crate::pac::{/* FLASH , */ RCC};
+use crate::pac::{CONFIGBYTES, FLASH, RCC};
 use crate::time::Hertz;
 
 // /// HSI speed
@@ -60,7 +60,7 @@ pub struct Pll {
 #[non_exhaustive]
 #[derive(Clone, Copy)]
 pub struct Config {
-    pub hsi: Option<Hertz>,
+    pub hsi: Option<HsiFs>,
     pub hsidiv: Hsidiv,
     pub hse: Option<Hse>,
     pub sys: Sysclk,
@@ -77,7 +77,7 @@ pub struct Config {
 impl Default for Config {
     fn default() -> Self {
         Self {
-            hsi: Some(Hertz::mhz(8)),
+            hsi: Some(HsiFs::HSI_8MHZ),
             hse: None,
             sys: Sysclk::HSI,
             hsidiv: Hsidiv::DIV1,
@@ -94,33 +94,26 @@ impl Default for Config {
 pub(crate) unsafe fn init(config: Config) {
     // Turn on the HSI
     RCC.cr().modify(|w| w.set_hsion(true));
-    if let Some(value) = config.hsi {
-        let val = value.0;
+    let hsi_value = if let Some(value) = config.hsi {
+        let hsi_trimming_bytes = CONFIGBYTES.hsi_trimming(value as usize).read();
 
-        #[cfg(rcc_f030)]
-        let (fs_val, trim_addr): (HsiFs, usize) = match val {
-            4_000_000u32 => (HsiFs::HSI_4MHZ, 0x1FFF_0F00),
-            8_000_000u32 => (HsiFs::HSI_8MHZ, 0x1FFF_0F04),
-            16_000_000u32 => (HsiFs::HSI_16MHZ, 0x1FFF_0F08),
-            22_120_000u32 => (HsiFs::HSI_22_12MHZ, 0x1FFF_0F0C),
-            24_000_000u32 => (HsiFs::HSI_24MHZ, 0x1FFF_0F10),
-            _ => panic!("Unsupported HSI frequency"),
-        };
+        assert_eq!(hsi_trimming_bytes.hsi_fs(), value as u8);
 
-        #[cfg(rcc_f072)]
-        let (fs_val, trim_addr): (HsiFs, usize) = match val {
-            4_000_000u32 => (HsiFs::HSI_4MHZ, 0x1FFF_3200),
-            8_000_000u32 => (HsiFs::HSI_8MHZ, 0x1FFF_3208),
-            16_000_000u32 => (HsiFs::HSI_16MHZ, 0x1FFF_3210),
-            22_120_000u32 => (HsiFs::HSI_22_12MHZ, 0x1FFF_3218),
-            24_000_000u32 => (HsiFs::HSI_24MHZ, 0x1FFF_3220),
-            _ => panic!("Unsupported HSI frequency"),
-        };
-        let trim_val = (unsafe { *(trim_addr as *const u32) } & 0x1FFF) as u16;
         RCC.icscr().modify(|w| {
-            w.set_hsi_fs(fs_val);
-            w.set_hsi_trim(trim_val);
+            w.set_hsi_fs(value);
+            w.set_hsi_trim(hsi_trimming_bytes.hsi_trim());
         });
+
+        match value {
+            HsiFs::HSI_4MHZ => Some(Hertz(4_000_000)),
+            HsiFs::HSI_8MHZ => Some(Hertz(8_000_000)),
+            HsiFs::HSI_16MHZ => Some(Hertz(16_000_000)),
+            HsiFs::HSI_22_12MHZ => Some(Hertz(22_120_000)),
+            HsiFs::HSI_24MHZ => Some(Hertz(24_000_000)),
+            _ => unreachable!(),
+        }
+    } else {
+        None
     };
     while !RCC.cr().read().hsirdy() {}
 
@@ -158,7 +151,7 @@ pub(crate) unsafe fn init(config: Config) {
         Some(pll) => {
             let (src_val, src_freq) = match pll.src {
                 PllSource::HSE => (Pllsrc::HSE, unwrap!(hse)),
-                PllSource::HSI => (Pllsrc::HSI, unwrap!(hsi)),
+                PllSource::HSI => (Pllsrc::HSI, unwrap!(hsi_value)),
             };
             #[cfg(rcc_f030)]
             let out_freq = src_freq * 2u8;
@@ -194,7 +187,7 @@ pub(crate) unsafe fn init(config: Config) {
 
     // Configure sysclk
     let sys = match config.sys {
-        Sysclk::HSI => unwrap!(hsi) / config.hsidiv,
+        Sysclk::HSI => unwrap!(hsi_value) / config.hsidiv,
         Sysclk::HSE => unwrap!(hse),
         Sysclk::PLL => unwrap!(pll),
         _ => unreachable!(),
@@ -206,36 +199,17 @@ pub(crate) unsafe fn init(config: Config) {
     // assert!(max::HCLK.contains(&hclk));
     // assert!(max::PCLK.contains(&pclk));
 
-    // // Set latency based on HCLK frquency
-    // let latency = match hclk.0 {
-    //     ..=24_000_000 => Latency::WS0,
-    //     ..=48_000_000 => Latency::WS1,
-    //     _ => Latency::WS2,
-    // };
-
-    // FLASH.acr().modify(|w| {
-    //     w.set_latency(latency);
-    //     // RM0316: "The prefetch buffer must be kept on when using a prescaler
-    //     // different from 1 on the AHB clock.", "Half-cycle access cannot be
-    //     // used when there is a prescaler different from 1 on the AHB clock"
-    //     if config.ahb_pre != AHBPrescaler::DIV1 {
-    //         w.set_hlfcya(false);
-    //         w.set_prftbe(true);
-    //     }
-    // });
-
-    let latency: u32 = match hclk1.0 {
+    let latency: u8 = match hclk1.0 {
         ..=24_000_000 => 0,
         ..=48_000_000 => 1,
         _ => 2,
     };
-    // Temporarily: set flash latency
-    unsafe {
-        let acr_reg = 0x4002_2000 as *mut u32;
-        let value = acr_reg.read_volatile() | latency;
-        acr_reg.write_volatile(value);
-    }
-
+    FLASH.acr().modify(|w| {
+        #[cfg(rcc_f072)]
+        w.set_latency(latency);
+        #[cfg(rcc_f030)]
+        w.set_latency(latency != 0);
+    });
     // Set prescalers
     // CFGR has been written before (PLL, PLL48) don't overwrite these settings
     RCC.cfgr().modify(|w| {
@@ -298,7 +272,7 @@ pub(crate) unsafe fn init(config: Config) {
         pclk1: Some(pclk1).into(),
         pclk1_tim: Some(pclk1_tim).into(),
         sys: Some(sys).into(),
-        hsi: hsi.into(),
+        hsi: hsi_value.into(),
         lse: None.into(),
         pll: pll.into(),
     };

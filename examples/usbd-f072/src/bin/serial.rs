@@ -5,8 +5,7 @@
 use defmt::*;
 use py32_hal::bind_interrupts;
 use py32_hal::gpio::{Level, Output, Speed};
-use py32_hal::rcc::{Pll, PllMul, PllSource, Sysclk};
-use py32_hal::time::Hertz;
+use py32_hal::rcc::{HsiFs, Pll, PllMul, PllSource, Sysclk};
 use py32_hal::usb::{self, InterruptHandler};
 use {defmt_rtt as _, panic_probe as _};
 
@@ -22,7 +21,7 @@ fn main() -> ! {
     let mut cfg: py32_hal::Config = Default::default();
 
     // PY32 USB uses PLL as the clock source and can only run at 48Mhz.
-    cfg.rcc.hsi = Some(Hertz::mhz(16));
+    cfg.rcc.hsi = Some(HsiFs::HSI_16MHZ);
     cfg.rcc.pll = Some(Pll {
         src: PllSource::HSI,
         mul: PllMul::MUL3,
