@@ -12,6 +12,7 @@ pub(crate) struct ChannelAndRequest<'d> {
 }
 
 impl<'d> ChannelAndRequest<'d> {
+    #[allow(dead_code)]
     pub unsafe fn read<'a, W: Word>(
         &'a mut self,
         peri_addr: *mut W,
@@ -21,6 +22,7 @@ impl<'d> ChannelAndRequest<'d> {
         Transfer::new_read(&mut self.channel, self.request, peri_addr, buf, options)
     }
 
+    #[allow(dead_code)]
     pub unsafe fn read_raw<'a, W: Word>(
         &'a mut self,
         peri_addr: *mut W,
@@ -39,6 +41,7 @@ impl<'d> ChannelAndRequest<'d> {
         Transfer::new_write(&mut self.channel, self.request, buf, peri_addr, options)
     }
 
+    #[allow(dead_code)]
     pub unsafe fn write_raw<'a, W: Word>(
         &'a mut self,
         buf: *const [W],
