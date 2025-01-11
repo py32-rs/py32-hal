@@ -21,7 +21,7 @@ async fn main(_spawner: Spawner) {
     let mut data = [0u8; 1];
 
     match i2c.blocking_write_read(ADDRESS, &WRITE_DATA, &mut data) {
-        Ok(()) => info!("Whoami: {}", data[0]),
+        Ok(()) => info!("Read data: {}", data[0]),
         Err(Error::Timeout) => error!("Operation timed out"),
         Err(e) => error!("I2c Error: {:?}", e),
     }

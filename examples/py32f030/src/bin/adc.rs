@@ -6,12 +6,12 @@ use defmt::*;
 use embassy_executor::Spawner;
 use embassy_time::Timer;
 use py32_hal::adc::{Adc, SampleTime};
-use py32_hal::peripherals::ADC;
+use py32_hal::peripherals::ADC1;
 use py32_hal::{adc, bind_interrupts};
 use {defmt_rtt as _, panic_probe as _};
 
 bind_interrupts!(struct Irqs {
-    ADC_COMP => adc::InterruptHandler<ADC>;
+    ADC_COMP => adc::InterruptHandler<ADC1>;
 });
 
 #[embassy_executor::main]
@@ -19,7 +19,7 @@ async fn main(_spawner: Spawner) {
     let p = py32_hal::init(Default::default());
     info!("Hello World!");
 
-    let mut adc = Adc::new(p.ADC, Irqs);
+    let mut adc = Adc::new(p.ADC1, Irqs);
     adc.set_sample_time(SampleTime::CYCLES71_5);
     let mut pin = p.PA1;
 
