@@ -37,7 +37,7 @@ The currently supported chips are listed as feature flags in `Cargo.toml`:
 - `py32f072c1b`  
 (More will be added soon!)
 
-**Note:** The program's behavior is currently independent of the chip packaging.  
+The program's behavior is currently independent of the chip packaging.  
 
 Chips outside the list may work if you proceed cautiously, as most peripherals are quite similar across the series. In fact, the peripheral IPs within different PY32 series are often consistent. Additionally, some series share the same die, which may minimize the effort required for compatibility.  
 
@@ -45,15 +45,15 @@ For a comprehensive list of chip capabilities and peripherals, refer to the [py3
 
 | Family     | F002B/L020 | F030/F003/F002A | F040/F07x/MD410 | F403 |
 | ---------- | ---------- | --------------- | --------------- | ---- |
-| Embassy    |            | ✅               | ✅               |      |
+| Embassy    |            | ✅+              | ✅+              |      |
 | RCC        |            | ✅               | ✅               |      |
 | GPIO       |            | ✅               | ✅               |      |
 | INTERRUPT  |            | ✅               | ✅               |      |
-| DMA        | N/A        |                 |                 |      |
+| DMA        | N/A        | ✅+              | ✅+              |      |
 | EXTI       |            | ✅+              | ✅+              |      |
 | USART      |            | ✅+              | ✅+              |      |
-| I2C        |            | ✅               | ❓               |      |
-| SPI        |            |                 |                 |      |
+| I2C        |            | ✅+              | ✅+              |      |
+| SPI        |            | ✅+              | ✅+              |      |
 | ADC        |            | ✅+              | ✅               |      |
 | RTC        |            |                 |                 |      |
 | FLASH      |            | ✅               | ✅               |      |
@@ -72,13 +72,11 @@ For a comprehensive list of chip capabilities and peripherals, refer to the [py3
 
 Too many...
 
-- DMA support (channel map, codegen, API, RingBuffer, I2C...)
-
 - Test F072 peripherals
 
 - HSE test and examples
 
-- Other series
+- Other series, chips
 
 - SPI, RTC
 
