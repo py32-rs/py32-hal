@@ -1,6 +1,8 @@
 // use crate::pac::flash::vals::Latency;
 use crate::pac::rcc::vals::Pllsrc;
 // pub use crate::pac::rcc::vals::Prediv as PllPreDiv;
+#[cfg(rcc_f030)]
+use crate::pac::rcc::vals::HseFreq;
 #[cfg(rcc_f072)]
 pub use crate::pac::rcc::vals::Pllmul as PllMul;
 pub use crate::pac::rcc::vals::{
@@ -138,6 +140,14 @@ pub(crate) unsafe fn init(config: Config) {
                 HseMode::Oscillator => assert!(max::HSE_OSC.contains(&hse.freq)),
             }
 
+            #[cfg(rcc_f030)]
+            RCC.ecscr().modify(|w| {
+                w.set_hse_freq(match hse.freq.0 {
+                    ..=8_000_000 => HseFreq::RANGE1,
+                    ..=16_000_000 => HseFreq::RANGE2,
+                    _ => HseFreq::RANGE3,
+                })
+            });
             RCC.cr()
                 .modify(|w| w.set_hsebyp(hse.mode != HseMode::Oscillator));
             RCC.cr().modify(|w| w.set_hseon(true));
