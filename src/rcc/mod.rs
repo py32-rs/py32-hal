@@ -1,7 +1,11 @@
 /// Reset and Clock Control (RCC)
 use core::mem::MaybeUninit;
 
+#[cfg(mco)]
+mod mco;
 use critical_section::CriticalSection;
+#[cfg(mco)]
+pub use mco::*;
 
 use crate::pac::RCC;
 // pub use crate::_generated::{mux, Clocks};
