@@ -33,6 +33,7 @@ log = "0.4"
 
 portable-atomic = { version = "1.5", features = ["critical-section"] }
 static_cell = "2.1"
+heapless = "0.8"
 
 # cargo build/run
 [profile.dev]

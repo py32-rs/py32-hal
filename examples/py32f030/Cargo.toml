@@ -24,6 +24,7 @@ py32-hal = { path = "../../", features = [ "time-driver-tim3", "py32f030f16"]}
 
 defmt = "0.3"
 defmt-rtt = "0.4"
+heapless = "0.8"
 
 # cargo build/run
 [profile.dev]

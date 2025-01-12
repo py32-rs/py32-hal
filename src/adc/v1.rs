@@ -8,7 +8,7 @@ use py32_metapac::adc::vals::Ckmode;
 use super::blocking_delay_us;
 use crate::adc::{Adc, AdcChannel, Instance, Resolution, SampleTime};
 use crate::interrupt::typelevel::Interrupt;
-use crate::peripherals::ADC as ADC1;
+use crate::peripherals::ADC1;
 use crate::{interrupt, rcc, Peripheral};
 
 pub const VDDA_CALIB_MV: u32 = 3300;

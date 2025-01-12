@@ -23,10 +23,10 @@ async fn main(_spawner: Spawner) {
     info!("Hello World!");
 
     // Automatically calculate the minimum prescaler using PCLK.
-    let mut adc = Adc::new(p.ADC);
+    let mut adc = Adc::new(p.ADC1);
 
     // use py32_hal::adc::Prescaler;
-    // let mut adc = Adc::new_with_prediv(p.ADC, Prescaler::Div4);
+    // let mut adc = Adc::new_with_prediv(p.ADC1, Prescaler::Div4);
 
     // The minimum conversion time for each resolution is as follows (sampling time + conversion time):
     // 12-bit: 3.5 + 12.5 = 16 ADCCLK cycles
