@@ -53,7 +53,7 @@ For a comprehensive list of chip capabilities and peripherals, refer to the [py3
 | EXTI       |            | ✅+              | ✅+              |      |
 | USART      |            | ✅+              | ✅+              |      |
 | I2C        |            | ✅+              | ✅+              |      |
-| SPI        |            | ✅+              | ✅+              |      |
+| SPI        |            |                 |                 |      |
 | ADC        |            | ✅+              | ✅               |      |
 | RTC        |            |                 |                 |      |
 | FLASH      |            | ✅               | ✅               |      |
