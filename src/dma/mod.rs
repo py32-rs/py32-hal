@@ -109,8 +109,5 @@ pub(crate) unsafe fn init(
     cs: critical_section::CriticalSection,
     dma_priority: interrupt::Priority,
 ) {
-    dma::init(
-        cs,
-        dma_priority,
-    );
+    dma::init(cs, dma_priority);
 }

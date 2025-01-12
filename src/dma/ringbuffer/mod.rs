@@ -74,7 +74,8 @@ impl DmaIndex {
     }
 
     fn diff(&self, cap: usize, rhs: &DmaIndex) -> isize {
-        (self.complete_count * cap + self.pos) as isize - (rhs.complete_count * cap + rhs.pos) as isize
+        (self.complete_count * cap + self.pos) as isize
+            - (rhs.complete_count * cap + rhs.pos) as isize
     }
 }
 
@@ -147,7 +148,11 @@ impl<'a, W: Word> ReadableDmaRingBuffer<'a, W> {
     /// ring buffer was created with a buffer of size 'N':
     /// - If M equals N/2 or N/2 divides evenly into M, this function will return every N/2 elements read on the DMA source.
     /// - Otherwise, this function may need up to N/2 extra elements to arrive before returning.
-    pub async fn read_exact(&mut self, dma: &mut impl DmaCtrl, buffer: &mut [W]) -> Result<usize, Error> {
+    pub async fn read_exact(
+        &mut self,
+        dma: &mut impl DmaCtrl,
+        buffer: &mut [W],
+    ) -> Result<usize, Error> {
         let mut read_data = 0;
         let buffer_len = buffer.len();
 
@@ -285,7 +290,11 @@ impl<'a, W: Word> WritableDmaRingBuffer<'a, W> {
     }
 
     /// Write an exact number of elements to the ringbuffer.
-    pub async fn write_exact(&mut self, dma: &mut impl DmaCtrl, buffer: &[W]) -> Result<usize, Error> {
+    pub async fn write_exact(
+        &mut self,
+        dma: &mut impl DmaCtrl,
+        buffer: &[W],
+    ) -> Result<usize, Error> {
         let mut written_data = 0;
         let buffer_len = buffer.len();
 

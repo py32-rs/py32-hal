@@ -2,13 +2,13 @@
 #![no_main]
 #![feature(impl_trait_in_assoc_type)]
 
-use defmt::{panic, info};
+use defmt::{info, panic};
 use embassy_executor::Spawner;
+use embassy_time::Timer;
+use py32_hal::bind_interrupts;
 use py32_hal::mode::Async;
 use py32_hal::peripherals;
-use py32_hal::bind_interrupts;
 use py32_hal::usart::{self, Config, RingBufferedUartRx, Uart, UartTx};
-use embassy_time::Timer;
 use {defmt_rtt as _, panic_probe as _};
 
 const DMA_BUF_SIZE: usize = 256;
@@ -64,7 +64,7 @@ async fn receive_task(mut rx: RingBufferedUartRx<'static>) {
     let mut i = 0;
     loop {
         let mut buf = [0; 256];
-        
+
         let max_len = max_lens[i % max_lens.len()];
         let received = match rx.read(&mut buf[..max_len]).await {
             Ok(r) => r,

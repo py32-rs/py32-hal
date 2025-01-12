@@ -154,13 +154,16 @@ impl AnyChannel {
                 let isr = r.isr().read();
 
                 if isr.teif(info.num) {
-                    panic!("DMA: error on DMA@{:08x} channel {}", r.as_ptr() as u32, info.num);
+                    panic!(
+                        "DMA: error on DMA@{:08x} channel {}",
+                        r.as_ptr() as u32,
+                        info.num
+                    );
                 }
 
                 if isr.htif(info.num) && cr.read().htie() {
                     // Acknowledge half transfer complete interrupt
                     r.ifcr().write(|w| w.set_htif(info.num, true));
-                    
                 } else if isr.tcif(info.num) && cr.read().tcie() {
                     // Acknowledge  transfer complete interrupt
                     r.ifcr().write(|w| w.set_tcif(info.num, true));
@@ -239,11 +242,11 @@ impl AnyChannel {
                     w.set_minc(incr_mem);
                     w.set_pinc(false);
                     w.set_circ(options.circular);
-                   
+
                     w.set_teie(true);
                     w.set_htie(options.half_transfer_ir);
                     w.set_tcie(options.complete_transfer_ir);
-                    
+
                     w.set_en(false); // don't start yet
                 });
             }
@@ -513,7 +516,7 @@ impl<'a> Future for Transfer<'a> {
         let state: &ChannelState = &STATE[self.channel.id as usize];
 
         state.waker.register(cx.waker());
-        
+
         if self.is_running() {
             Poll::Pending
         } else {
@@ -601,7 +604,8 @@ impl<'a, W: Word> ReadableRingBuffer<'a, W> {
 
     /// Clear all data in the ring buffer.
     pub fn clear(&mut self) {
-        self.ringbuf.reset(&mut DmaCtrlImpl(self.channel.reborrow()));
+        self.ringbuf
+            .reset(&mut DmaCtrlImpl(self.channel.reborrow()));
     }
 
     /// Read elements from the ring buffer
@@ -610,7 +614,8 @@ impl<'a, W: Word> ReadableRingBuffer<'a, W> {
     /// The length remaining is the capacity, ring_buf.len(), less the elements remaining after the read
     /// Error is returned if the portion to be read was overwritten by the DMA controller.
     pub fn read(&mut self, buf: &mut [W]) -> Result<(usize, usize), Error> {
-        self.ringbuf.read(&mut DmaCtrlImpl(self.channel.reborrow()), buf)
+        self.ringbuf
+            .read(&mut DmaCtrlImpl(self.channel.reborrow()), buf)
     }
 
     /// Read an exact number of elements from the ringbuffer.
@@ -632,7 +637,9 @@ impl<'a, W: Word> ReadableRingBuffer<'a, W> {
 
     /// The current length of the ringbuffer
     pub fn len(&mut self) -> Result<usize, Error> {
-        Ok(self.ringbuf.len(&mut DmaCtrlImpl(self.channel.reborrow()))?)
+        Ok(self
+            .ringbuf
+            .len(&mut DmaCtrlImpl(self.channel.reborrow()))?)
     }
 
     /// The capacity of the ringbuffer
@@ -753,7 +760,8 @@ impl<'a, W: Word> WritableRingBuffer<'a, W> {
 
     /// Clear all data in the ring buffer.
     pub fn clear(&mut self) {
-        self.ringbuf.reset(&mut DmaCtrlImpl(self.channel.reborrow()));
+        self.ringbuf
+            .reset(&mut DmaCtrlImpl(self.channel.reborrow()));
     }
 
     /// Write elements directly to the raw buffer.
@@ -765,7 +773,8 @@ impl<'a, W: Word> WritableRingBuffer<'a, W> {
     /// Write elements from the ring buffer
     /// Return a tuple of the length written and the length remaining in the buffer
     pub fn write(&mut self, buf: &[W]) -> Result<(usize, usize), Error> {
-        self.ringbuf.write(&mut DmaCtrlImpl(self.channel.reborrow()), buf)
+        self.ringbuf
+            .write(&mut DmaCtrlImpl(self.channel.reborrow()), buf)
     }
 
     /// Write an exact number of elements to the ringbuffer.
@@ -784,7 +793,9 @@ impl<'a, W: Word> WritableRingBuffer<'a, W> {
 
     /// The current length of the ringbuffer
     pub fn len(&mut self) -> Result<usize, Error> {
-        Ok(self.ringbuf.len(&mut DmaCtrlImpl(self.channel.reborrow()))?)
+        Ok(self
+            .ringbuf
+            .len(&mut DmaCtrlImpl(self.channel.reborrow()))?)
     }
 
     /// The capacity of the ringbuffer

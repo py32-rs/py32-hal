@@ -39,7 +39,9 @@ impl ReferenceStateMachine for WriterSM {
                 }
             }
             (Status::Failed, WriterTransition::Read(_)) => Status::Failed,
-            (Status::Available(x), WriterTransition::WriteUpTo(y)) => Status::Available((x + *y).min(CAP)),
+            (Status::Available(x), WriterTransition::WriteUpTo(y)) => {
+                Status::Available((x + *y).min(CAP))
+            }
             (Status::Failed, WriterTransition::WriteUpTo(_)) => Status::Available(CAP),
         }
     }
@@ -64,7 +66,9 @@ impl StateMachineTest for WriterTest {
     type SystemUnderTest = WriterSut;
     type Reference = WriterSM;
 
-    fn init_test(ref_status: &<Self::Reference as ReferenceStateMachine>::State) -> Self::SystemUnderTest {
+    fn init_test(
+        ref_status: &<Self::Reference as ReferenceStateMachine>::State,
+    ) -> Self::SystemUnderTest {
         let buffer = Box::into_raw(Box::new([0; CAP]));
         WriterSut {
             status: ref_status.clone(),

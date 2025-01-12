@@ -370,7 +370,12 @@ impl<'d, M: PeriMode> I2c<'d, M> {
 }
 
 impl<'d> I2c<'d, Async> {
-    async fn write_frame(&mut self, address: u8, write: &[u8], frame: FrameOptions) -> Result<(), Error> {
+    async fn write_frame(
+        &mut self,
+        address: u8,
+        write: &[u8],
+        frame: FrameOptions,
+    ) -> Result<(), Error> {
         self.info.regs.cr2().modify(|w| {
             // Note: Do not enable the ITBUFEN bit in the I2C_CR2 register if DMA is used for
             // reception.
@@ -453,7 +458,10 @@ impl<'d> I2c<'d, Async> {
             // this address from the memory after each TxE event.
             let dst = self.info.regs.dr().as_ptr() as *mut u8;
 
-            self.tx_dma.as_mut().unwrap().write(write, dst, Default::default())
+            self.tx_dma
+                .as_mut()
+                .unwrap()
+                .write(write, dst, Default::default())
         };
 
         // Wait for bytes to be sent, or an error to occur.
@@ -530,7 +538,12 @@ impl<'d> I2c<'d, Async> {
         Ok(())
     }
 
-    async fn read_frame(&mut self, address: u8, buffer: &mut [u8], frame: FrameOptions) -> Result<(), Error> {
+    async fn read_frame(
+        &mut self,
+        address: u8,
+        buffer: &mut [u8],
+        frame: FrameOptions,
+    ) -> Result<(), Error> {
         if buffer.is_empty() {
             return Err(Error::Overrun);
         }
@@ -593,7 +606,10 @@ impl<'d> I2c<'d, Async> {
             }
 
             // Set up current address we're trying to talk to
-            self.info.regs.dr().write(|reg| reg.set_dr((address << 1) + 1));
+            self.info
+                .regs
+                .dr()
+                .write(|reg| reg.set_dr((address << 1) + 1));
 
             // Wait for the address to be acknowledged
             poll_fn(|cx| {
@@ -648,7 +664,10 @@ impl<'d> I2c<'d, Async> {
             // from this address from the memory after each RxE event.
             let src = self.info.regs.dr().as_ptr() as *mut u8;
 
-            self.rx_dma.as_mut().unwrap().read(src, buffer, Default::default())
+            self.rx_dma
+                .as_mut()
+                .unwrap()
+                .read(src, buffer, Default::default())
         };
 
         // Wait for bytes to be received, or an error to occur.
@@ -687,15 +706,22 @@ impl<'d> I2c<'d, Async> {
     }
 
     /// Write, restart, read.
-    pub async fn write_read(&mut self, address: u8, write: &[u8], read: &mut [u8]) -> Result<(), Error> {
+    pub async fn write_read(
+        &mut self,
+        address: u8,
+        write: &[u8],
+        read: &mut [u8],
+    ) -> Result<(), Error> {
         // Check empty read buffer before starting transaction. Otherwise, we would not generate the
         // stop condition below.
         if read.is_empty() {
             return Err(Error::Overrun);
         }
 
-        self.write_frame(address, write, FrameOptions::FirstFrame).await?;
-        self.read_frame(address, read, FrameOptions::FirstAndLastFrame).await
+        self.write_frame(address, write, FrameOptions::FirstFrame)
+            .await?;
+        self.read_frame(address, read, FrameOptions::FirstAndLastFrame)
+            .await
     }
 
     /// Transaction with operations.
@@ -703,7 +729,11 @@ impl<'d> I2c<'d, Async> {
     /// Consecutive operations of same type are merged. See [transaction contract] for details.
     ///
     /// [transaction contract]: embedded_hal_1::i2c::I2c::transaction
-    pub async fn transaction(&mut self, addr: u8, operations: &mut [Operation<'_>]) -> Result<(), Error> {
+    pub async fn transaction(
+        &mut self,
+        addr: u8,
+        operations: &mut [Operation<'_>],
+    ) -> Result<(), Error> {
         for (op, frame) in operation_frames(operations)? {
             match op {
                 Operation::Read(read) => self.read_frame(addr, read, frame).await?,

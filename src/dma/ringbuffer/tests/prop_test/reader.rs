@@ -39,7 +39,9 @@ impl ReferenceStateMachine for ReaderSM {
                 }
             }
             (Status::Failed, ReaderTransition::Write(_)) => Status::Failed,
-            (Status::Available(x), ReaderTransition::ReadUpTo(y)) => Status::Available(x.saturating_sub(*y)),
+            (Status::Available(x), ReaderTransition::ReadUpTo(y)) => {
+                Status::Available(x.saturating_sub(*y))
+            }
             (Status::Failed, ReaderTransition::ReadUpTo(_)) => Status::Available(0),
         }
     }
@@ -64,7 +66,9 @@ impl StateMachineTest for ReaderTest {
     type SystemUnderTest = ReaderSut;
     type Reference = ReaderSM;
 
-    fn init_test(ref_status: &<Self::Reference as ReferenceStateMachine>::State) -> Self::SystemUnderTest {
+    fn init_test(
+        ref_status: &<Self::Reference as ReferenceStateMachine>::State,
+    ) -> Self::SystemUnderTest {
         let buffer = Box::into_raw(Box::new([0; CAP]));
         ReaderSut {
             status: ref_status.clone(),

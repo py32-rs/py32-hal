@@ -8,7 +8,9 @@ use embassy_hal_internal::PeripheralRef;
 use embedded_io_async::ReadReady;
 use futures_util::future::{select, Either};
 
-use super::{clear_interrupt_flags, rdr, reconfigure, sr, Config, ConfigError, Error, Info, State, UartRx};
+use super::{
+    clear_interrupt_flags, rdr, reconfigure, sr, Config, ConfigError, Error, Info, State, UartRx,
+};
 use crate::dma::ReadableRingBuffer;
 use crate::gpio::{AnyPin, SealedPin as _};
 use crate::mode::Async;
@@ -53,7 +55,8 @@ impl<'d> UartRx<'d, Async> {
         let info = self.info;
         let state = self.state;
         let kernel_clock = self.kernel_clock;
-        let ring_buf = unsafe { ReadableRingBuffer::new(rx_dma, request, rdr(info.regs), dma_buf, opts) };
+        let ring_buf =
+            unsafe { ReadableRingBuffer::new(rx_dma, request, rdr(info.regs), dma_buf, opts) };
         let rx = unsafe { self.rx.as_ref().map(|x| x.clone_unchecked()) };
         let rts = unsafe { self.rts.as_ref().map(|x| x.clone_unchecked()) };
 

@@ -79,13 +79,11 @@ pub struct Config {
     // /// Defaults to P0 (highest).
     // #[cfg(bdma)]
     // pub bdma_interrupt_priority: Priority,
-
     /// DMA interrupt priority.
     ///
     /// Defaults to P0 (highest).
     #[cfg(dma)]
     pub dma_interrupt_priority: Priority,
-
     // /// GPDMA interrupt priority.
     // ///
     // /// Defaults to P0 (highest).
@@ -134,7 +132,6 @@ pub fn init(config: Config, #[cfg(feature = "time-driver-systick")] systick: SYS
 
             #[cfg(feature = "exti")]
             exti::init(cs);
-
 
             dma::init(cs, config.dma_interrupt_priority);
 

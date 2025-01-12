@@ -784,7 +784,11 @@ impl<'d> UartRx<'d, Async> {
         r
     }
 
-    async fn inner_read(&mut self, buffer: &mut [u8], enable_idle_line_detection: bool) -> Result<usize, Error> {
+    async fn inner_read(
+        &mut self,
+        buffer: &mut [u8],
+        enable_idle_line_detection: bool,
+    ) -> Result<usize, Error> {
         if buffer.is_empty() {
             return Ok(0);
         } else if buffer.len() > 0xFFFF {
@@ -794,7 +798,9 @@ impl<'d> UartRx<'d, Async> {
         let buffer_len = buffer.len();
 
         // wait for DMA to complete or IDLE line detection if requested
-        let res = self.inner_read_run(buffer, enable_idle_line_detection).await;
+        let res = self
+            .inner_read_run(buffer, enable_idle_line_detection)
+            .await;
 
         match res {
             Ok(ReadCompletionEvent::DmaCompleted) => Ok(buffer_len),

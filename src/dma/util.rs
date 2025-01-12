@@ -59,6 +59,13 @@ impl<'d> ChannelAndRequest<'d> {
         peri_addr: *mut W,
         options: TransferOptions,
     ) -> Transfer<'a> {
-        Transfer::new_write_repeated(&mut self.channel, self.request, repeated, count, peri_addr, options)
+        Transfer::new_write_repeated(
+            &mut self.channel,
+            self.request,
+            repeated,
+            count,
+            peri_addr,
+            options,
+        )
     }
 }

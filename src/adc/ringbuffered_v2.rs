@@ -155,9 +155,13 @@ impl<'d, T: Instance> RingBufferedAdc<'d, T> {
     /// - ADON == 0 i.e ADC must not be enabled when this is called.
     unsafe fn set_channel_sample_time(ch: u8, sample_time: SampleTime) {
         if ch <= 9 {
-            T::regs().smpr2().modify(|reg| reg.set_smp(ch as _, sample_time));
+            T::regs()
+                .smpr2()
+                .modify(|reg| reg.set_smp(ch as _, sample_time));
         } else {
-            T::regs().smpr1().modify(|reg| reg.set_smp((ch - 10) as _, sample_time));
+            T::regs()
+                .smpr1()
+                .modify(|reg| reg.set_smp((ch - 10) as _, sample_time));
         }
     }
 
@@ -186,7 +190,11 @@ impl<'d, T: Instance> RingBufferedAdc<'d, T> {
             let prev: Sequence = r.l().into();
             if prev < sequence {
                 let new_l: Sequence = sequence;
-                trace!("Setting sequence length from {:?} to {:?}", prev as u8, new_l as u8);
+                trace!(
+                    "Setting sequence length from {:?} to {:?}",
+                    prev as u8,
+                    new_l as u8
+                );
                 r.set_l(sequence.into())
             } else {
                 r.set_l(prev.into())
@@ -328,7 +336,10 @@ impl<'d, T: Instance> RingBufferedAdc<'d, T> {
     ///
     /// Receive in the background is terminated if an error is returned.
     /// It must then manually be started again by calling `start()` or by re-calling `read()`.
-    pub fn blocking_read<const N: usize>(&mut self, buf: &mut [u16; N]) -> Result<usize, OverrunError> {
+    pub fn blocking_read<const N: usize>(
+        &mut self,
+        buf: &mut [u16; N],
+    ) -> Result<usize, OverrunError> {
         let r = T::regs();
 
         // Start background receive if it was not already started
@@ -401,7 +412,10 @@ impl<'d, T: Instance> RingBufferedAdc<'d, T> {
     /// [`set_sample_sequence`]: #method.set_sample_sequence
     /// [`teardown_adc`]: #method.teardown_adc
     /// [`start`]: #method.start
-    pub async fn read<const N: usize>(&mut self, measurements: &mut [u16; N]) -> Result<usize, OverrunError> {
+    pub async fn read<const N: usize>(
+        &mut self,
+        measurements: &mut [u16; N],
+    ) -> Result<usize, OverrunError> {
         assert_eq!(
             self.ring_buf.capacity() / 2,
             N,

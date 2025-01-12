@@ -1,4 +1,4 @@
-use std::collections::{BTreeMap, BTreeSet, HashMap , HashSet};
+use std::collections::{BTreeMap, BTreeSet, HashMap, HashSet};
 use std::fmt::Write as _;
 use std::io::Write;
 use std::path::{Path, PathBuf};
@@ -1270,7 +1270,6 @@ fn main() {
 
     for p in METADATA.peripherals {
         if let Some(regs) = &p.registers {
-
             let mut dupe = HashSet::new();
             for ch in p.dma_channels {
                 if let Some(tr) = signals.get(&(regs.kind, ch.signal)) {

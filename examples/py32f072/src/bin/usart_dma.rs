@@ -6,9 +6,9 @@ use core::fmt::Write;
 
 use defmt::*;
 use embassy_executor::Spawner;
+use heapless::String;
 use py32_hal::usart::{Config, Uart};
 use py32_hal::{bind_interrupts, peripherals, usart};
-use heapless::String;
 use {defmt_rtt as _, panic_probe as _};
 
 bind_interrupts!(struct Irqs {
@@ -21,7 +21,10 @@ async fn main(_spawner: Spawner) {
     info!("Hello World!");
 
     let config = Config::default();
-    let mut usart = Uart::new(p.USART1, p.PA10, p.PA9, Irqs, p.DMA1_CH3, p.DMA1_CH1, config).unwrap();
+    let mut usart = Uart::new(
+        p.USART1, p.PA10, p.PA9, Irqs, p.DMA1_CH3, p.DMA1_CH1, config,
+    )
+    .unwrap();
 
     for n in 0u32.. {
         let mut s: String<128> = String::new();
