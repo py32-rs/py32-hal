@@ -19,15 +19,14 @@ use defmt::*;
 use embassy_executor::Spawner;
 use py32_hal::adc::{Adc, RingBufferedAdc, SampleTime, Sequence};
 use py32_hal::Peripherals;
-use py32_hal::rcc::{Pll, PllMul, PllSource, Sysclk};
-use py32_hal::time::Hertz;
+use py32_hal::rcc::{Pll, PllMul, PllSource, Sysclk, HsiFs};
 use embassy_time::Instant;
 use {defmt_rtt as _, panic_probe as _};
 
 #[embassy_executor::main]
 async fn main(spawner: Spawner) {
     let mut cfg: py32_hal::Config = Default::default();
-    cfg.rcc.hsi = Some(Hertz::mhz(24));
+    cfg.rcc.hsi = Some(HsiFs::HSI_24MHZ);
     cfg.rcc.pll = Some(Pll {
         src: PllSource::HSI,
         mul: PllMul::MUL3,
