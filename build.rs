@@ -752,6 +752,7 @@ fn main() {
     });
 
     let clocks_macro = quote!(
+        #[allow(unused)]
         macro_rules! set_clocks {
             ($($(#[$m:meta])* $k:ident: $v:expr,)*) => {
                 {
