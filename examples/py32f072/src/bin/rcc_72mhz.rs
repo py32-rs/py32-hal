@@ -26,6 +26,10 @@ async fn main(_spawner: Spawner) {
     loop {
         info!("high");
         led.set_high();
+        // Note that the delay implementation assumes two cycles for a loop
+        // consisting of a SUBS and BNE instruction. The Cortex-M0+ normally
+        // would use 3 cycles, but due to flash wait states necessary at high
+        // SYSCLK speeds we are even slower.
         cortex_m::asm::delay(8_000_000);
 
         info!("low");

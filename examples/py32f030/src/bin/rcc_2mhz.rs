@@ -5,7 +5,8 @@
 use defmt::*;
 use embassy_executor::Spawner;
 use py32_hal::gpio::{Level, Output, Speed};
-use py32_hal::rcc::{Hsidiv, Mco, McoPrescaler, McoSource};
+use py32_hal::rcc::Hsidiv;
+// use py32_hal::rcc::{Pll, PllMul, PllSource, Sysclk, HsiFs};
 use {defmt_rtt as _, panic_halt as _};
 
 #[embassy_executor::main]
@@ -19,10 +20,6 @@ async fn main(_spawner: Spawner) {
     info!("Hello World!");
 
     let mut led = Output::new(p.PA6, Level::High, Speed::Low);
-
-    // PA1 can act as MCO and is available on most packages, alternatively use
-    // PA5, PA8 or PA9.
-    let _mco = Mco::new(p.MCO, p.PA1, McoSource::SYSCLK, McoPrescaler::DIV1);
 
     loop {
         info!("high");
