@@ -25,10 +25,15 @@ async fn main(_spawner: Spawner) {
     loop {
         info!("high");
         led.set_high();
-        cortex_m::asm::delay(8_000_000);
+        // Note that the delay implementation assumes two cycles for a loop
+        // consisting of a SUBS and BNE instruction. The Cortex-M0+ normally
+        // would use 3 cycles, but due to flash wait states necessary at high
+        // SYSCLK speeds we are even slower. The following value should give a
+        // flashing frequency of about 1Hz.
+        cortex_m::asm::delay(9_600_000);
 
         info!("low");
         led.set_low();
-        cortex_m::asm::delay(8_000_000);
+        cortex_m::asm::delay(9_600_000);
     }
 }

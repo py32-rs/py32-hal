@@ -24,10 +24,14 @@ async fn main(_spawner: Spawner) {
     loop {
         info!("high");
         led.set_high();
-        cortex_m::asm::delay(2_000_000);
+        // Note that the delay implementation assumes two cycles for a loop
+        // consisting of a SUBS and BNE instruction, but the Cortex-M0+ uses
+        // 3 cycles. The following value should give a flashing frequency of
+        // about 1Hz.
+        cortex_m::asm::delay(2_000_000 / 3);
 
         info!("low");
         led.set_low();
-        cortex_m::asm::delay(2_000_000);
+        cortex_m::asm::delay(2_000_000 / 3);
     }
 }
