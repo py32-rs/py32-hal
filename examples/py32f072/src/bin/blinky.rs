@@ -16,12 +16,6 @@ async fn main(_spawner: Spawner) {
 
     let mut led = Output::new(p.PB2, Level::High, Speed::Low);
 
-    info!("size_of Output = {}", core::mem::size_of::<Output>());
-    info!(
-        "size_of O Output = {}",
-        core::mem::size_of::<Option<Output>>()
-    );
-
     loop {
         info!("high");
         led.set_high();
