@@ -1,7 +1,6 @@
 [target.thumbv6m-none-eabi]
 # probe-rs chip list | grep -i PY32
 runner = 'probe-rs run --chip PY32F030x8'
-
 # rustflags = [
 #   "-C", "linker=flip-link",
 # ]

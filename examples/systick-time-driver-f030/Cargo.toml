@@ -13,9 +13,9 @@ cortex-m-rt = "0.7.3"
 cortex-m-semihosting = { version = "0.5" }
 panic-probe = { version = "0.3", features = ["print-defmt"] }
 
-embassy-sync = { version = "0.6.0", features = ["defmt"] }
-embassy-executor = { version = "0.6.1", features = ["arch-cortex-m", "executor-thread", "executor-interrupt", "defmt", "integrated-timers"] }
-embassy-time = { version = "0.3.2", features = ["defmt", "defmt-timestamp-uptime", "tick-hz-1_000"] }
+embassy-sync = { version = "0.6.2", features = ["defmt"] }
+embassy-executor = { version = "0.7.0", features = ["task-arena-size-2048", "arch-cortex-m", "executor-thread", "defmt"] }
+embassy-time = { version = "0.4.0", features = ["defmt", "defmt-timestamp-uptime", "tick-hz-32_768"] }
 
 embedded-io = { version = "0.6.0" }
 embedded-io-async = { version = "0.6.1" }
