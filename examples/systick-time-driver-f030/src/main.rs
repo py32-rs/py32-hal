@@ -6,7 +6,6 @@ use embassy_executor::Spawner;
 use embassy_time::Timer;
 use py32_hal::gpio::{Level, Output, Speed};
 use py32_hal::rcc::{HsiFs, Pll, PllSource, Sysclk};
-use py32_hal::time::Hertz;
 
 use cortex_m::Peripherals;
 use defmt::*;
