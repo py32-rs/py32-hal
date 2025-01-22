@@ -36,11 +36,11 @@ pub mod mode {
 pub mod adc;
 pub mod dma;
 pub mod flash;
+pub mod gpio;
 pub mod i2c;
 pub mod rcc;
 pub mod timer;
 pub mod usart;
-pub mod gpio;
 
 #[cfg(any(feature = "embassy-usb-driver-impl", feature = "usb-device-impl"))]
 pub mod usb;
@@ -48,12 +48,12 @@ pub mod usb;
 #[cfg(feature = "exti")]
 pub mod exti;
 
-pub mod time;
 pub mod embassy;
-#[cfg(all(feature = "_time-driver", not(feature = "time-driver-systick")))]
-pub use embassy::time_driver;
+pub mod time;
 #[cfg(feature = "time-driver-systick")]
 pub use embassy::systick_time_driver;
+#[cfg(all(feature = "_time-driver", not(feature = "time-driver-systick")))]
+pub use embassy::time_driver;
 
 #[cfg(feature = "time-driver-systick")]
 use cortex_m::peripheral::SYST;
