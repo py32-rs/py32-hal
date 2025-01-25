@@ -36,17 +36,11 @@ pub mod mode {
 pub mod adc;
 pub mod dma;
 pub mod flash;
+pub mod gpio;
 pub mod i2c;
 pub mod rcc;
-pub mod time;
-#[cfg(feature = "_time-driver")]
-pub mod time_driver;
 pub mod timer;
 pub mod usart;
-
-pub mod gpio;
-#[cfg(feature = "time-driver-systick")]
-pub mod systick_time_driver;
 
 #[cfg(any(feature = "embassy-usb-driver-impl", feature = "usb-device-impl"))]
 pub mod usb;
@@ -54,10 +48,12 @@ pub mod usb;
 #[cfg(feature = "exti")]
 pub mod exti;
 
-#[cfg(all(feature = "_time-driver", feature = "time-driver-systick"))]
-compile_error!(
-    "The `time-driver-systick` feature is incompatible with the `time-driver-timxx` feature. "
-);
+pub mod embassy;
+pub mod time;
+#[cfg(feature = "time-driver-systick")]
+pub use embassy::systick_time_driver;
+#[cfg(all(feature = "_time-driver", not(feature = "time-driver-systick")))]
+pub use embassy::time_driver;
 
 #[cfg(feature = "time-driver-systick")]
 use cortex_m::peripheral::SYST;
@@ -132,7 +128,7 @@ pub fn init(config: Config, #[cfg(feature = "time-driver-systick")] systick: SYS
             gpio::init(cs);
 
             // must be after rcc init
-            #[cfg(feature = "_time-driver")]
+            #[cfg(all(feature = "_time-driver", not(feature = "time-driver-systick")))]
             time_driver::init(cs);
 
             #[cfg(feature = "time-driver-systick")]
