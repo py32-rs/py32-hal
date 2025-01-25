@@ -68,11 +68,11 @@ use cortex_m::peripheral::SYST;
 pub struct Config {
     /// RCC config.
     pub rcc: rcc::Config,
-    // /// Enable debug during sleep and stop.
-    // ///
-    // /// May increase power consumption. Defaults to true.
-    // #[cfg(dbgmcu)]
-    // pub enable_debug_during_sleep: bool,
+    /// Enable debug during sleep and stop.
+    ///
+    /// May increase power consumption. Defaults to true.
+    #[cfg(dbgmcu)]
+    pub enable_debug_during_sleep: bool,
 
     // /// BDMA interrupt priority.
     // ///
@@ -95,8 +95,8 @@ impl Default for Config {
     fn default() -> Self {
         Self {
             rcc: Default::default(),
-            // #[cfg(dbgmcu)]
-            // enable_debug_during_sleep: true,
+            #[cfg(dbgmcu)]
+            enable_debug_during_sleep: true,
             // #[cfg(any(stm32l4, stm32l5, stm32u5))]
             // enable_independent_io_supply: true,
             // #[cfg(bdma)]
@@ -117,6 +117,14 @@ impl Default for Config {
 pub fn init(config: Config, #[cfg(feature = "time-driver-systick")] systick: SYST) -> Peripherals {
     critical_section::with(|cs| {
         let p = Peripherals::take_with_cs(cs);
+        
+        rcc::enable_and_reset_with_cs::<peripherals::DBGMCU>(cs);
+        crate::pac::DBGMCU.cr().modify(|cr| {
+            #[cfg(dbgmcu_f072)]
+            cr.set_dbg_sleep(config.enable_debug_during_sleep);
+            cr.set_dbg_stop(config.enable_debug_during_sleep);
+        });
+
         unsafe {
             rcc::init(config.rcc);
             crate::_generated::init_syscfg();
@@ -134,9 +142,9 @@ pub fn init(config: Config, #[cfg(feature = "time-driver-systick")] systick: SYS
             exti::init(cs);
 
             dma::init(cs, config.dma_interrupt_priority);
-
-            rcc::enable_and_reset_with_cs::<peripherals::FLASH>(cs);
         };
+        rcc::enable_and_reset_with_cs::<peripherals::FLASH>(cs);
+
         p
     })
 }
