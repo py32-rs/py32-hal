@@ -317,9 +317,17 @@ impl RtcDriver {
     }
 
     fn trigger_alarm(&self, cs: CriticalSection) {
-        let mut next = self.queue.borrow(cs).borrow_mut().next_expiration(self.now());
+        let mut next = self
+            .queue
+            .borrow(cs)
+            .borrow_mut()
+            .next_expiration(self.now());
         while !self.set_alarm(cs, next) {
-            next = self.queue.borrow(cs).borrow_mut().next_expiration(self.now());
+            next = self
+                .queue
+                .borrow(cs)
+                .borrow_mut()
+                .next_expiration(self.now());
         }
     }
 
