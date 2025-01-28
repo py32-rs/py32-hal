@@ -15,11 +15,9 @@
 > it may not be fully stable for production environments.
 > We welcome user feedback and encourage reporting any issues you encounter to help improve the hal crate.
 
-This HAL crates is the [Embassy](https://github.com/embassy-rs/embassy) framework driver for Puya microcontrollers.
+A Rust HAL and [Embassy](https://embassy.dev/) driver implementation for Puya py32 MCUs.
 
-This HAL crates uses the metapac approach to support multiple chips in the same crate.
-
-The metapac is maintained in the [py32-rs/py32-data](https://github.com/py32-rs/py32-data) repository, published as a crate `py32-metapac`.
+This HAL crates uses the metapac approach to support multiple chips in the same crate. The metapac is maintained in the [py32-rs/py32-data](https://github.com/py32-rs/py32-data) repository, published as a crate `py32-metapac`.
 
 Keypoints:
 
@@ -37,11 +35,11 @@ The currently supported chips are listed as feature flags in `Cargo.toml`:
 - `py32f072c1b`  
 (More will be added soon!)
 
-The program's behavior is currently independent of the chip packaging.  
+The current chip features are independent of packaging. We haven't implemented separate handling for cut-down series yet. Please check the [examples‘ readme](examples/README.md) for compatibility information.
 
-Chips outside the list may work if you proceed cautiously, as most peripherals are quite similar across the series. In fact, the peripheral IPs within different PY32 series are often consistent. Additionally, some series share the same die, which may minimize the effort required for compatibility.  
+ Chips outside the list may work if you proceed cautiously, as most peripherals are quite similar across the series. In fact, the peripheral IPs within different PY32 series are often consistent. Additionally, some series share the same die, which may minimize the effort required for compatibility.  
 
-For a comprehensive list of chip capabilities and peripherals, refer to the [py32-data](https://github.com/py32-rs/py32-data) repository.
+For a comprehensive list of chip capabilities and peripherals, refer to the [py32-data](https://github.com/py32-rs/py32-data) repository and [examples‘ readme](examples/README.md).
 
 | Family     | F002B/L020 | F030/F003/F002A | F040/F07x/MD410 | F403 |
 | ---------- | ---------- | --------------- | --------------- | ---- |
@@ -120,7 +118,5 @@ Feel free to change this if you did some testing with some version of Rust.
 ## License
 
 This project is licensed under the MIT or Apache-2.0 license, at your option.
-
-
 
 Some peripheral driver code has been modified from [embassy-stm32](https://github.com/embassy-rs/embassy/tree/main/embassy-stm32). Big thanks to this project and its awesome contributors!
