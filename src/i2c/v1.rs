@@ -1,8 +1,8 @@
 //! # I2Cv1
-//!
-//! This implementation is used for STM32F1, STM32F2, STM32F4, and STM32L1 devices.
-//!
-//! All other devices (as of 2023-12-28) use [`v2`](super::v2) instead.
+
+// The following code is modified from embassy-stm32
+// https://github.com/embassy-rs/embassy/tree/main/embassy-stm32
+// Special thanks to the Embassy Project and its contributors for their work!
 
 use core::future::poll_fn;
 use core::task::Poll;

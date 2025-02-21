@@ -1,4 +1,9 @@
 /// Reset and Clock Control (RCC)
+
+// The following code is modified from embassy-stm32
+// https://github.com/embassy-rs/embassy/tree/main/embassy-stm32
+// Special thanks to the Embassy Project and its contributors for their work!
+
 use core::mem::MaybeUninit;
 
 #[cfg(mco)]

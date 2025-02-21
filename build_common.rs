@@ -1,3 +1,7 @@
+// The following code is modified from embassy-stm32
+// https://github.com/embassy-rs/embassy/tree/main/embassy-stm32
+// Special thanks to the Embassy Project and its contributors for their work!
+
 // NOTE: this file is copy-pasted between several Embassy crates, because there is no
 // straightforward way to share this code:
 // - it cannot be placed into the root of the repo and linked from each build.rs using `#[path =

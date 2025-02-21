@@ -1,3 +1,7 @@
+// The following code is modified from embassy-stm32
+// https://github.com/embassy-rs/embassy/tree/main/embassy-stm32
+// Special thanks to the Embassy Project and its contributors for their work!
+
 use std::collections::{BTreeMap, BTreeSet, HashMap, HashSet};
 use std::fmt::Write as _;
 use std::io::Write;
