@@ -22,6 +22,7 @@ pub use crate::pac::adc::vals::Res as Resolution;
 pub use crate::pac::adc::vals::SampleTime;
 use crate::peripherals;
 
+#[cfg(dma)]
 dma_trait!(RxDma, Instance);
 
 /// Analog to Digital driver.

@@ -129,6 +129,9 @@ pub(crate) unsafe fn timing_sequence_config(configured: Option<HsiFs>) {
     let hsifs = pac::RCC.icscr().read().hsi_fs();
 
     if Some(hsifs) != configured {
+        #[cfg(py32f002b)]
+        let eppara = pac::CONFIGBYTES.eppara();
+        #[cfg(not(py32f002b))]
         let eppara = pac::CONFIGBYTES.eppara(hsifs as usize);
 
         pac::FLASH

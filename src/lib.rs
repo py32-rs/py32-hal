@@ -34,12 +34,15 @@ pub mod mode {
 }
 
 pub mod adc;
+#[cfg(dma)]
 pub mod dma;
 pub mod flash;
 pub mod gpio;
+#[cfg(dma)]
 pub mod i2c;
 pub mod rcc;
 pub mod timer;
+#[cfg(dma)]
 pub mod usart;
 
 #[cfg(any(feature = "embassy-usb-driver-impl", feature = "usb-device-impl"))]
@@ -137,6 +140,7 @@ pub fn init(config: Config, #[cfg(feature = "time-driver-systick")] systick: SYS
             #[cfg(feature = "exti")]
             exti::init(cs);
 
+            #[cfg(dma)]
             dma::init(cs, config.dma_interrupt_priority);
         };
         rcc::enable_and_reset_with_cs::<peripherals::FLASH>(cs);
