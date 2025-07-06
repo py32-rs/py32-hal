@@ -17,7 +17,8 @@ use crate::pac::RCC;
 pub use crate::_generated::mux;
 use crate::time::Hertz;
 
-#[cfg_attr(py32f0, path = "f0.rs")]
+#[cfg_attr(rcc_f002b, path = "f002b.rs")]
+#[cfg_attr(not(rcc_f002b), path = "f0.rs")]
 mod _version;
 pub use _version::*;
 
@@ -33,6 +34,7 @@ pub struct Clocks {
 
     pub hsi: crate::time::MaybeHertz,
     pub lse: crate::time::MaybeHertz,
+    #[cfg(not(rcc_f002b))]
     pub pll: crate::time::MaybeHertz,
     // pub rtc: crate::time::MaybeHertz,
     // pub sys: Option<crate::time::Hertz>,

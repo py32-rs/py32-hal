@@ -67,6 +67,7 @@ macro_rules! pin_trait_impl {
 
 // ====================
 
+#[cfg(dma)]
 macro_rules! dma_trait {
     ($signal:ident, $instance:path$(, $mode:path)?) => {
         #[doc = concat!(stringify!($signal), " DMA request trait")]
@@ -90,6 +91,7 @@ macro_rules! dma_trait_impl {
     };
 }
 
+#[cfg(dma)]
 #[allow(unused)]
 macro_rules! new_dma {
     ($name:ident) => {{

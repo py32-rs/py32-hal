@@ -96,6 +96,7 @@ exti = []
 embassy-usb-driver-impl = ["dep:musb","dep:embassy-usb-driver", "musb/embassy-usb-driver-impl"]
 usb-device-impl = ["dep:musb","dep:usb-device", "musb/usb-device-impl"]
 
+py32f002b = ["py32-metapac/py32f002b"]
 py32f030k28 = ["py32-metapac/py32f030k28"]
 py32f030f16 = ["py32-metapac/py32f030f16"]
 py32f072c1b = ["py32-metapac/py32f072c1b", "dep:musb", "musb/builtin-py32f07x"]

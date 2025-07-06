@@ -17,6 +17,7 @@ use futures_util::future::{select, Either};
 use super::{
     clear_interrupt_flags, rdr, reconfigure, sr, Config, ConfigError, Error, Info, State, UartRx,
 };
+#[cfg(dma)]
 use crate::dma::ReadableRingBuffer;
 use crate::gpio::{AnyPin, SealedPin as _};
 use crate::mode::Async;

@@ -16,6 +16,7 @@ use embassy_sync::waitqueue::AtomicWaker;
 #[cfg(feature = "time")]
 use embassy_time::{Duration, Instant};
 
+#[cfg(dma)]
 use crate::dma::ChannelAndRequest;
 use crate::gpio::{AfType, AnyPin, OutputType, SealedPin as _, Speed};
 use crate::interrupt::typelevel::Interrupt;
@@ -103,12 +104,13 @@ impl Config {
 /// I2C driver.
 pub struct I2c<'d, M: Mode> {
     info: &'static Info,
+    #[allow(dead_code)]
     state: &'static State,
     kernel_clock: Hertz,
     scl: Option<PeripheralRef<'d, AnyPin>>,
     sda: Option<PeripheralRef<'d, AnyPin>>,
-    tx_dma: Option<ChannelAndRequest<'d>>,
-    rx_dma: Option<ChannelAndRequest<'d>>,
+    #[cfg(dma)] tx_dma: Option<ChannelAndRequest<'d>>,
+    #[cfg(dma)] rx_dma: Option<ChannelAndRequest<'d>>,
     #[cfg(feature = "time")]
     timeout: Duration,
     _phantom: PhantomData<M>,
@@ -121,8 +123,8 @@ impl<'d> I2c<'d, Async> {
         scl: impl Peripheral<P = impl SclPin<T>> + 'd,
         sda: impl Peripheral<P = impl SdaPin<T>> + 'd,
         _irq: impl interrupt::typelevel::Binding<T::GlobalInterrupt, GlobalInterruptHandler<T>> + 'd,
-        tx_dma: impl Peripheral<P = impl TxDma<T>> + 'd,
-        rx_dma: impl Peripheral<P = impl RxDma<T>> + 'd,
+        #[cfg(dma)] tx_dma: impl Peripheral<P = impl TxDma<T>> + 'd,
+        #[cfg(dma)] rx_dma: impl Peripheral<P = impl RxDma<T>> + 'd,
         freq: Hertz,
         config: Config,
     ) -> Self {
@@ -130,8 +132,8 @@ impl<'d> I2c<'d, Async> {
             peri,
             new_pin!(scl, config.scl_af()),
             new_pin!(sda, config.sda_af()),
-            new_dma!(tx_dma),
-            new_dma!(rx_dma),
+            #[cfg(dma)] new_dma!(tx_dma),
+            #[cfg(dma)] new_dma!(rx_dma),
             freq,
             config,
         )
@@ -151,8 +153,8 @@ impl<'d> I2c<'d, Blocking> {
             peri,
             new_pin!(scl, config.scl_af()),
             new_pin!(sda, config.sda_af()),
-            None,
-            None,
+            #[cfg(dma)] None,
+            #[cfg(dma)] None,
             freq,
             config,
         )
@@ -165,8 +167,8 @@ impl<'d, M: Mode> I2c<'d, M> {
         _peri: impl Peripheral<P = T> + 'd,
         scl: Option<PeripheralRef<'d, AnyPin>>,
         sda: Option<PeripheralRef<'d, AnyPin>>,
-        tx_dma: Option<ChannelAndRequest<'d>>,
-        rx_dma: Option<ChannelAndRequest<'d>>,
+        #[cfg(dma)] tx_dma: Option<ChannelAndRequest<'d>>,
+        #[cfg(dma)] rx_dma: Option<ChannelAndRequest<'d>>,
         freq: Hertz,
         config: Config,
     ) -> Self {
@@ -178,8 +180,8 @@ impl<'d, M: Mode> I2c<'d, M> {
             kernel_clock: T::frequency(),
             scl,
             sda,
-            tx_dma,
-            rx_dma,
+            #[cfg(dma)] tx_dma,
+            #[cfg(dma)] rx_dma,
             #[cfg(feature = "time")]
             timeout: config.timeout,
             _phantom: PhantomData,
@@ -274,8 +276,8 @@ peri_trait!(
 
 pin_trait!(SclPin, Instance);
 pin_trait!(SdaPin, Instance);
-dma_trait!(RxDma, Instance);
-dma_trait!(TxDma, Instance);
+#[cfg(dma)] dma_trait!(RxDma, Instance);
+#[cfg(dma)] dma_trait!(TxDma, Instance);
 
 /// Global interrupt handler.
 pub struct GlobalInterruptHandler<T: Instance> {
@@ -387,6 +389,7 @@ impl<'d, M: Mode> embedded_hal_1::i2c::I2c for I2c<'d, M> {
     }
 }
 
+#[cfg(dma)] 
 impl<'d> embedded_hal_async::i2c::I2c for I2c<'d, Async> {
     async fn read(&mut self, address: u8, read: &mut [u8]) -> Result<(), Self::Error> {
         self.read(address, read).await
