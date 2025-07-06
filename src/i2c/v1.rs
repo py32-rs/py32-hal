@@ -4,11 +4,15 @@
 // https://github.com/embassy-rs/embassy/tree/main/embassy-stm32
 // Special thanks to the Embassy Project and its contributors for their work!
 
+#[cfg(dma)]
 use core::future::poll_fn;
+#[cfg(dma)]
 use core::task::Poll;
 
 use embassy_embedded_hal::SetConfig;
+#[cfg(dma)]
 use embassy_futures::select::{select, Either};
+#[cfg(dma)]
 use embassy_hal_internal::drop::OnDrop;
 use embedded_hal_1::i2c::Operation;
 
@@ -359,7 +363,7 @@ impl<'d, M: PeriMode> I2c<'d, M> {
     }
 
     // Async
-
+    #[cfg(dma)]
     #[inline] // pretty sure this should always be inlined
     fn enable_interrupts(info: &'static Info) -> () {
         info.regs.cr2().modify(|w| {
@@ -369,6 +373,7 @@ impl<'d, M: PeriMode> I2c<'d, M> {
     }
 }
 
+#[cfg(dma)] 
 impl<'d> I2c<'d, Async> {
     async fn write_frame(
         &mut self,

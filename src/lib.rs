@@ -6,6 +6,7 @@ mod fmt;
 include!(concat!(env!("OUT_DIR"), "/_macros.rs"));
 
 mod macros;
+#[cfg(dma)]
 use embassy_hal_internal::interrupt::Priority;
 pub use py32_metapac as pac;
 
@@ -38,11 +39,9 @@ pub mod adc;
 pub mod dma;
 pub mod flash;
 pub mod gpio;
-#[cfg(dma)]
 pub mod i2c;
 pub mod rcc;
 pub mod timer;
-#[cfg(dma)]
 pub mod usart;
 
 #[cfg(any(feature = "embassy-usb-driver-impl", feature = "usb-device-impl"))]

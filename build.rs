@@ -1659,6 +1659,7 @@ fn main() {
     g.extend(dma_irqs);
 
     g.extend(quote! {
+        #[cfg(dma)]
         pub(crate) const DMA_CHANNELS: &[crate::dma::ChannelInfo] = &[#dmas];
     });
 

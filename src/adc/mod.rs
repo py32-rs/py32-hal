@@ -129,6 +129,7 @@ foreach_adc!(
     };
 );
 
+#[allow(unused_macros)]
 macro_rules! impl_adc_pin {
     ($inst:ident, $pin:ident, $ch:expr) => {
         impl crate::adc::AdcChannel<peripherals::$inst> for crate::peripherals::$pin {}
