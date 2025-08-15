@@ -2,6 +2,12 @@
 
 This directory contains various examples demonstrating the usage of `py32-hal` with different MCU series and features.
 
+## py32f002b
+Examples compatible with the following MCU series:
+- PY32F002B
+- PY32L020
+- PY32C642/C641
+
 ## py32f030
 Examples compatible with the following MCU series:
 - PY32F030
