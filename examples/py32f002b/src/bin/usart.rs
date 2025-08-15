@@ -11,6 +11,9 @@ use {defmt_rtt as _, panic_probe as _};
 async fn main(_spawner: Spawner) {
     info!("Hello World!");
 
+    // PA2 and PB6 are SWD pins, so reusing them may lock you out of programming.
+    // Refer to the `unsafe-reuse-swd-pins` feature's comments in py32-hal/Cargo.toml.
+
     let p = py32_hal::init(Default::default());
 
     let config = Config::default();

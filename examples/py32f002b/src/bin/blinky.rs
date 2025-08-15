@@ -14,6 +14,9 @@ async fn main(_spawner: Spawner) {
     let p = py32_hal::init(Default::default());
     info!("Hello World!");
 
+    // PA2 and PB6 are SWD pins, so reusing them may lock you out of programming.
+    // Refer to the `unsafe-reuse-swd-pins` feature's comments in py32-hal/Cargo.toml.
+
     let mut led = Output::new(p.PA1, Level::High, Speed::Low);
 
     loop {

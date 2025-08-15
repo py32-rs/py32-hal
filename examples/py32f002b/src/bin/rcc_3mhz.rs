@@ -16,6 +16,9 @@ async fn main(_spawner: Spawner) {
     // cfg.rcc.sys = Sysclk::HSI; // default
     let p = py32_hal::init(cfg);
 
+    // PA2 and PB6 are SWD pins, so reusing them may lock you out of programming.
+    // Refer to the `unsafe-reuse-swd-pins` feature's comments in py32-hal/Cargo.toml.
+
     info!("Hello World!");
 
     let mut led = Output::new(p.PA1, Level::High, Speed::Low);
