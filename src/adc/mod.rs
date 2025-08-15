@@ -8,6 +8,7 @@
 // Special thanks to the Embassy Project and its contributors for their work!
 
 #[cfg_attr(adc_v1, path = "v1.rs")]
+#[cfg_attr(adc_v1b, path = "v1.rs")]
 #[cfg_attr(adc_v2, path = "v2.rs")]
 mod _version;
 
@@ -22,6 +23,7 @@ pub use crate::pac::adc::vals::Res as Resolution;
 pub use crate::pac::adc::vals::SampleTime;
 use crate::peripherals;
 
+#[cfg(dma)]
 dma_trait!(RxDma, Instance);
 
 /// Analog to Digital driver.
@@ -128,6 +130,7 @@ foreach_adc!(
     };
 );
 
+#[allow(unused_macros)]
 macro_rules! impl_adc_pin {
     ($inst:ident, $pin:ident, $ch:expr) => {
         impl crate::adc::AdcChannel<peripherals::$inst> for crate::peripherals::$pin {}

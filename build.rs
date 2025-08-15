@@ -54,6 +54,18 @@ fn main() {
         }
     }
 
+    let reuse_swd_pins = env::var("CARGO_FEATURE_UNSAFE_REUSE_SWD_PINS").is_ok();
+
+    // -- This is the new dynamic lookup logic --
+    // Iterate through the metadata to find all pins assigned to SWDIO and SWCLK.
+    let swd_pins: HashSet<String> = METADATA
+        .peripherals
+        .iter()
+        .flat_map(|p| p.pins) // "Flatten" the pin lists from all peripherals into a single iterator
+        .filter(|pin| pin.signal == "SWDIO" || pin.signal == "SWCLK") // Filter for the debug signals
+        .map(|pin| pin.pin.to_string()) // Get the pin's name as a string
+        .collect(); // Collect into a HashSet for automatic deduplication
+
     // ========
     // Generate singletons
 
@@ -72,9 +84,15 @@ fn main() {
                 "gpio" => {
                     let port_letter = p.name.strip_prefix("GPIO").unwrap();
                     for pin_num in 0..16 {
-                        singletons.push(format!("P{}{}", port_letter, pin_num));
+                        let pin_name = format!("P{}{}", port_letter, pin_num);
+
+                    // If the feature is NOT enabled and the current pin name is in the swd_pins set, skip it.
+                    if !reuse_swd_pins && swd_pins.contains(&pin_name) {
+                        continue;
                     }
+                    singletons.push(pin_name);
                 }
+}
 
                 // No singleton for these, the HAL handles them specially.
                 "exti" => {}
@@ -1134,6 +1152,10 @@ fn main() {
                             continue;
                         }
 
+                        if !reuse_swd_pins && swd_pins.contains(pin.pin) {
+                            continue;
+                        }
+
                         format_ident!("{}", pin.pin)
                     };
 
@@ -1161,6 +1183,9 @@ fn main() {
                         if pin.pin.ends_with("_C")
                             && !split_features.iter().any(|x| x.pin_name_with_c == pin.pin)
                         {
+                            continue;
+                        }
+                        if !reuse_swd_pins && swd_pins.contains(pin.pin) {
                             continue;
                         }
                         format_ident!("{}", pin.pin)
@@ -1483,6 +1508,9 @@ fn main() {
                 for pin_num in 0u32..16 {
                     let pin_name = format!("P{}{}", port_letter, pin_num);
 
+                    if !reuse_swd_pins && swd_pins.contains(&pin_name) {
+                        continue;
+                    }
                     pins_table.push(vec![
                         pin_name.clone(),
                         p.name.to_string(),
@@ -1659,6 +1687,7 @@ fn main() {
     g.extend(dma_irqs);
 
     g.extend(quote! {
+        #[cfg(dma)]
         pub(crate) const DMA_CHANNELS: &[crate::dma::ChannelInfo] = &[#dmas];
     });
 

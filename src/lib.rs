@@ -6,6 +6,7 @@ mod fmt;
 include!(concat!(env!("OUT_DIR"), "/_macros.rs"));
 
 mod macros;
+#[cfg(dma)]
 use embassy_hal_internal::interrupt::Priority;
 pub use py32_metapac as pac;
 
@@ -34,6 +35,7 @@ pub mod mode {
 }
 
 pub mod adc;
+#[cfg(dma)]
 pub mod dma;
 pub mod flash;
 pub mod gpio;
@@ -137,6 +139,7 @@ pub fn init(config: Config, #[cfg(feature = "time-driver-systick")] systick: SYS
             #[cfg(feature = "exti")]
             exti::init(cs);
 
+            #[cfg(dma)]
             dma::init(cs, config.dma_interrupt_priority);
         };
         rcc::enable_and_reset_with_cs::<peripherals::FLASH>(cs);

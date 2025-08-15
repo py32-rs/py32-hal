@@ -49,7 +49,14 @@ pub struct Vref;
 impl AdcChannel<ADC1> for Vref {}
 impl super::SealedAdcChannel<ADC1> for Vref {
     fn channel(&self) -> u8 {
-        12
+        // TODO: move to py32-metapac
+        cfg_if::cfg_if!{
+            if #[cfg(py32f002b)] {
+                9
+            } else {
+                12
+            }
+        }
     }
 }
 
@@ -57,7 +64,14 @@ pub struct Temperature;
 impl AdcChannel<ADC1> for Temperature {}
 impl super::SealedAdcChannel<ADC1> for Temperature {
     fn channel(&self) -> u8 {
-        11
+        // TODO: move to py32-metapac
+        cfg_if::cfg_if!{
+            if #[cfg(py32f002b)] {
+                8
+            } else {
+                11
+            }
+        }
     }
 }
 
@@ -81,7 +95,7 @@ impl<'d, T: Instance> Adc<'d, T> {
         // if T::regs().isr().read().adrdy() {
         //     T::regs().isr().modify(|reg| reg.set_adrdy(true));
         // }
-        T::regs().cr().modify(|reg| reg.set_aden(true));
+        // T::regs().cr().modify(|reg| reg.set_aden(true));
 
         // Delay for ADC stabilization time, parameter tSTAB, ADC_STAB_DELAY_US
         // Compute number of CPU cycles to wait for
@@ -112,6 +126,8 @@ impl<'d, T: Instance> Adc<'d, T> {
         // Wait until ADCAL = 0.
         // After calibration is complete, start the ADC conversion.
 
+        T::regs().cfgr2().modify(|reg| reg.set_ckmode(Ckmode::PCLK));
+        #[cfg(dma)]
         T::regs().cfgr1().modify(|reg| reg.set_dmaen(false));
         T::regs().cr().modify(|reg| reg.set_adcal(true));
 
@@ -128,7 +144,9 @@ impl<'d, T: Instance> Adc<'d, T> {
         //       To not insert ADC calibration factor among ADC conversion data
         //       in array variable, DMA transfer must be disabled during
         //       calibration.
+        #[cfg(dma)]
         let backup_dma_settings = T::regs().cfgr1().read();
+        #[cfg(dma)]
         T::regs().cfgr1().modify(|reg| reg.set_dmaen(false));
 
         // Start ADC calibration
@@ -138,6 +156,7 @@ impl<'d, T: Instance> Adc<'d, T> {
         while T::regs().cr().read().adcal() {}
 
         // Restore ADC DMA transfer request after calibration
+        #[cfg(dma)]
         T::regs().cfgr1().modify(|reg| {
             reg.set_dmaen(backup_dma_settings.dmaen());
             reg.set_dmacfg(backup_dma_settings.dmacfg());
@@ -190,6 +209,9 @@ impl<'d, T: Instance> Adc<'d, T> {
     pub async fn read(&mut self, channel: &mut impl AdcChannel<T>) -> u16 {
         let ch_num = channel.channel();
         channel.setup();
+        
+        #[cfg(adc_v1b)]
+        T::regs().cr().modify(|reg| reg.set_addis(true));
 
         // A.7.5 Single conversion sequence code example - Software trigger
         T::regs()

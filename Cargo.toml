@@ -96,6 +96,7 @@ exti = []
 embassy-usb-driver-impl = ["dep:musb","dep:embassy-usb-driver", "musb/embassy-usb-driver-impl"]
 usb-device-impl = ["dep:musb","dep:usb-device", "musb/usb-device-impl"]
 
+py32f002b = ["py32-metapac/py32f002b"]
 py32f030k28 = ["py32-metapac/py32f030k28"]
 py32f030f16 = ["py32-metapac/py32f030f16"]
 py32f072c1b = ["py32-metapac/py32f072c1b", "dep:musb", "musb/builtin-py32f07x"]
@@ -112,6 +113,14 @@ time-driver-systick = ["dep:portable-atomic", "_time-driver"]
 
 _time-driver = ["dep:embassy-time-driver", "time", "dep:embassy-time-queue-utils"]
 
+
+# WARNING: This allows reusing SWD debug pins. This is dangerous!
+# This HAL has no power-on delay, so reconfiguring SWD pins immediately on startup
+# can permanently lock you out from reprogramming ('brick') the chip.
+# The risk is critical on MCUs without a BOOT button and bootloader.
+# (like PY32F002B, PY32L020, PY32C64x) (on PA2 and PB6).
+# Enable only if you understand the risk and have a recovery plan.
+unsafe-reuse-swd-pins = []
 
 [package.metadata.docs.rs]
 default-target = "thumbv6m-none-eabi"

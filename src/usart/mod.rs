@@ -12,20 +12,26 @@ use core::sync::atomic::{compiler_fence, AtomicU8, Ordering};
 use core::task::Poll;
 
 use embassy_embedded_hal::SetConfig;
+#[cfg(dma)] 
 use embassy_hal_internal::drop::OnDrop;
 use embassy_hal_internal::PeripheralRef;
 use embassy_sync::waitqueue::AtomicWaker;
+#[cfg(dma)] 
 use futures_util::future::{select, Either};
 
+#[cfg(dma)]
 use crate::pac::usart::regs::Sr;
 use crate::pac::usart::Usart as Regs;
 use crate::pac::usart::{regs, vals};
 
+#[cfg(dma)]
 use crate::dma::ChannelAndRequest;
 use crate::gpio::{self, AfType, AnyPin, OutputType, Pull, SealedPin as _, Speed};
 use crate::interrupt::typelevel::Interrupt as _;
 use crate::interrupt::{self, Interrupt, InterruptExt};
-use crate::mode::{Async, Blocking, Mode};
+#[cfg(dma)] 
+use crate::mode::{Async};
+use crate::mode::{Blocking, Mode};
 use crate::rcc::{RccInfo, SealedRccPeripheral};
 use crate::time::Hertz;
 use crate::Peripheral;
@@ -228,6 +234,7 @@ pub enum Error {
     BufferTooLong,
 }
 
+#[allow(dead_code)]
 enum ReadCompletionEvent {
     // DMA Read transfer completed first
     DmaCompleted,
@@ -269,6 +276,7 @@ pub struct UartTx<'d, M: Mode> {
     tx: Option<PeripheralRef<'d, AnyPin>>,
     cts: Option<PeripheralRef<'d, AnyPin>>,
     de: Option<PeripheralRef<'d, AnyPin>>,
+    #[cfg(dma)]
     tx_dma: Option<ChannelAndRequest<'d>>,
     _phantom: PhantomData<M>,
 }
@@ -317,7 +325,8 @@ pub struct UartRx<'d, M: Mode> {
     kernel_clock: Hertz,
     rx: Option<PeripheralRef<'d, AnyPin>>,
     rts: Option<PeripheralRef<'d, AnyPin>>,
-    rx_dma: Option<ChannelAndRequest<'d>>,
+    #[cfg(dma)] rx_dma: Option<ChannelAndRequest<'d>>,
+    #[allow(dead_code)]
     detect_previous_overrun: bool,
     buffered_sr: py32_metapac::usart::regs::Sr,
     _phantom: PhantomData<M>,
@@ -332,6 +341,7 @@ impl<'d, M: Mode> SetConfig for UartRx<'d, M> {
     }
 }
 
+#[cfg(dma)]
 impl<'d> UartTx<'d, Async> {
     /// Useful if you only want Uart Tx. It saves 1 pin and consumes a little less power.
     pub fn new<T: Instance>(
@@ -408,7 +418,7 @@ impl<'d> UartTx<'d, Blocking> {
             peri,
             new_pin!(tx, AfType::output(OutputType::PushPull, Speed::Medium)),
             None,
-            None,
+            #[cfg(dma)] None,
             config,
         )
     }
@@ -424,7 +434,7 @@ impl<'d> UartTx<'d, Blocking> {
             peri,
             new_pin!(tx, AfType::output(OutputType::PushPull, Speed::Medium)),
             new_pin!(cts, AfType::input(config.rx_pull)),
-            None,
+            #[cfg(dma)] None,
             config,
         )
     }
@@ -435,7 +445,7 @@ impl<'d, M: Mode> UartTx<'d, M> {
         _peri: impl Peripheral<P = T> + 'd,
         tx: Option<PeripheralRef<'d, AnyPin>>,
         cts: Option<PeripheralRef<'d, AnyPin>>,
-        tx_dma: Option<ChannelAndRequest<'d>>,
+        #[cfg(dma)] tx_dma: Option<ChannelAndRequest<'d>>,
         config: Config,
     ) -> Result<Self, ConfigError> {
         let mut this = Self {
@@ -445,7 +455,7 @@ impl<'d, M: Mode> UartTx<'d, M> {
             tx,
             cts,
             de: None,
-            tx_dma,
+            #[cfg(dma)] tx_dma,
             _phantom: PhantomData,
         };
         this.enable_and_configure(&config)?;
@@ -502,6 +512,7 @@ impl<'d, M: Mode> UartTx<'d, M> {
     }
 }
 
+#[allow(dead_code)]
 /// Wait until transmission complete
 async fn flush(info: &Info, state: &State) -> Result<(), Error> {
     let r = info.regs;
@@ -550,6 +561,7 @@ pub fn send_break(regs: &Regs) {
     regs.cr1().modify(|w| w.set_sbk(true));
 }
 
+#[cfg(dma)]
 impl<'d> UartRx<'d, Async> {
     /// Create a new rx-only UART with no hardware flow control.
     ///
@@ -827,7 +839,7 @@ impl<'d> UartRx<'d, Blocking> {
             peri,
             new_pin!(rx, AfType::input(config.rx_pull)),
             None,
-            None,
+            #[cfg(dma)] None,
             config,
         )
     }
@@ -843,7 +855,7 @@ impl<'d> UartRx<'d, Blocking> {
             peri,
             new_pin!(rx, AfType::input(config.rx_pull)),
             new_pin!(rts, AfType::output(OutputType::PushPull, Speed::Medium)),
-            None,
+            #[cfg(dma)] None,
             config,
         )
     }
@@ -854,7 +866,7 @@ impl<'d, M: Mode> UartRx<'d, M> {
         _peri: impl Peripheral<P = T> + 'd,
         rx: Option<PeripheralRef<'d, AnyPin>>,
         rts: Option<PeripheralRef<'d, AnyPin>>,
-        rx_dma: Option<ChannelAndRequest<'d>>,
+        #[cfg(dma)] rx_dma: Option<ChannelAndRequest<'d>>,
         config: Config,
     ) -> Result<Self, ConfigError> {
         let mut this = Self {
@@ -864,7 +876,7 @@ impl<'d, M: Mode> UartRx<'d, M> {
             kernel_clock: T::frequency(),
             rx,
             rts,
-            rx_dma,
+            #[cfg(dma)] rx_dma,
             detect_previous_overrun: config.detect_previous_overrun,
             buffered_sr: py32_metapac::usart::regs::Sr(0),
         };
@@ -991,6 +1003,7 @@ fn drop_tx_rx(info: &Info, state: &State) {
     }
 }
 
+#[cfg(dma)]
 impl<'d> Uart<'d, Async> {
     /// Create a new bidirectional UART
     pub fn new<T: Instance>(
@@ -998,7 +1011,7 @@ impl<'d> Uart<'d, Async> {
         rx: impl Peripheral<P = impl RxPin<T>> + 'd,
         tx: impl Peripheral<P = impl TxPin<T>> + 'd,
         _irq: impl interrupt::typelevel::Binding<T::Interrupt, InterruptHandler<T>> + 'd,
-        tx_dma: impl Peripheral<P = impl TxDma<T>> + 'd,
+        #[cfg(dma)] tx_dma: impl Peripheral<P = impl TxDma<T>> + 'd,
         rx_dma: impl Peripheral<P = impl RxDma<T>> + 'd,
         config: Config,
     ) -> Result<Self, ConfigError> {
@@ -1112,8 +1125,8 @@ impl<'d> Uart<'d, Blocking> {
             None,
             None,
             None,
-            None,
-            None,
+            #[cfg(dma)] None,
+            #[cfg(dma)] None,
             config,
         )
     }
@@ -1134,8 +1147,8 @@ impl<'d> Uart<'d, Blocking> {
             new_pin!(rts, AfType::output(OutputType::PushPull, Speed::Medium)),
             new_pin!(cts, AfType::input(Pull::None)),
             None,
-            None,
-            None,
+            #[cfg(dma)] None,
+            #[cfg(dma)] None,
             config,
         )
     }
@@ -1166,8 +1179,8 @@ impl<'d> Uart<'d, Blocking> {
             None,
             None,
             None,
-            None,
-            None,
+            #[cfg(dma)] None,
+            #[cfg(dma)] None,
             config,
         )
     }
@@ -1181,8 +1194,8 @@ impl<'d, M: Mode> Uart<'d, M> {
         rts: Option<PeripheralRef<'d, AnyPin>>,
         cts: Option<PeripheralRef<'d, AnyPin>>,
         de: Option<PeripheralRef<'d, AnyPin>>,
-        tx_dma: Option<ChannelAndRequest<'d>>,
-        rx_dma: Option<ChannelAndRequest<'d>>,
+        #[cfg(dma)] tx_dma: Option<ChannelAndRequest<'d>>,
+        #[cfg(dma)] rx_dma: Option<ChannelAndRequest<'d>>,
         config: Config,
     ) -> Result<Self, ConfigError> {
         let info = T::info();
@@ -1198,7 +1211,7 @@ impl<'d, M: Mode> Uart<'d, M> {
                 tx,
                 cts,
                 de,
-                tx_dma,
+                #[cfg(dma)] tx_dma,
             },
             rx: UartRx {
                 _phantom: PhantomData,
@@ -1207,7 +1220,7 @@ impl<'d, M: Mode> Uart<'d, M> {
                 kernel_clock,
                 rx,
                 rts,
-                rx_dma,
+                #[cfg(dma)] rx_dma,
                 detect_previous_overrun: config.detect_previous_overrun,
                 buffered_sr: py32_metapac::usart::regs::Sr(0),
             },
@@ -1549,6 +1562,7 @@ impl<M: Mode> embedded_io::Write for UartTx<'_, M> {
     }
 }
 
+#[cfg(dma)]
 impl embedded_io_async::Write for Uart<'_, Async> {
     async fn write(&mut self, buf: &[u8]) -> Result<usize, Self::Error> {
         self.write(buf).await?;
@@ -1560,6 +1574,7 @@ impl embedded_io_async::Write for Uart<'_, Async> {
     }
 }
 
+#[cfg(dma)]
 impl embedded_io_async::Write for UartTx<'_, Async> {
     async fn write(&mut self, buf: &[u8]) -> Result<usize, Self::Error> {
         self.write(buf).await?;
@@ -1576,7 +1591,9 @@ pub use buffered::*;
 pub use crate::usart::buffered::InterruptHandler as BufferedInterruptHandler;
 mod buffered;
 
+#[cfg(dma)] 
 mod ringbuffered;
+#[cfg(dma)]
 pub use ringbuffered::RingBufferedUartRx;
 
 fn tdr(r: crate::pac::usart::Usart) -> *mut u8 {
@@ -1643,8 +1660,8 @@ pin_trait!(RtsPin, Instance);
 pin_trait!(CkPin, Instance);
 pin_trait!(DePin, Instance);
 
-dma_trait!(TxDma, Instance);
-dma_trait!(RxDma, Instance);
+#[cfg(dma)] dma_trait!(TxDma, Instance);
+#[cfg(dma)] dma_trait!(RxDma, Instance);
 
 macro_rules! impl_usart {
     ($inst:ident, $irq:ident, $kind:expr) => {
