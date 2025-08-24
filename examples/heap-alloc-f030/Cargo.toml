@@ -5,15 +5,15 @@ edition = "2021"
 
 [dependencies]
 cortex-m-rt = "0.7"
-panic-probe = { version = "0.3", features = ["print-defmt"] }
+panic-probe = { version = "1", features = ["print-defmt"] }
 
-embassy-sync = { version = "0.6.2", features = ["defmt"] }
-embassy-executor = { version = "0.7.0", features = ["task-arena-size-2048", "arch-cortex-m", "executor-thread", "defmt"] }
+embassy-sync = { version = "0.7", features = ["defmt"] }
+embassy-executor = { version = "0.8.0", features = ["arch-cortex-m", "executor-thread", "defmt"] }
 embassy-time = { version = "0.4.0", features = ["defmt", "defmt-timestamp-uptime", "tick-hz-32_768"] }
 
 py32-hal = { path = "../../", features = [ "time-driver-tim3", "py32f030k28"]}
-defmt = { version = "0.3", features = ["alloc"] }
-defmt-rtt = "0.4"
+defmt = { version = "1", features = ["alloc"] }
+defmt-rtt = "1"
 embedded-alloc = { version = "0.6.0" }
 
 # cargo build/run
