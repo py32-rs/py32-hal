@@ -11,10 +11,10 @@ cortex-m = { version = "0.7.7", features = [
 ] }
 cortex-m-rt = "0.7.3"
 cortex-m-semihosting = { version = "0.5" }
-panic-probe = { version = "0.3", features = ["print-defmt"] }
+panic-probe = { version = "1.0.0", features = ["print-defmt"] }
 
-embassy-sync = { version = "0.6.2", features = ["defmt"] }
-embassy-executor = { version = "0.7.0", features = ["task-arena-size-512", "arch-cortex-m", "executor-thread", "defmt"] }
+embassy-sync = { version = "0.7.1", features = ["defmt"] }
+embassy-executor = { version = "0.8.0", features = ["arch-cortex-m", "executor-thread", "defmt"] }
 embassy-time = { version = "0.4.0", features = ["defmt", "defmt-timestamp-uptime", "tick-hz-32_768"] }
 
 embedded-io = { version = "0.6.0" }
@@ -22,8 +22,8 @@ embedded-io-async = { version = "0.6.1" }
 
 py32-hal = { path = "../../", features = [ "time-driver-tim1", "py32f002b"]}
 
-defmt = "0.3"
-defmt-rtt = "0.4"
+defmt = "1"
+defmt-rtt = "1"
 
 # cargo build/run
 [profile.dev]
