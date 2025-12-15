@@ -1,6 +1,5 @@
 #![no_std]
 #![no_main]
-#![feature(impl_trait_in_assoc_type)]
 
 // This example works well, but there is a dependency conflict.
 // Please remove the `embassy-usb` and `usbd-hid` dependencies from `Cargo.toml`, and then add:
