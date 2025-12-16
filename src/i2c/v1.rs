@@ -6,6 +6,7 @@
 
 #[cfg(dma)]
 use core::future::poll_fn;
+use core::ptr;
 #[cfg(dma)]
 use core::task::Poll;
 
@@ -45,7 +46,7 @@ pub unsafe fn on_interrupt<T: Instance>() {
     });
 }
 
-impl<'d, M: PeriMode> I2c<'d, M> {
+impl<'d, M: PeriMode, Ms: MasterMode> I2c<'d, M, Ms> {
     pub(crate) fn init(&mut self, freq: Hertz, _config: Config) {
         self.info.regs.cr1().modify(|reg| {
             reg.set_pe(false);
@@ -96,7 +97,7 @@ impl<'d, M: PeriMode> I2c<'d, M> {
             reg.set_pe(true);
         });
     }
-
+    #[inline(never)]
     fn check_and_clear_error_flags(info: &'static Info) -> Result<i2c::regs::Sr1, Error> {
         // Note that flags should only be cleared once they have been registered. If flags are
         // cleared otherwise, there may be an inherent race condition and flags may be missed.
@@ -374,7 +375,7 @@ impl<'d, M: PeriMode> I2c<'d, M> {
 }
 
 #[cfg(dma)] 
-impl<'d> I2c<'d, Async> {
+impl<'d, Ms:MasterMode> I2c<'d, Async, Ms> {
     async fn write_frame(
         &mut self,
         address: u8,
@@ -850,7 +851,7 @@ impl Timings {
     }
 }
 
-impl<'d, M: PeriMode> SetConfig for I2c<'d, M> {
+impl<'d, M: PeriMode, Ms:MasterMode> SetConfig for I2c<'d, M, Ms> {
     type Config = Hertz;
     type ConfigError = ();
     fn set_config(&mut self, config: &Self::Config) -> Result<(), ()> {
@@ -868,5 +869,156 @@ impl<'d, M: PeriMode> SetConfig for I2c<'d, M> {
         });
 
         Ok(())
+    }
+}
+impl <'d> I2c<'d, Async, MultiMaster> {
+    pub async fn listen(&mut self, buffer: &mut [u8]) -> Result<Command, SlaveError> {
+        let state = self.state;
+        let ptr_data = self.info.regs.cr1().as_ptr();
+        self.info.regs.cr1().modify(|reg| reg.set_pe(true));
+        self.info.regs.cr2().modify(|reg| {
+            reg.set_itevten(true);
+            reg.set_itbufen(true);
+            reg.set_iterren(true);
+        });
+        let on_drop = OnDrop::new(|| {
+            self.info.regs.cr2().modify(|w| {
+                w.set_itbufen(false);
+                w.set_iterren(false);
+                w.set_itevten(false);
+            })
+        });
+        self.info.regs.cr1().modify(|reg| {
+            reg.set_ack(true);
+        });
+        let mut missed_bytes: bool = false;
+        let mut was_gencall: bool = false;
+        let mut len:usize = 0;
+        // in rx mode we will ride it out until we get a STOPF.
+        let mut result:Option<Result<Command, SlaveError>> = None;
+        poll_fn(|cx| {
+            state.waker.register(cx.waker());
+            let lres = Self::check_and_clear_error_flags(self.info);
+            match lres {
+                Err(e) => match e {
+                    Error::Overrun => {
+                        // if an OVR happens then BTF and RxNE will be set. empty the DR and load it into the rx buffer
+                        let rx = self.info.regs.dr().read().dr();
+                        if len == buffer.len() {
+                            result = Some(Err(SlaveError::PartialWrite(len)));
+                        } else {
+                            buffer[len] = rx;
+                            len += 1;
+                        }
+                    },
+                    _ => {
+                        result = Some(Err(SlaveError::Abort(e)))
+                    }
+                },
+                Ok(sr1) => {
+                    let sr2_data = self.info.regs.sr2().read(); // clears addr
+                    if sr1.addr() {
+                        was_gencall = sr2_data.gencall();
+                        if sr2_data.tra() {
+                            // bail immediately so that the handler can respond
+                            return Poll::Ready(Ok(Command::Read));
+                        }
+                    }
+                    if sr1.btf() {
+                        missed_bytes = true;
+                    }
+                    if sr1.rxne() {
+                        let rx = self.info.regs.dr().read().dr();
+                        if len == buffer.len() {
+                            result = Some(Err(SlaveError::PartialWrite(len)));
+                        } else {
+                            buffer[len] = rx;
+                            len += 1;
+                        }
+                    }
+                    if sr1.stopf() {
+                        // stop acking shit
+                        self.info.regs.cr1().modify(|reg| {
+                            reg.set_ack(false);
+                        });
+                        return Poll::Ready(match result {
+                            Some(Ok(Command::Read)) => Ok(Command::Read),
+                            Some(Err(e)) => Err(e),
+                            _ => if was_gencall {
+                                    Ok(Command::GeneralCall(len))
+                                } else {
+                                    Ok(Command::Write(len))
+                                }
+                        })
+                    }
+                }
+            }
+            // When pending, (re-)enable interrupts to wake us up.
+            Self::enable_interrupts(self.info);
+            Poll::Pending
+        }).await
+    }
+
+    pub async fn respond_to_read(&mut self, buffer: &[u8], pad:bool) -> Result<ReadStatus, Error> {
+        self.info.regs.cr1().modify(|reg| reg.set_pe(true));
+        let state = self.state;
+        self.info.regs.cr2().modify(|reg| {
+            reg.set_itevten(true);
+            reg.set_itbufen(true);
+            reg.set_iterren(true);
+        });
+        let on_drop = OnDrop::new(|| {
+            self.info.regs.cr2().modify(|w| {
+                w.set_itbufen(false);
+                w.set_iterren(false);
+                w.set_itevten(false);
+            })
+        });
+        let mut byte = 0;
+        poll_fn(|cx| {
+            state.waker.register(cx.waker());
+            match Self::check_and_clear_error_flags(self.info) {
+                Err(Error::Nack) => {
+                    self.info.regs.sr1().modify(|reg| reg.set_af(false)); // clear the af bit
+                    if byte == buffer.len() - 1 {
+                        return Poll::Ready(Ok(ReadStatus::Done))
+                    } else {
+                        return Poll::Ready(Ok(ReadStatus::LeftoverBytes(buffer.len() - byte)))
+                    }
+                },
+                Err(e) => return Poll::Ready(Err(e)),
+                Ok(sr1) => {
+                    let sr2_data = self.info.regs.sr2().read(); // clears addr
+                    if sr1.txe() {
+                        if byte >= buffer.len() {
+                            if pad {
+                                self.info.regs.dr().write(|reg| reg.set_dr(0));
+                            } else if !pad {
+                                return Poll::Ready(Ok(ReadStatus::NeedMoreBytes))
+                            }
+                        } else {
+                            self.info.regs.dr().write(|reg| reg.set_dr(buffer[byte]));
+                            byte += 1;
+                        }
+                    }
+                    if sr1.btf() {
+                        if byte >= buffer.len() {
+                            if pad {
+                                self.info.regs.dr().write(|reg| reg.set_dr(0));
+                            } else if !pad {
+                                return Poll::Ready(Ok(ReadStatus::NeedMoreBytes))
+                            }
+                        } else {
+                            self.info.regs.dr().write(|reg| reg.set_dr(buffer[byte]));
+                            byte += 1;
+                        }
+                    }
+                }
+            }
+            // When pending, (re-)enable interrupts to wake us up.
+            Self::enable_interrupts(self.info);
+            Poll::Pending
+        }).await
+
     }
 }
