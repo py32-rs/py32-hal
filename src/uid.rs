@@ -5,16 +5,18 @@
 // Special thanks to the Embassy Project and its contributors for their work!
 
 /// Get this device's unique 128-bit ID.
+/// Note that the last 4 bytes of the ID consist of unknown "internal coding" and fixed values.
+/// Only the first 96 bits have known or otherwise documented structure.
 pub fn uid() -> [u8; 16] {
     unsafe { *crate::pac::UID.uid(0).as_ptr().cast::<[u8; 16]>() }
 }
 
-/// Get this device's unique 128-bit ID, encoded into a string of 32 hexadecimal ASCII digits.
+/// Get this device's unique 128-bit ID, encoded into a string of 32 hexadecimal ASCII digits. See documentation for `uid` for caveats.
 pub fn uid_hex() -> &'static str {
     unsafe { core::str::from_utf8_unchecked(uid_hex_bytes()) }
 }
 
-/// Get this device's unique 128-bit ID, encoded into 32 hexadecimal ASCII bytes.
+/// Get this device's unique 128-bit ID, encoded into 32 hexadecimal ASCII bytes. See documentation about `uid` for caveats.
 pub fn uid_hex_bytes() -> &'static [u8; 32] {
     const HEX: &[u8; 16] = b"0123456789ABCDEF";
     static mut UID_HEX: [u8; 32] = [0; 32];
