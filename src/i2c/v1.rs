@@ -17,7 +17,7 @@ use embassy_futures::select::{select, Either};
 #[cfg(dma)]
 use embassy_hal_internal::drop::OnDrop;
 use embedded_hal_1::i2c::Operation;
-use futures_util::FutureExt;
+use futures_util::{FutureExt, future};
 use py32_metapac::dma;
 
 use super::*;
@@ -961,14 +961,14 @@ impl <'d> I2c<'d, Async, MultiMaster> {
             Self::enable_interrupts(self.info);
             Poll::Pending
         });
-        let res = match futures_util::future::select(dma_transfer, waiter).await {
+        let res = match future::select(dma_transfer, waiter).await {
             // DMA transfer completed first
-            futures_util::future::Either::Right((Ok(Command::GeneralCall(_)), dma_transfer)) => 
+            future::Either::Right((Ok(Command::GeneralCall(_)), dma_transfer)) => 
                 return Ok(Command::GeneralCall(buf_len - dma_transfer.get_remaining_transfers() as usize)),
-            futures_util::future::Either::Right((Ok(Command::Write(_)), dma_transfer)) => 
+            future::Either::Right((Ok(Command::Write(_)), dma_transfer)) => 
                 return Ok(Command::Write(buf_len - dma_transfer.get_remaining_transfers() as usize)),
-            futures_util::future::Either::Right((e, _)) => return e,
-            futures_util::future::Either::Left((_, waiter)) => {
+            future::Either::Right((e, _)) => return e,
+            future::Either::Left((_, waiter)) => {
                 // the DMA transfer has completed before the I2C transaction is finished
                 // we now reinitialize the DMA transfer with a circular buffer to "ride out" the rest of the transaction
                 waiter
@@ -1072,6 +1072,72 @@ impl <'d> I2c<'d, Async, MultiMaster> {
     }
 
     pub async fn respond_to_read(&mut self, buffer: &[u8], pad:bool) -> Result<ReadStatus, Error> {
+        let tx:&mut ChannelAndRequest<'_> = match self.tx_dma {
+            Some(ref mut r) => r,
+            _ => { return self.respond_to_read_no_dma(buffer, pad).await; }
+        };
+
+        self.info.regs.cr1().modify(|reg| reg.set_pe(true));
+        let state = self.state;
+        self.info.regs.cr2().modify(|reg| {
+            reg.set_itevten(true);
+            reg.set_itbufen(false); // using dma
+            reg.set_iterren(true);
+            reg.set_dmaen(true);
+        });
+        let on_drop = OnDrop::new(|| {
+            self.info.regs.cr2().modify(|w| {
+                w.set_itbufen(false);
+                w.set_iterren(false);
+                w.set_itevten(false);
+                w.set_dmaen(false);
+            })
+        });
+        let dma_transfer = unsafe {
+            // Set the I2C_DR register address in the DMA_SxPAR register. The data will be moved to
+            // this address from the memory after each TxE event.
+            let dst = self.info.regs.dr().as_ptr() as *mut u8;
+            tx.write(buffer, dst, Default::default())
+        };
+        let i2c_transaction = poll_fn(|cx| {
+            state.waker.register(cx.waker());
+            match Self::check_and_clear_error_flags(self.info) {
+                Err(e) => return Poll::Ready(e),
+                Ok(sr1) => { }
+            }
+            // When pending, (re-)enable interrupts to wake us up.
+            Self::enable_interrupts(self.info);
+            Poll::Pending
+        });
+        let i2c_transaction = match future::select(dma_transfer, i2c_transaction).await {
+            future::Either::Left((_, i2c_transaction)) => {
+                // the DMA ran out of bytes before we got the NACK - continue to set up a new DMA to pad it out
+                i2c_transaction
+            },
+            future::Either::Right((Error::Nack, dma_transfer)) => {
+                // normal end of transmission
+                self.info.regs.sr1().modify(|reg| reg.set_af(false)); // clear the af bit
+                if dma_transfer.get_remaining_transfers() > 0 {
+                    return Ok(ReadStatus::LeftoverBytes(dma_transfer.get_remaining_transfers() as usize))
+                } else {
+                    return Ok(ReadStatus::Done)
+                }
+            },
+            future::Either::Right((e,_)) => {
+                return Err(e)
+            },
+        };
+        if !pad {
+            return Ok(ReadStatus::NeedMoreBytes);
+        }
+        let _dma_transfer = unsafe {
+            let dst = self.info.regs.dr().as_ptr() as *mut u8;
+            tx.write_repeated(&0, 65535, dst, Default::default())
+        };
+        i2c_transaction.await;
+        return Ok(ReadStatus::Done);
+    }
+    async fn respond_to_read_no_dma(&mut self, buffer: &[u8], pad:bool) -> Result<ReadStatus, Error> {
         self.info.regs.cr1().modify(|reg| reg.set_pe(true));
         let state = self.state;
         self.info.regs.cr2().modify(|reg| {
@@ -1131,6 +1197,5 @@ impl <'d> I2c<'d, Async, MultiMaster> {
             Self::enable_interrupts(self.info);
             Poll::Pending
         }).await
-
     }
 }
