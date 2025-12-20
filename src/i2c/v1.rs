@@ -18,6 +18,7 @@ use embassy_futures::select::{select, Either};
 use embassy_hal_internal::drop::OnDrop;
 use embedded_hal_1::i2c::Operation;
 use futures_util::{FutureExt, future};
+#[cfg(dma)]
 use py32_metapac::dma;
 
 use super::*;
@@ -877,6 +878,12 @@ impl<'d, M: PeriMode, Ms:MasterMode> SetConfig for I2c<'d, M, Ms> {
 }
 impl <'d> I2c<'d, Async, MultiMaster> {
     
+    #[cfg(not(dma))]
+    pub async fn listen(&mut self, buffer: &mut [u8]) -> Result<Command, SlaveError> {
+        return self.listen_no_dma(buffer).await;
+    }
+    
+    #[cfg(dma)]
     pub async fn listen(&mut self, buffer: &mut [u8]) -> Result<Command, SlaveError> {
         let rx:&mut ChannelAndRequest<'_> = match self.rx_dma {
             Some(ref mut r) => r,
@@ -1071,6 +1078,12 @@ impl <'d> I2c<'d, Async, MultiMaster> {
         }).await
     }
 
+    #[cfg(not(dma))]
+    pub async fn respond_to_read(&mut self, buffer: &[u8], pad:bool) -> Result<ReadStatus, Error> {
+        return self.respond_to_read_no_dma(buffer, pad).await;
+    }
+    
+    #[cfg(dma)]
     pub async fn respond_to_read(&mut self, buffer: &[u8], pad:bool) -> Result<ReadStatus, Error> {
         let tx:&mut ChannelAndRequest<'_> = match self.tx_dma {
             Some(ref mut r) => r,
