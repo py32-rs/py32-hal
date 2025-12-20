@@ -11,13 +11,17 @@ use core::ptr;
 use core::task::Poll;
 
 use embassy_embedded_hal::SetConfig;
+use embassy_futures::select::Select;
 #[cfg(dma)]
 use embassy_futures::select::{select, Either};
 #[cfg(dma)]
 use embassy_hal_internal::drop::OnDrop;
 use embedded_hal_1::i2c::Operation;
+use futures_util::FutureExt;
+use py32_metapac::dma;
 
 use super::*;
+use crate::dma::TransferOptions;
 use crate::mode::Mode as PeriMode;
 use crate::pac::i2c;
 
@@ -872,7 +876,115 @@ impl<'d, M: PeriMode, Ms:MasterMode> SetConfig for I2c<'d, M, Ms> {
     }
 }
 impl <'d> I2c<'d, Async, MultiMaster> {
+    
     pub async fn listen(&mut self, buffer: &mut [u8]) -> Result<Command, SlaveError> {
+        let rx:&mut ChannelAndRequest<'_> = match self.rx_dma {
+            Some(ref mut r) => r,
+            _ => { return self.listen_no_dma(buffer).await; }
+        };
+
+        let state = self.state;
+        self.info.regs.cr2().modify(|reg| {
+            reg.set_itevten(true);
+            reg.set_itbufen(false); // using DMA
+            reg.set_iterren(true);
+            reg.set_dmaen(true);
+        });
+        let _on_drop = OnDrop::new(|| {
+            self.info.regs.cr2().modify(|w| {
+                w.set_itbufen(false);
+                w.set_iterren(false);
+                w.set_itevten(false);
+                w.set_dmaen(false);
+            })
+        });
+
+        let buf_len = buffer.len();
+        let dma_transfer = unsafe {
+            // Set the I2C_DR register address in the DMA_SxPAR register. The data will be moved
+            // from this address from the memory after each RxE event.
+            let src = self.info.regs.dr().as_ptr() as *mut u8;
+            rx.read(src, buffer, Default::default())
+        };
+        self.info.regs.cr1().modify(|reg| {
+            reg.set_ack(true);
+        });
+        let mut missed_bytes: bool = false;
+        let mut was_gencall: bool = false;
+        // in rx mode we will ride it out until we get a STOPF.
+        let mut result:Option<Result<Command, SlaveError>> = None;
+        let waiter = poll_fn(|cx| {
+            state.waker.register(cx.waker());
+            let lres = Self::check_and_clear_error_flags(self.info);
+            match lres {
+                Err(e) => match e {
+                    Error::Overrun => {
+                        // if an OVR happens then BTF and RxNE will be set.
+                        // this happens if the DMA was more than two words too short and we don't handle it
+                        let _rx = self.info.regs.dr().read().dr();
+                        result = Some(Err(SlaveError::PartialWrite(buf_len)));
+                    },
+                    _ => {
+                        result = Some(Err(SlaveError::Abort(e)))
+                    }
+                },
+                Ok(sr1) => {
+                    let sr2_data = self.info.regs.sr2().read(); // clears addr
+                    if sr1.addr() {
+                        was_gencall = sr2_data.gencall();
+                        if sr2_data.tra() {
+                            // bail immediately so that the handler can respond
+                            return Poll::Ready(Ok(Command::Read));
+                        }
+                    }
+                    if sr1.btf() {
+                        missed_bytes = true;
+                    }
+                    if sr1.stopf() {
+                        // stop acking shit
+                        self.info.regs.cr1().modify(|reg| {
+                            reg.set_ack(false);
+                        });
+                        return Poll::Ready(match result {
+                            Some(Ok(Command::Read)) => Ok(Command::Read),
+                            Some(Err(e)) => Err(e),
+                            _ => if was_gencall {
+                                    Ok(Command::GeneralCall(0)) // these sizes are just thrown away
+                                } else {
+                                    Ok(Command::Write(0))
+                                }
+                        })
+                    }
+                }
+            }
+            // When pending, (re-)enable interrupts to wake us up.
+            Self::enable_interrupts(self.info);
+            Poll::Pending
+        });
+        let res = match futures_util::future::select(dma_transfer, waiter).await {
+            // DMA transfer completed first
+            futures_util::future::Either::Right((Ok(Command::GeneralCall(_)), dma_transfer)) => 
+                return Ok(Command::GeneralCall(buf_len - dma_transfer.get_remaining_transfers() as usize)),
+            futures_util::future::Either::Right((Ok(Command::Write(_)), dma_transfer)) => 
+                return Ok(Command::Write(buf_len - dma_transfer.get_remaining_transfers() as usize)),
+            futures_util::future::Either::Right((e, _)) => return e,
+            futures_util::future::Either::Left((_, waiter)) => {
+                // the DMA transfer has completed before the I2C transaction is finished
+                // we now reinitialize the DMA transfer with a circular buffer to "ride out" the rest of the transaction
+                waiter
+            },
+        };
+        let mut dump : [u8; 1] = [0; 1];
+        let _rx_dump = unsafe {
+            let src = self.info.regs.dr().as_ptr() as *mut u8;
+            let mut cfg = TransferOptions::default();
+            cfg.circular = true;
+            rx.read_repeated(src, &mut dump, cfg)
+        };
+        let _ = res.await; // ride out the I2C transaction to the STOPF
+        return Err(SlaveError::PartialWrite(buf_len))
+    }
+    async fn listen_no_dma(&mut self, buffer: &mut [u8]) -> Result<Command, SlaveError> {
         let state = self.state;
         let ptr_data = self.info.regs.cr1().as_ptr();
         self.info.regs.cr1().modify(|reg| reg.set_pe(true));
@@ -881,7 +993,7 @@ impl <'d> I2c<'d, Async, MultiMaster> {
             reg.set_itbufen(true);
             reg.set_iterren(true);
         });
-        let on_drop = OnDrop::new(|| {
+        let _on_drop = OnDrop::new(|| {
             self.info.regs.cr2().modify(|w| {
                 w.set_itbufen(false);
                 w.set_iterren(false);
