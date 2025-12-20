@@ -5,8 +5,9 @@
 // Special thanks to the Embassy Project and its contributors for their work!
 
 /// Get this device's unique 128-bit ID.
+/// The datasheet (seems to) specify a 128-bit UID, while the SDK uses 96-bit.
+/// We read the full 128 bits to ensure uniqueness.
 /// Note that the last 4 bytes of the ID consist of unknown "internal coding" and fixed values.
-/// Only the first 96 bits have known or otherwise documented structure.
 pub fn uid() -> [u8; 16] {
     unsafe { *crate::pac::UID.uid(0).as_ptr().cast::<[u8; 16]>() }
 }
