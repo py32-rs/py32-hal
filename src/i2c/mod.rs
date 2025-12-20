@@ -262,7 +262,7 @@ pub enum SlaveError {
 }
 
 
-impl<'d, M: MasterMode> I2c<'d, Blocking, M> {
+impl<'d> I2c<'d, Blocking, Master> {
     /// Create a new blocking I2C driver.
     pub fn new_blocking<T: Instance>(
         peri: impl Peripheral<P = T> + 'd,
