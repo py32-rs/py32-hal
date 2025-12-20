@@ -367,7 +367,6 @@ impl<'d, M: PeriMode, Ms: MasterMode> I2c<'d, M, Ms> {
     }
 
     // Async
-    #[cfg(dma)]
     #[inline] // pretty sure this should always be inlined
     fn enable_interrupts(info: &'static Info) -> () {
         info.regs.cr2().modify(|w| {
