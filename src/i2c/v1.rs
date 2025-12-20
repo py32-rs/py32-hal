@@ -4,17 +4,14 @@
 // https://github.com/embassy-rs/embassy/tree/main/embassy-stm32
 // Special thanks to the Embassy Project and its contributors for their work!
 
-#[cfg(dma)]
 use core::future::poll_fn;
 use core::ptr;
-#[cfg(dma)]
 use core::task::Poll;
 
 use embassy_embedded_hal::SetConfig;
 use embassy_futures::select::Select;
 #[cfg(dma)]
 use embassy_futures::select::{select, Either};
-#[cfg(dma)]
 use embassy_hal_internal::drop::OnDrop;
 use embedded_hal_1::i2c::Operation;
 use futures_util::{FutureExt, future};
@@ -22,6 +19,7 @@ use futures_util::{FutureExt, future};
 use py32_metapac::dma;
 
 use super::*;
+#[cfg(dma)]
 use crate::dma::TransferOptions;
 use crate::mode::Mode as PeriMode;
 use crate::pac::i2c;

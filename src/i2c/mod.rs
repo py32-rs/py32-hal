@@ -191,7 +191,9 @@ impl<'d> I2c<'d, Async, Master> {
             state: self.state,
             kernel_clock: self.kernel_clock,
             _drop_guard: self._drop_guard,
+            #[cfg(dma)]
             tx_dma: self.tx_dma.take(),
+            #[cfg(dma)]
             rx_dma: self.rx_dma.take(),
             #[cfg(feature = "time")]
             timeout: self.timeout,
