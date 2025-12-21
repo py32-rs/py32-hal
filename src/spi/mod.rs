@@ -9,7 +9,7 @@ use embassy_futures::join::join;
 use embassy_hal_internal::{Peripheral, PeripheralRef};
 pub use embedded_hal_02::spi::{MODE_0, MODE_1, MODE_2, MODE_3, Mode, Phase, Polarity};
 
-use crate::dma::{ChannelAndRequest, word};
+use crate::dma::{ChannelAndRequest, TransferOptions, word};
 use crate::gpio::{AfType, AnyPin, OutputType, Pin, Pull, SealedPin, Speed};
 use crate::mode::{Async, Blocking, Mode as PeriMode};
 use crate::pac::spi::{Spi as Regs, regs, vals};
@@ -159,7 +159,14 @@ impl Config {
     }
 
     fn nss_af(&self) -> AfType {
-        AfType::input(self.miso_pull)
+        AfType::output_pull(
+            OutputType::PushPull,
+            self.gpio_speed,
+            match self.mode.polarity {
+                Polarity::IdleLow => Pull::Down,
+                Polarity::IdleHigh => Pull::Up,
+            },
+        )
     }
 }
 
@@ -467,6 +474,13 @@ impl<'d> Spi<'d, Blocking, Slave> {
     }
 }
 
+impl<'d, M: PeriMode> Spi<'d, M, Slave> {
+    pub fn set_cs(&mut self, cs: bool) {
+        // should this error out if there's a CS pin assigned?
+        self.info.regs.cr1().modify(|w| w.set_ssi(cs));
+    }
+}
+
 impl<'d> Spi<'d, Blocking, Master> {
     /// Create a new blocking SPI driver.
     pub fn new_blocking<T: Instance>(
@@ -548,25 +562,43 @@ impl<'d> Spi<'d, Blocking, Master> {
 }
 
 impl<'d> Spi<'d, Async, Slave> {
-    /// Create a new SPI slave driver.
-    pub fn new_slave<T: Instance>(
+    pub fn new_slave_txonly_no_cs<T: Instance>(
         peri: impl Peripheral<P = T> + 'd,
         sck: impl Peripheral<P = impl SckPin<T>> + 'd,
-        mosi: impl Peripheral<P = impl MosiPin<T>> + 'd,
         miso: impl Peripheral<P = impl MisoPin<T>> + 'd,
-        cs: impl Peripheral<P = impl CsPin<T>> + 'd,
-        tx_dma: impl Peripheral<P = impl TxDma<T>> + 'd,
-        rx_dma: impl Peripheral<P = impl RxDma<T>> + 'd,
+        tx_dma: Option<impl Peripheral<P = impl TxDma<T>> + 'd>,
         config: Config,
     ) -> Self {
         Self::new_inner(
             peri,
             new_pin!(sck, config.sck_af()),
-            new_pin!(mosi, config.mosi_af()),
+            None,
             new_pin!(miso, config.miso_af()),
-            new_pin!(cs, config.nss_af()),
-            new_dma!(tx_dma),
-            new_dma!(rx_dma),
+            None,
+            tx_dma.and_then(|d| new_dma!(d)),
+            None,
+            config,
+        )
+    }
+    /// Create a new SPI slave driver.
+    pub fn new_slave<T: Instance>(
+        peri: impl Peripheral<P = T> + 'd,
+        sck: impl Peripheral<P = impl SckPin<T>> + 'd,
+        mosi: Option<impl Peripheral<P = impl MosiPin<T>> + 'd>,
+        miso: Option<impl Peripheral<P = impl MisoPin<T>> + 'd>,
+        cs: Option<impl Peripheral<P = impl CsPin<T>> + 'd>,
+        tx_dma: Option<impl Peripheral<P = impl TxDma<T>> + 'd>,
+        rx_dma: Option<impl Peripheral<P = impl RxDma<T>> + 'd>,
+        config: Config,
+    ) -> Self {
+        Self::new_inner(
+            peri,
+            new_pin!(sck, config.sck_af()),
+            mosi.and_then(|mosi| new_pin!(mosi, config.mosi_af())),
+            miso.and_then(|miso| new_pin!(miso, config.miso_af())),
+            cs.and_then(|cs| new_pin!(cs, config.nss_af())),
+            tx_dma.and_then(|d| new_dma!(d)),
+            rx_dma.and_then(|d| new_dma!(d)),
             config,
         )
     }
@@ -695,6 +727,14 @@ impl<'d> Spi<'d, Async, Master> {
 impl<'d, CM: CommunicationMode> Spi<'d, Async, CM> {
     /// SPI write, using DMA.
     pub async fn write<W: Word>(&mut self, data: &[W]) -> Result<(), Error> {
+        return self.write_with_dma_cfg(data, Default::default()).await
+    }
+    /// SPI write, using specific DMA configuration.
+    pub async fn write_with_dma_cfg<W: Word>(&mut self, data: &[W], opts : TransferOptions) -> Result<(), Error> {
+        return self.write_raw_with_dma_cfg(data, opts).await;
+    }
+    /// SPI write, using specific DMA configuration & raw pointer.
+    pub async fn write_raw_with_dma_cfg<W: Word>(&mut self, data: *const [W], opts : TransferOptions) -> Result<(), Error> {
         if data.is_empty() {
             return Ok(());
         }
@@ -705,7 +745,7 @@ impl<'d, CM: CommunicationMode> Spi<'d, Async, CM> {
         self.set_word_size(W::CONFIG);
 
         let tx_dst = self.info.regs.tx_ptr();
-        let tx_f = unsafe { self.tx_dma.as_mut().unwrap().write(data, tx_dst, Default::default()) };
+        let tx_f = unsafe { self.tx_dma.as_mut().unwrap().write_raw(data, tx_dst, opts) };
 
         set_txdmaen(self.info.regs, true);
         self.info.regs.cr1().modify(|w| {
