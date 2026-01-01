@@ -65,6 +65,8 @@ pub enum Error {
     Overrun,
     /// Zero-length transfers are not allowed.
     ZeroLengthTransfer,
+    /// Bus busy when trying to transmit
+    Busy
 }
 
 /// I2C config
@@ -468,6 +470,7 @@ impl embedded_hal_1::i2c::Error for Error {
             Self::Crc => embedded_hal_1::i2c::ErrorKind::Other,
             Self::Overrun => embedded_hal_1::i2c::ErrorKind::Overrun,
             Self::ZeroLengthTransfer => embedded_hal_1::i2c::ErrorKind::Other,
+            Self::Busy => embedded_hal_1::i2c::ErrorKind::Other
         }
     }
 }
