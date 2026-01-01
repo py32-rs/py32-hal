@@ -100,6 +100,41 @@ impl<'d, M: PeriMode, Ms: MasterMode> I2c<'d, M, Ms> {
             reg.set_pe(true);
         });
     }
+    pub fn hard_reset(&mut self) {
+        let cr1 = self.info.regs.cr1().read();
+        let cr2 = self.info.regs.cr2().read();
+        let ccr = self.info.regs.ccr().read();
+        let oar = self.info.regs.oar1().read();
+        let trise = self.info.regs.trise().read();
+        self.info.regs.cr1().modify(|reg| {
+            reg.set_pe(false);
+        });
+        self.info.regs.cr1().modify(|reg| {
+            reg.set_swrst(true);
+        });
+        self.info.regs.cr1().modify(|reg| {
+            reg.set_swrst(false);
+            reg.set_engc(cr1.engc());
+            reg.set_nostretch(cr1.nostretch());
+        });
+        self.info.regs.cr2().modify(|reg| {
+            reg.set_freq(cr2.freq());
+        });
+        self.info.regs.oar1().modify(|reg| {
+            reg.set_add(oar.add());
+        });
+        self.info.regs.ccr().modify(|reg| {
+            reg.set_f_s(ccr.f_s());
+            reg.set_duty(ccr.duty());
+            reg.set_ccr(ccr.ccr());
+        });
+        self.info.regs.trise().modify(|reg| {
+            reg.set_trise(trise.trise());
+        });
+        self.info.regs.cr1().modify(|reg| {
+            reg.set_pe(true);
+        });
+    }
     #[inline(never)]
     fn check_and_clear_error_flags(info: &'static Info) -> Result<i2c::regs::Sr1, Error> {
         // Note that flags should only be cleared once they have been registered. If flags are
@@ -384,6 +419,16 @@ impl<'d, Ms:MasterMode> I2c<'d, Async, Ms> {
         write: &[u8],
         frame: FrameOptions,
     ) -> Result<(), Error> {
+        self.write_frame_timeout(address, write, frame, None).await
+    }
+    async fn write_frame_timeout(
+        &mut self,
+        address: u8,
+        write: &[u8],
+        frame: FrameOptions,
+        start_timeout: Option<Timeout> // how long to take before timing out the start of the transaction
+    ) -> Result<(), Error> {
+
         self.info.regs.cr2().modify(|w| {
             // Note: Do not enable the ITBUFEN bit in the I2C_CR2 register if DMA is used for
             // reception.
@@ -404,6 +449,9 @@ impl<'d, Ms:MasterMode> I2c<'d, Async, Ms> {
                 w.set_itevten(false);
             })
         });
+        if self.info.regs.sr2().read().busy() {
+            return Err(Error::Busy)
+        }
 
         if frame.send_start() {
             // Send a START condition
@@ -412,13 +460,19 @@ impl<'d, Ms:MasterMode> I2c<'d, Async, Ms> {
             });
 
             // Wait until START condition was generated
-            poll_fn(|cx| {
+            let start = poll_fn(|cx| {
                 self.state.waker.register(cx.waker());
 
                 match Self::check_and_clear_error_flags(self.info) {
                     Err(e) => Poll::Ready(Err(e)),
                     Ok(sr1) => {
                         if sr1.start() {
+                            // Check if we were the ones to generate START
+                            if self.info.regs.cr1().read().start() || !self.info.regs.sr2().read().msl() {
+                                return Poll::Ready(Err(Error::Arbitration));
+                            }
+                            // Set up current address we're trying to talk to
+                            self.info.regs.dr().write(|reg| reg.set_dr(address << 1));
                             Poll::Ready(Ok(()))
                         } else {
                             // When pending, (re-)enable interrupts to wake us up.
@@ -427,19 +481,24 @@ impl<'d, Ms:MasterMode> I2c<'d, Async, Ms> {
                         }
                     }
                 }
-            })
-            .await?;
-
-            // Check if we were the ones to generate START
-            if self.info.regs.cr1().read().start() || !self.info.regs.sr2().read().msl() {
-                return Err(Error::Arbitration);
+            });
+            if let Some(to) = start_timeout {
+                use embassy_time::WithTimeout;
+                match start.with_deadline(to.deadline).await {
+                    Ok(r) => r,
+                    Err(_) => {
+                        self.info.regs.cr1().modify(|w| {
+                            w.set_start(false);
+                        });
+                        self.hard_reset();
+                        Err(Error::Timeout)
+                    },
+                }?;
+            } else {
+                start.await?;                
             }
-
-            // Set up current address we're trying to talk to
-            self.info.regs.dr().write(|reg| reg.set_dr(address << 1));
-
             // Wait for the address to be acknowledged
-            poll_fn(|cx| {
+            let addr = poll_fn(|cx| {
                 self.state.waker.register(cx.waker());
 
                 match Self::check_and_clear_error_flags(self.info) {
@@ -454,8 +513,13 @@ impl<'d, Ms:MasterMode> I2c<'d, Async, Ms> {
                         }
                     }
                 }
-            })
-            .await?;
+            });
+            // a timeout waiting for the ACK means that the peripheral clock stretched, which is then *not our problem*
+            if let Some(to) = start_timeout {
+                to.with(addr).await?;
+            } else {
+                addr.await?;                
+            }
 
             // Clear condition by reading SR2
             self.info.regs.sr2().read();
@@ -533,6 +597,12 @@ impl<'d, Ms:MasterMode> I2c<'d, Async, Ms> {
     /// Write.
     pub async fn write(&mut self, address: u8, write: &[u8]) -> Result<(), Error> {
         self.write_frame(address, write, FrameOptions::FirstAndLastFrame)
+            .await?;
+
+        Ok(())
+    }
+    pub async fn write_start_timeout(&mut self, address: u8, write: &[u8], start_timeout: Instant) -> Result<(), Error> {
+        self.write_frame_timeout(address, write, FrameOptions::FirstAndLastFrame, Some(Timeout { deadline: start_timeout }))
             .await?;
 
         Ok(())
