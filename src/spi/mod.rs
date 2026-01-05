@@ -8,7 +8,6 @@ use embassy_embedded_hal::SetConfig;
 use embassy_futures::join::join;
 use embassy_hal_internal::{Peripheral, PeripheralRef};
 pub use embedded_hal_02::spi::{MODE_0, MODE_1, MODE_2, MODE_3, Mode, Phase, Polarity};
-
 use crate::dma::{ChannelAndRequest, TransferOptions, word};
 use crate::gpio::{AfType, AnyPin, OutputType, Pin, Pull, SealedPin, Speed};
 use crate::mode::{Async, Blocking, Mode as PeriMode};
@@ -277,6 +276,7 @@ impl<'d, M: PeriMode, CM: CommunicationMode> Spi<'d, M, CM> {
         regs.cr2().modify(|w| {
             w.set_ssoe(ssoe);
             w.set_ds(<u8 as SealedWord>::CONFIG);
+            w.set_frxth(if <u8 as SealedWord>::CONFIG { vals::Frxth::HALF } else { vals::Frxth::QUARTER });
         });
         regs.cr1().modify(|w| {
             w.set_cpha(cpha);
@@ -384,11 +384,12 @@ impl<'d, M: PeriMode, CM: CommunicationMode> Spi<'d, M, CM> {
             return;
         }
 
-        self.info.regs.cr1().modify(|w| {
+        self.info.regs.cr1().modify(|w: &mut regs::Cr1| {
             w.set_spe(false);
         });
         self.info.regs.cr2().modify(|reg| {
             reg.set_ds(word_size);
+            reg.set_frxth(if word_size { vals::Frxth::HALF } else { vals::Frxth::QUARTER });
         });
 
         self.current_word_size = word_size;
@@ -397,10 +398,12 @@ impl<'d, M: PeriMode, CM: CommunicationMode> Spi<'d, M, CM> {
     /// Blocking write.
     pub fn blocking_write<W: Word>(&mut self, words: &[W]) -> Result<(), Error> {
         self.set_word_size(W::CONFIG);
-        self.info.regs.cr1().modify(|w| w.set_spe(true));
+        self.info.regs.cr1().modify(|w| {
+            w.set_spe(true);
+        });
         flush_rx_fifo(self.info.regs);
         for word in words.iter() {
-            transfer_word(self.info.regs, *word)?;
+            write_word(self.info.regs, *word)?;
         }
         Ok(())
     }
@@ -449,6 +452,14 @@ impl<'d, M: PeriMode, CM: CommunicationMode> Spi<'d, M, CM> {
         }
         Ok(())
     }
+
+    // sucks but there's literally no interrupt for this
+    // the TX complete interrupt is actually all-data-transmitted
+    // so you have to poll this to tell when the peripheral is done
+    pub fn busy(&mut self) -> bool {
+        let sr = self.info.regs.sr().read();
+        sr.bsy()
+    }
 }
 
 impl<'d> Spi<'d, Blocking, Slave> {
@@ -474,7 +485,7 @@ impl<'d> Spi<'d, Blocking, Slave> {
     }
 }
 
-impl<'d, M: PeriMode> Spi<'d, M, Slave> {
+impl<'d, M: PeriMode, Mo: CommunicationMode> Spi<'d, M, Mo> {
     pub fn set_cs(&mut self, cs: bool) {
         // should this error out if there's a CS pin assigned?
         self.info.regs.cr1().modify(|w| w.set_ssi(cs));
@@ -745,6 +756,32 @@ impl<'d, CM: CommunicationMode> Spi<'d, Async, CM> {
         self.set_word_size(W::CONFIG);
 
         let tx_dst = self.info.regs.tx_ptr();
+        
+        let tx_f = unsafe { self.tx_dma.as_mut().unwrap().write_raw(data, tx_dst, opts) };
+
+        set_txdmaen(self.info.regs, true);
+        self.info.regs.cr1().modify(|w| {
+            w.set_spe(true);
+        });
+        
+        tx_f.await;
+
+        finish_dma(self.info.regs);
+
+        Ok(())
+    }
+    /// SPI write, using specific DMA configuration & raw pointer.
+    pub fn write_raw_with_dma_cfg_xfer<W: Word>(&mut self, data: *const [W], opts : TransferOptions) -> Option<crate::dma::Transfer<'_>> {
+        if data.is_empty() {
+            return None;
+        }
+
+        self.info.regs.cr1().modify(|w| {
+            w.set_spe(false);
+        });
+        self.set_word_size(W::CONFIG);
+
+        let tx_dst = self.info.regs.tx_ptr();
         let tx_f = unsafe { self.tx_dma.as_mut().unwrap().write_raw(data, tx_dst, opts) };
 
         set_txdmaen(self.info.regs, true);
@@ -752,11 +789,7 @@ impl<'d, CM: CommunicationMode> Spi<'d, Async, CM> {
             w.set_spe(true);
         });
 
-        tx_f.await;
-
-        finish_dma(self.info.regs);
-
-        Ok(())
+        return Some(tx_f);
     }
 
     /// SPI read, using DMA.
