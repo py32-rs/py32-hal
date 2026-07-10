@@ -2,15 +2,20 @@
 // https://github.com/embassy-rs/embassy/tree/main/embassy-stm32
 // Special thanks to the Embassy Project and its contributors for their work!
 
+use core::future::poll_fn;
+use core::marker::PhantomData;
+use core::task::Poll;
+
 use embassy_hal_internal::into_ref;
 
 use super::blocking_delay_us;
 use crate::adc::{Adc, AdcChannel, Instance, Resolution, SampleTime};
+use crate::interrupt::typelevel::Interrupt;
 use crate::pac::adc::vals::Extsel;
 use crate::pac::RCC;
 use crate::peripherals::ADC1;
 use crate::time::Hertz;
-use crate::{rcc, Peripheral};
+use crate::{interrupt, rcc, Peripheral};
 
 mod ringbuffered_v2;
 pub use ringbuffered_v2::{RingBufferedAdc, Sequence};
@@ -19,6 +24,23 @@ pub use ringbuffered_v2::{RingBufferedAdc, Sequence};
 pub const VREF_DEFAULT_MV: u32 = 3300;
 /// VREF voltage used for factory calibration of VREFINTCAL register.
 pub const VREF_CALIB_MV: u32 = 3300;
+
+/// Interrupt handler.
+pub struct InterruptHandler<T: Instance> {
+    _phantom: PhantomData<T>,
+}
+
+impl<T: Instance> interrupt::typelevel::Handler<T::Interrupt> for InterruptHandler<T> {
+    unsafe fn on_interrupt() {
+        if T::regs().sr().read().eoc() {
+            T::regs().cr1().modify(|reg| reg.set_eocie(false));
+        } else {
+            return;
+        }
+
+        T::state().waker.wake();
+    }
+}
 
 pub struct VrefInt;
 impl AdcChannel<ADC1> for VrefInt {}
@@ -100,6 +122,14 @@ where
         Self::new_with_prediv(adc, presc)
     }
 
+    pub fn new_async(
+        adc: impl Peripheral<P = T> + 'd,
+        _irq: impl interrupt::typelevel::Binding<T::Interrupt, InterruptHandler<T>> + 'd,
+    ) -> Self {
+        let presc = Prescaler::from_pclk(T::frequency());
+        Self::new_with_prediv_async(adc, presc, _irq)
+    }
+
     /// adc_div: The PCLK division factor
     pub fn new_with_prediv(adc: impl Peripheral<P = T> + 'd, adc_div: Prescaler) -> Self {
         into_ref!(adc);
@@ -124,6 +154,22 @@ where
             adc,
             sample_time: SampleTime::from_bits(0),
         }
+    }
+
+    /// adc_div: The PCLK division factor
+    pub fn new_with_prediv_async(
+        adc: impl Peripheral<P = T> + 'd,
+        adc_div: Prescaler,
+        _irq: impl interrupt::typelevel::Binding<T::Interrupt, InterruptHandler<T>> + 'd,
+    ) -> Self {
+        let adc = Self::new_with_prediv(adc, adc_div);
+
+        T::Interrupt::unpend();
+        unsafe {
+            T::Interrupt::enable();
+        }
+
+        adc
     }
 
     pub fn set_sample_time(&mut self, sample_time: SampleTime) {
@@ -190,6 +236,32 @@ where
         T::regs().dr().read().0 as u16
     }
 
+    async fn convert_async(&mut self) -> u16 {
+        T::regs().sr().modify(|reg| {
+            reg.set_eoc(false);
+        });
+
+        T::regs().cr1().modify(|reg| reg.set_eocie(true));
+
+        T::regs().cr2().modify(|reg| {
+            reg.set_swstart(true);
+            reg.set_exttrig(true);
+        });
+
+        poll_fn(|cx| {
+            T::state().waker.register(cx.waker());
+
+            if T::regs().sr().read().eoc() {
+                Poll::Ready(())
+            } else {
+                Poll::Pending
+            }
+        })
+        .await;
+
+        T::regs().dr().read().0 as u16
+    }
+
     pub fn blocking_read(&mut self, channel: &mut impl AdcChannel<T>) -> u16 {
         channel.setup();
 
@@ -203,6 +275,21 @@ where
         Self::set_channel_sample_time(channel, self.sample_time);
 
         self.convert()
+    }
+
+    pub async fn read(&mut self, channel: &mut impl AdcChannel<T>) -> u16 {
+        channel.setup();
+
+        let channel = channel.channel();
+
+        // Select a single-channel regular sequence.
+        T::regs().sqr1().modify(|reg| reg.set_l(0));
+        T::regs().sqr3().write(|reg| reg.set_sq(0, channel));
+
+        // Configure channel
+        Self::set_channel_sample_time(channel, self.sample_time);
+
+        self.convert_async().await
     }
 
     fn set_channel_sample_time(ch: u8, sample_time: SampleTime) {
