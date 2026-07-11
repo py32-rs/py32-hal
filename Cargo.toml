@@ -1,7 +1,7 @@
 [package]
 name = "py32-hal"
 version = "0.4.0"
-edition = "2021"
+edition = "2024"
 authors = ["Decaday <myDecaday@outlook.com>", "Andelf <andelf@gmail.com>"]
 description = "HAL and Embassy support for the Py32 family of microcontrollers"
 repository = "https://github.com/py32-rs/py32-hal"

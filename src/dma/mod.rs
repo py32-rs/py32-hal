@@ -15,7 +15,7 @@ pub(crate) use util::*;
 pub(crate) mod ringbuffer;
 pub mod word;
 
-use embassy_hal_internal::{impl_peripheral, Peri, PeripheralType};
+use embassy_hal_internal::{impl_peripheral, PeripheralType};
 
 use crate::interrupt;
 
@@ -61,9 +61,9 @@ macro_rules! dma_channel_impl {
             }
         }
         impl crate::dma::ChannelInterrupt for crate::peripherals::$channel_peri {
-            unsafe fn on_irq() {
+            unsafe fn on_irq() { unsafe {
                 crate::dma::AnyChannel { id: $index }.on_irq();
-            }
+            }}
         }
 
         impl crate::dma::Channel for crate::peripherals::$channel_peri {}
@@ -113,6 +113,6 @@ impl_peripheral!(NoDma);
 pub(crate) unsafe fn init(
     cs: critical_section::CriticalSection,
     dma_priority: interrupt::Priority,
-) {
+) { unsafe {
     dma::init(cs, dma_priority);
-}
+}}

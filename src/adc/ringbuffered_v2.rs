@@ -6,7 +6,7 @@ use core::marker::PhantomData;
 use core::mem;
 use core::sync::atomic::{compiler_fence, Ordering};
 
-use embassy_hal_internal::{impl_peripheral, Peri, PeripheralType};
+use embassy_hal_internal::Peri;
 use py32_metapac::adc::vals::SampleTime;
 
 use crate::adc::{Adc, AdcChannel, Instance, RxDma};

@@ -7,7 +7,7 @@
 use core::marker::PhantomData;
 
 use crate::pac::timer::vals;
-use embassy_hal_internal::{impl_peripheral, Peri, PeripheralType};
+use embassy_hal_internal::Peri;
 
 use super::low_level::Timer;
 use super::{Channel1Pin, Channel2Pin, GeneralInstance4Channel};

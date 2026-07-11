@@ -7,7 +7,7 @@
 use core::marker::PhantomData;
 
 use crate::pac::timer::vals::Ckd;
-use embassy_hal_internal::{impl_peripheral, Peri, PeripheralType};
+use embassy_hal_internal::Peri;
 
 use super::low_level::{CountingMode, OutputPolarity, Timer};
 use super::simple_pwm::{Ch1, Ch2, Ch3, Ch4, PwmPin};
@@ -274,7 +274,7 @@ fn compute_dead_time_value(value: u16) -> (Ckd, u8) {
 
 #[cfg(test)]
 mod tests {
-    use super::{compute_dead_time_value, Ckd};
+    use super::{Ckd, compute_dead_time_value};
 
     #[test]
     fn test_compute_dead_time_value() {

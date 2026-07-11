@@ -14,7 +14,7 @@ use core::task::Poll;
 use embassy_embedded_hal::SetConfig;
 #[cfg(dma)]
 use embassy_hal_internal::drop::OnDrop;
-use embassy_hal_internal::{impl_peripheral, Peri, PeripheralType};
+use embassy_hal_internal::{Peri, PeripheralType};
 use embassy_sync::waitqueue::AtomicWaker;
 #[cfg(dma)]
 use futures_util::future::{select, Either};
@@ -41,9 +41,9 @@ pub struct InterruptHandler<T: Instance> {
 }
 
 impl<T: Instance> interrupt::typelevel::Handler<T::Interrupt> for InterruptHandler<T> {
-    unsafe fn on_interrupt() {
+    unsafe fn on_interrupt() { unsafe {
         on_interrupt(T::info().regs, T::state())
-    }
+    }}
 }
 
 unsafe fn on_interrupt(r: Regs, s: &'static State) {

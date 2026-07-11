@@ -6,7 +6,7 @@ use core::future::poll_fn;
 use core::marker::PhantomData;
 use core::task::Poll;
 
-use embassy_hal_internal::{impl_peripheral, Peri, PeripheralType};
+use embassy_hal_internal::Peri;
 use py32_metapac::adc::vals::Ckmode;
 
 use super::blocking_delay_us;

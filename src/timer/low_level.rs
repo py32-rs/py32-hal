@@ -13,7 +13,7 @@
 use core::mem::ManuallyDrop;
 
 use crate::pac;
-use embassy_hal_internal::{impl_peripheral, Peri, PeripheralType};
+use embassy_hal_internal::Peri;
 // Re-export useful enums
 pub use pac::timer::vals::{FilterValue, Sms as SlaveMode, Ts as TriggerSource};
 

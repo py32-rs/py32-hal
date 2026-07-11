@@ -4,7 +4,7 @@
 // https://github.com/embassy-rs/embassy/tree/main/embassy-stm32
 // Special thanks to the Embassy Project and its contributors for their work!
 
-use embassy_hal_internal::{impl_peripheral, Peri, PeripheralType};
+use embassy_hal_internal::Peri;
 
 use super::low_level::{
     CountingMode, InputCaptureMode, InputTISelection, SlaveMode, Timer, TriggerSource,

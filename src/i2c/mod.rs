@@ -11,7 +11,7 @@ use core::future::Future;
 use core::iter;
 use core::marker::PhantomData;
 
-use embassy_hal_internal::{impl_peripheral, Peri, PeripheralType};
+use embassy_hal_internal::Peri;
 use embassy_sync::waitqueue::AtomicWaker;
 #[cfg(feature = "time")]
 use embassy_time::{Duration, Instant};
@@ -295,9 +295,9 @@ pub struct GlobalInterruptHandler<T: Instance> {
 }
 
 impl<T: Instance> interrupt::typelevel::Handler<T::GlobalInterrupt> for GlobalInterruptHandler<T> {
-    unsafe fn on_interrupt() {
+    unsafe fn on_interrupt() { unsafe {
         v1::on_interrupt::<T>()
-    }
+    }}
 }
 
 foreach_peripheral!(

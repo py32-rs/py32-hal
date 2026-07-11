@@ -11,13 +11,13 @@ use core::sync::atomic::{AtomicBool, AtomicU8, Ordering};
 use core::task::Poll;
 
 use embassy_embedded_hal::SetConfig;
+use embassy_hal_internal::Peri;
 use embassy_hal_internal::atomic_ring_buffer::RingBuffer;
-use embassy_hal_internal::{impl_peripheral, Peri, PeripheralType};
 use embassy_sync::waitqueue::AtomicWaker;
 
 use super::{
-    clear_interrupt_flags, configure, rdr, reconfigure, send_break, sr, tdr, Config, ConfigError,
-    CtsPin, Error, Info, Instance, Regs, RtsPin, RxPin, TxPin,
+    Config, ConfigError, CtsPin, Error, Info, Instance, Regs, RtsPin, RxPin, TxPin,
+    clear_interrupt_flags, configure, rdr, reconfigure, send_break, sr, tdr,
 };
 use crate::gpio::{AfType, AnyPin, OutputType, Pull, SealedPin as _, Speed};
 use crate::interrupt::{self, InterruptExt};
@@ -30,94 +30,96 @@ pub struct InterruptHandler<T: Instance> {
 
 impl<T: Instance> interrupt::typelevel::Handler<T::Interrupt> for InterruptHandler<T> {
     unsafe fn on_interrupt() {
-        on_interrupt(T::info().regs, T::buffered_state())
+        unsafe { on_interrupt(T::info().regs, T::buffered_state()) }
     }
 }
 
 unsafe fn on_interrupt(r: Regs, state: &'static State) {
-    // RX
-    let sr_val = sr(r).read();
-    // On v1 & v2, reading DR clears the rxne, error and idle interrupt
-    // flags. Keep this close to the SR read to reduce the chance of a
-    // flag being set in-between.
-    let dr = if sr_val.rxne() || (sr_val.ore() || sr_val.idle()) {
-        Some(rdr(r).read_volatile())
-    } else {
-        None
-    };
-    clear_interrupt_flags(r, sr_val);
-
-    if sr_val.pe() {
-        warn!("Parity error");
-    }
-    if sr_val.fe() {
-        warn!("Framing error");
-    }
-    if sr_val.ne() {
-        warn!("Noise error");
-    }
-    if sr_val.ore() {
-        warn!("Overrun error");
-    }
-    if sr_val.rxne() {
-        let mut rx_writer = state.rx_buf.writer();
-        let buf = rx_writer.push_slice();
-        if !buf.is_empty() {
-            if let Some(byte) = dr {
-                buf[0] = byte;
-                rx_writer.push_done(1);
-            }
+    unsafe {
+        // RX
+        let sr_val = sr(r).read();
+        // On v1 & v2, reading DR clears the rxne, error and idle interrupt
+        // flags. Keep this close to the SR read to reduce the chance of a
+        // flag being set in-between.
+        let dr = if sr_val.rxne() || (sr_val.ore() || sr_val.idle()) {
+            Some(rdr(r).read_volatile())
         } else {
-            // FIXME: Should we disable any further RX interrupts when the buffer becomes full.
+            None
+        };
+        clear_interrupt_flags(r, sr_val);
+
+        if sr_val.pe() {
+            warn!("Parity error");
+        }
+        if sr_val.fe() {
+            warn!("Framing error");
+        }
+        if sr_val.ne() {
+            warn!("Noise error");
+        }
+        if sr_val.ore() {
+            warn!("Overrun error");
+        }
+        if sr_val.rxne() {
+            let mut rx_writer = state.rx_buf.writer();
+            let buf = rx_writer.push_slice();
+            if !buf.is_empty() {
+                if let Some(byte) = dr {
+                    buf[0] = byte;
+                    rx_writer.push_done(1);
+                }
+            } else {
+                // FIXME: Should we disable any further RX interrupts when the buffer becomes full.
+            }
+
+            if !state.rx_buf.is_empty() {
+                state.rx_waker.wake();
+            }
         }
 
-        if !state.rx_buf.is_empty() {
+        if sr_val.idle() {
             state.rx_waker.wake();
         }
-    }
 
-    if sr_val.idle() {
-        state.rx_waker.wake();
-    }
+        // With `usart_v4` hardware FIFO is enabled and Transmission complete (TC)
+        // indicates that all bytes are pushed out from the FIFO.
+        // For other usart variants it shows that last byte from the buffer was just sent.
+        if sr_val.tc() {
+            // For others it is cleared above with `clear_interrupt_flags`.
+            sr(r).modify(|w| w.set_tc(false));
 
-    // With `usart_v4` hardware FIFO is enabled and Transmission complete (TC)
-    // indicates that all bytes are pushed out from the FIFO.
-    // For other usart variants it shows that last byte from the buffer was just sent.
-    if sr_val.tc() {
-        // For others it is cleared above with `clear_interrupt_flags`.
-        sr(r).modify(|w| w.set_tc(false));
-
-        r.cr1().modify(|w| {
-            w.set_tcie(false);
-        });
-
-        state.tx_done.store(true, Ordering::Release);
-        state.tx_waker.wake();
-    }
-
-    // TX
-    if sr(r).read().txe() {
-        let mut tx_reader = state.tx_buf.reader();
-        let buf = tx_reader.pop_slice();
-        if !buf.is_empty() {
             r.cr1().modify(|w| {
-                w.set_txeie(true);
+                w.set_tcie(false);
             });
 
-            // Enable transmission complete interrupt when last byte is going to be sent out.
-            if buf.len() == 1 {
+            state.tx_done.store(true, Ordering::Release);
+            state.tx_waker.wake();
+        }
+
+        // TX
+        if sr(r).read().txe() {
+            let mut tx_reader = state.tx_buf.reader();
+            let buf = tx_reader.pop_slice();
+            if !buf.is_empty() {
                 r.cr1().modify(|w| {
-                    w.set_tcie(true);
+                    w.set_txeie(true);
+                });
+
+                // Enable transmission complete interrupt when last byte is going to be sent out.
+                if buf.len() == 1 {
+                    r.cr1().modify(|w| {
+                        w.set_tcie(true);
+                    });
+                }
+
+                tdr(r).write_volatile(buf[0].into());
+                tx_reader.pop_done(1);
+            } else {
+                // Disable interrupt until we have something to transmit again.
+                r.cr1().modify(|w| {
+                    w.set_txeie(false);
                 });
             }
-
-            tdr(r).write_volatile(buf[0].into());
-            tx_reader.pop_done(1);
-        } else {
-            // Disable interrupt until we have something to transmit again.
-            r.cr1().modify(|w| {
-                w.set_txeie(false);
-            });
         }
     }
 }

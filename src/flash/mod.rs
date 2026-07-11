@@ -3,7 +3,7 @@ use core::sync::atomic::{fence, Ordering};
 
 use crate::pac::rcc::vals::HsiFs;
 use embassy_hal_internal::drop::OnDrop;
-use embassy_hal_internal::{impl_peripheral, Peri, PeripheralType};
+use embassy_hal_internal::Peri;
 use embedded_storage::nor_flash::{NorFlashError, NorFlashErrorKind};
 
 use crate::mode::{Async, Blocking};
@@ -173,7 +173,7 @@ pub(super) unsafe fn write_chunk_unlocked(
     address: u32,
     chunk: &[u8],
     timing_configured: Option<HsiFs>,
-) -> Result<(), Error> {
+) -> Result<(), Error> { unsafe {
     low_level::clear_all_err();
     fence(Ordering::SeqCst);
     low_level::unlock();
@@ -190,20 +190,20 @@ pub(super) unsafe fn write_chunk_unlocked(
     });
 
     low_level::blocking_write(address, unwrap!(chunk.try_into()))
-}
+}}
 
 pub(super) unsafe fn write_chunk_with_critical_section(
     address: u32,
     chunk: &[u8],
     timing_configured: Option<HsiFs>,
-) -> Result<(), Error> {
+) -> Result<(), Error> { unsafe {
     critical_section::with(|_| write_chunk_unlocked(address, chunk, timing_configured))
-}
+}}
 
 pub(super) unsafe fn erase_unit_unlocked(
     unit: &FlashUnit,
     timing_configured: Option<HsiFs>,
-) -> Result<(), Error> {
+) -> Result<(), Error> { unsafe {
     low_level::clear_all_err();
     fence(Ordering::SeqCst);
     low_level::unlock();
@@ -214,14 +214,14 @@ pub(super) unsafe fn erase_unit_unlocked(
     let _on_drop = OnDrop::new(|| low_level::lock());
 
     low_level::blocking_erase_unit(unit)
-}
+}}
 
 pub(super) unsafe fn erase_unit_with_critical_section(
     unit: &FlashUnit,
     timing_configured: Option<HsiFs>,
-) -> Result<(), Error> {
+) -> Result<(), Error> { unsafe {
     critical_section::with(|_| erase_unit_unlocked(unit, timing_configured))
-}
+}}
 
 pub(super) fn get_sector(address: u32) -> FlashSector {
     let index = (address - FLASH_BASE as u32) / SECTOR_SIZE as u32;

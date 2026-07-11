@@ -722,12 +722,12 @@ foreach_pin!(
     };
 );
 
-pub(crate) unsafe fn init(_cs: CriticalSection) {
+pub(crate) unsafe fn init(_cs: CriticalSection) { unsafe {
     // #[cfg(afio)]
     // crate::rcc::enable_and_reset_with_cs::<crate::peripherals::AFIO>(_cs);
 
     crate::_generated::init_gpio();
-}
+}}
 
 impl<'d> embedded_hal_02::digital::v2::InputPin for Input<'d> {
     type Error = Infallible;

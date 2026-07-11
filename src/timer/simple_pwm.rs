@@ -7,7 +7,7 @@
 use core::marker::PhantomData;
 use core::mem::ManuallyDrop;
 
-use embassy_hal_internal::{impl_peripheral, Peri, PeripheralType};
+use embassy_hal_internal::Peri;
 
 use super::low_level::{CountingMode, OutputCompareMode, OutputPolarity, Timer};
 use super::{Channel, Channel1Pin, Channel2Pin, Channel3Pin, Channel4Pin, GeneralInstance4Channel};

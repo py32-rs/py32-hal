@@ -22,7 +22,7 @@ impl<'d> ChannelAndRequest<'d> {
         peri_addr: *mut W,
         buf: &'a mut [W],
         options: TransferOptions,
-    ) -> Transfer<'a> {
+    ) -> Transfer<'a> { unsafe {
         Transfer::new_read(
             self.channel.reborrow(),
             self.request,
@@ -30,7 +30,7 @@ impl<'d> ChannelAndRequest<'d> {
             buf,
             options,
         )
-    }
+    }}
 
     #[allow(dead_code)]
     pub unsafe fn read_raw<'a, W: Word>(
@@ -38,7 +38,7 @@ impl<'d> ChannelAndRequest<'d> {
         peri_addr: *mut W,
         buf: *mut [W],
         options: TransferOptions,
-    ) -> Transfer<'a> {
+    ) -> Transfer<'a> { unsafe {
         Transfer::new_read_raw(
             self.channel.reborrow(),
             self.request,
@@ -46,14 +46,14 @@ impl<'d> ChannelAndRequest<'d> {
             buf,
             options,
         )
-    }
+    }}
 
     pub unsafe fn write<'a, W: Word>(
         &'a mut self,
         buf: &'a [W],
         peri_addr: *mut W,
         options: TransferOptions,
-    ) -> Transfer<'a> {
+    ) -> Transfer<'a> { unsafe {
         Transfer::new_write(
             self.channel.reborrow(),
             self.request,
@@ -61,7 +61,7 @@ impl<'d> ChannelAndRequest<'d> {
             peri_addr,
             options,
         )
-    }
+    }}
 
     #[allow(dead_code)]
     pub unsafe fn write_raw<'a, W: Word>(
@@ -69,7 +69,7 @@ impl<'d> ChannelAndRequest<'d> {
         buf: *const [W],
         peri_addr: *mut W,
         options: TransferOptions,
-    ) -> Transfer<'a> {
+    ) -> Transfer<'a> { unsafe {
         Transfer::new_write_raw(
             self.channel.reborrow(),
             self.request,
@@ -77,7 +77,7 @@ impl<'d> ChannelAndRequest<'d> {
             peri_addr,
             options,
         )
-    }
+    }}
 
     #[allow(dead_code)]
     pub unsafe fn write_repeated<'a, W: Word>(
@@ -86,7 +86,7 @@ impl<'d> ChannelAndRequest<'d> {
         count: usize,
         peri_addr: *mut W,
         options: TransferOptions,
-    ) -> Transfer<'a> {
+    ) -> Transfer<'a> { unsafe {
         Transfer::new_write_repeated(
             self.channel.reborrow(),
             self.request,
@@ -95,5 +95,5 @@ impl<'d> ChannelAndRequest<'d> {
             peri_addr,
             options,
         )
-    }
+    }}
 }

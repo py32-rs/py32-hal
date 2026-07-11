@@ -2,7 +2,7 @@
 // https://github.com/embassy-rs/embassy/tree/main/embassy-stm32
 // Special thanks to the Embassy Project and its contributors for their work!
 
-use embassy_hal_internal::{impl_peripheral, Peri, PeripheralType};
+use embassy_hal_internal::Peri;
 
 use super::blocking_delay_us;
 use crate::adc::{Adc, AdcChannel, Instance, Resolution, SampleTime};

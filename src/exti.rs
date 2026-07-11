@@ -297,9 +297,9 @@ macro_rules! impl_irq {
         #[allow(non_snake_case)]
         #[cfg(feature = "rt")]
         #[interrupt]
-        unsafe fn $e() {
+        unsafe fn $e() { unsafe {
             on_irq()
-        }
+        }}
     };
 }
 
@@ -375,8 +375,8 @@ macro_rules! enable_irq {
 }
 
 /// safety: must be called only once
-pub(crate) unsafe fn init(_cs: critical_section::CriticalSection) {
+pub(crate) unsafe fn init(_cs: critical_section::CriticalSection) { unsafe {
     use crate::interrupt::typelevel::Interrupt;
 
     foreach_exti_irq!(enable_irq);
-}
+}}

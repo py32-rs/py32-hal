@@ -29,9 +29,9 @@ pub struct InterruptHandler<T: Instance> {
 }
 
 impl<T: Instance> interrupt::typelevel::Handler<T::Interrupt> for InterruptHandler<T> {
-    unsafe fn on_interrupt() {
+    unsafe fn on_interrupt() { unsafe {
         musb::on_interrupt::<UsbInstance>();
-    }
+    }}
 }
 
 fn init<T: Instance>() {

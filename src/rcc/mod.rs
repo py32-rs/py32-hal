@@ -59,15 +59,15 @@ static mut CLOCK_FREQS: MaybeUninit<Clocks> = MaybeUninit::uninit();
 /// Sets the clock frequencies
 ///
 /// Safety: Sets a mutable global.
-pub(crate) unsafe fn set_freqs(freqs: Clocks) {
+pub(crate) unsafe fn set_freqs(freqs: Clocks) { unsafe {
     debug!("rcc: {:?}", freqs);
     CLOCK_FREQS = MaybeUninit::new(freqs);
-}
+}}
 
 /// Safety: Reads a mutable global.
-pub(crate) unsafe fn get_freqs() -> &'static Clocks {
+pub(crate) unsafe fn get_freqs() -> &'static Clocks { unsafe {
     (*core::ptr::addr_of_mut!(CLOCK_FREQS)).assume_init_ref()
-}
+}}
 
 pub(crate) trait SealedRccPeripheral {
     fn frequency() -> Hertz;

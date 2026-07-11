@@ -2,12 +2,12 @@
 // https://github.com/embassy-rs/embassy/tree/main/embassy-stm32
 // Special thanks to the Embassy Project and its contributors for their work!
 
-use core::future::{poll_fn, Future};
+use core::future::{Future, poll_fn};
 use core::pin::Pin;
-use core::sync::atomic::{fence, AtomicUsize, Ordering};
+use core::sync::atomic::{AtomicUsize, Ordering, fence};
 use core::task::{Context, Poll, Waker};
 
-use embassy_hal_internal::{impl_peripheral, Peri, PeripheralType};
+use embassy_hal_internal::Peri;
 use embassy_sync::waitqueue::AtomicWaker;
 use py32_metapac::dma::vals;
 
@@ -132,19 +132,21 @@ pub(crate) unsafe fn init(
     cs: critical_section::CriticalSection,
     dma_priority: interrupt::Priority,
 ) {
-    foreach_interrupt! {
-        ($peri:ident, dma, $block:ident, $signal_name:ident, $irq:ident) => {
-            crate::interrupt::typelevel::$irq::set_priority_with_cs(cs, dma_priority);
-            // #[cfg(not(feature = "_dual-core"))]
-            crate::interrupt::typelevel::$irq::enable();
-        };
-        ($peri:ident, bdma, $block:ident, $signal_name:ident, $irq:ident) => {
-            crate::interrupt::typelevel::$irq::set_priority_with_cs(cs, bdma_priority);
-            // #[cfg(not(feature = "_dual-core"))]
-            crate::interrupt::typelevel::$irq::enable();
-        };
+    unsafe {
+        foreach_interrupt! {
+            ($peri:ident, dma, $block:ident, $signal_name:ident, $irq:ident) => {
+                crate::interrupt::typelevel::$irq::set_priority_with_cs(cs, dma_priority);
+                // #[cfg(not(feature = "_dual-core"))]
+                crate::interrupt::typelevel::$irq::enable();
+            };
+            ($peri:ident, bdma, $block:ident, $signal_name:ident, $irq:ident) => {
+                crate::interrupt::typelevel::$irq::set_priority_with_cs(cs, bdma_priority);
+                // #[cfg(not(feature = "_dual-core"))]
+                crate::interrupt::typelevel::$irq::enable();
+            };
+        }
+        crate::_generated::init_dma();
     }
-    crate::_generated::init_dma();
 }
 
 impl AnyChannel {
@@ -356,7 +358,7 @@ impl<'a> Transfer<'a> {
         buf: &'a mut [W],
         options: TransferOptions,
     ) -> Self {
-        Self::new_read_raw(channel, request, peri_addr, buf, options)
+        unsafe { Self::new_read_raw(channel, request, peri_addr, buf, options) }
     }
 
     /// Create a new read DMA transfer (peripheral to memory), using raw pointers.
@@ -367,17 +369,19 @@ impl<'a> Transfer<'a> {
         buf: *mut [W],
         options: TransferOptions,
     ) -> Self {
-        Self::new_inner(
-            channel.into(),
-            request,
-            Dir::PeripheralToMemory,
-            peri_addr as *const u32,
-            buf as *mut W as *mut u32,
-            buf.len(),
-            true,
-            W::size(),
-            options,
-        )
+        unsafe {
+            Self::new_inner(
+                channel.into(),
+                request,
+                Dir::PeripheralToMemory,
+                peri_addr as *const u32,
+                buf as *mut W as *mut u32,
+                buf.len(),
+                true,
+                W::size(),
+                options,
+            )
+        }
     }
 
     /// Create a new write DMA transfer (memory to peripheral).
@@ -388,7 +392,7 @@ impl<'a> Transfer<'a> {
         peri_addr: *mut W,
         options: TransferOptions,
     ) -> Self {
-        Self::new_write_raw(channel, request, buf, peri_addr, options)
+        unsafe { Self::new_write_raw(channel, request, buf, peri_addr, options) }
     }
 
     /// Create a new write DMA transfer (memory to peripheral), using raw pointers.
@@ -399,17 +403,19 @@ impl<'a> Transfer<'a> {
         peri_addr: *mut W,
         options: TransferOptions,
     ) -> Self {
-        Self::new_inner(
-            channel.into(),
-            request,
-            Dir::MemoryToPeripheral,
-            peri_addr as *const u32,
-            buf as *const W as *mut u32,
-            buf.len(),
-            true,
-            W::size(),
-            options,
-        )
+        unsafe {
+            Self::new_inner(
+                channel.into(),
+                request,
+                Dir::MemoryToPeripheral,
+                peri_addr as *const u32,
+                buf as *const W as *mut u32,
+                buf.len(),
+                true,
+                W::size(),
+                options,
+            )
+        }
     }
 
     /// Create a new write DMA transfer (memory to peripheral), writing the same value repeatedly.
@@ -421,17 +427,19 @@ impl<'a> Transfer<'a> {
         peri_addr: *mut W,
         options: TransferOptions,
     ) -> Self {
-        Self::new_inner(
-            channel.into(),
-            request,
-            Dir::MemoryToPeripheral,
-            peri_addr as *const u32,
-            repeated as *const W as *mut u32,
-            count,
-            false,
-            W::size(),
-            options,
-        )
+        unsafe {
+            Self::new_inner(
+                channel.into(),
+                request,
+                Dir::MemoryToPeripheral,
+                peri_addr as *const u32,
+                repeated as *const W as *mut u32,
+                count,
+                false,
+                W::size(),
+                options,
+            )
+        }
     }
 
     unsafe fn new_inner(
@@ -445,14 +453,16 @@ impl<'a> Transfer<'a> {
         data_size: WordSize,
         options: TransferOptions,
     ) -> Self {
-        assert!(mem_len > 0 && mem_len <= 0xFFFF);
+        unsafe {
+            assert!(mem_len > 0 && mem_len <= 0xFFFF);
 
-        channel.configure(
-            _request, dir, peri_addr, mem_addr, mem_len, incr_mem, data_size, options,
-        );
-        channel.start();
+            channel.configure(
+                _request, dir, peri_addr, mem_addr, mem_len, incr_mem, data_size, options,
+            );
+            channel.start();
 
-        Self { channel }
+            Self { channel }
+        }
     }
 
     /// Request the transfer to stop.
@@ -564,31 +574,33 @@ impl<'a, W: Word> ReadableRingBuffer<'a, W> {
         buffer: &'a mut [W],
         mut options: TransferOptions,
     ) -> Self {
-        let channel: Peri<'a, AnyChannel> = channel.into();
+        unsafe {
+            let channel: Peri<'a, AnyChannel> = channel.into();
 
-        let buffer_ptr = buffer.as_mut_ptr();
-        let len = buffer.len();
-        let dir = Dir::PeripheralToMemory;
-        let data_size = W::size();
+            let buffer_ptr = buffer.as_mut_ptr();
+            let len = buffer.len();
+            let dir = Dir::PeripheralToMemory;
+            let data_size = W::size();
 
-        options.half_transfer_ir = true;
-        options.complete_transfer_ir = true;
-        options.circular = true;
+            options.half_transfer_ir = true;
+            options.complete_transfer_ir = true;
+            options.circular = true;
 
-        channel.configure(
-            _request,
-            dir,
-            peri_addr as *mut u32,
-            buffer_ptr as *mut u32,
-            len,
-            true,
-            data_size,
-            options,
-        );
+            channel.configure(
+                _request,
+                dir,
+                peri_addr as *mut u32,
+                buffer_ptr as *mut u32,
+                len,
+                true,
+                data_size,
+                options,
+            );
 
-        Self {
-            channel,
-            ringbuf: ReadableDmaRingBuffer::new(buffer),
+            Self {
+                channel,
+                ringbuf: ReadableDmaRingBuffer::new(buffer),
+            }
         }
     }
 
@@ -719,31 +731,33 @@ impl<'a, W: Word> WritableRingBuffer<'a, W> {
         buffer: &'a mut [W],
         mut options: TransferOptions,
     ) -> Self {
-        let channel: Peri<'a, AnyChannel> = channel.into();
+        unsafe {
+            let channel: Peri<'a, AnyChannel> = channel.into();
 
-        let len = buffer.len();
-        let dir = Dir::MemoryToPeripheral;
-        let data_size = W::size();
-        let buffer_ptr = buffer.as_mut_ptr();
+            let len = buffer.len();
+            let dir = Dir::MemoryToPeripheral;
+            let data_size = W::size();
+            let buffer_ptr = buffer.as_mut_ptr();
 
-        options.half_transfer_ir = true;
-        options.complete_transfer_ir = true;
-        options.circular = true;
+            options.half_transfer_ir = true;
+            options.complete_transfer_ir = true;
+            options.circular = true;
 
-        channel.configure(
-            _request,
-            dir,
-            peri_addr as *mut u32,
-            buffer_ptr as *mut u32,
-            len,
-            true,
-            data_size,
-            options,
-        );
+            channel.configure(
+                _request,
+                dir,
+                peri_addr as *mut u32,
+                buffer_ptr as *mut u32,
+                len,
+                true,
+                data_size,
+                options,
+            );
 
-        Self {
-            channel,
-            ringbuf: WritableDmaRingBuffer::new(buffer),
+            Self {
+                channel,
+                ringbuf: WritableDmaRingBuffer::new(buffer),
+            }
         }
     }
 
