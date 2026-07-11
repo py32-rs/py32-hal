@@ -6,7 +6,7 @@ use core::marker::PhantomData;
 use core::mem;
 use core::sync::atomic::{compiler_fence, Ordering};
 
-use embassy_hal_internal::{into_ref, Peripheral};
+use embassy_hal_internal::{impl_peripheral, Peri, PeripheralType};
 use py32_metapac::adc::vals::SampleTime;
 
 use crate::adc::{Adc, AdcChannel, Instance, RxDma};
@@ -108,12 +108,10 @@ impl<'d, T: Instance> Adc<'d, T> {
     /// [`read`]: #method.read
     pub fn into_ring_buffered(
         self,
-        dma: impl Peripheral<P = impl RxDma<T>> + 'd,
+        dma: Peri<'d, impl RxDma<T>>,
         dma_buf: &'d mut [u16],
     ) -> RingBufferedAdc<'d, T> {
         assert!(!dma_buf.is_empty() && dma_buf.len() <= 0xFFFF);
-        into_ref!(dma);
-
         let opts: crate::dma::TransferOptions = TransferOptions {
             half_transfer_ir: true,
             priority: Priority::VeryHigh,

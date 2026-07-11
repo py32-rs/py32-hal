@@ -4,18 +4,18 @@
 
 use core::marker::PhantomData;
 
-use embassy_hal_internal::into_ref;
+use embassy_hal_internal::{Peri, PeripheralType};
 
 use crate::gpio::{AfType, OutputType, Speed};
 pub use crate::pac::rcc::vals::Mcopre as McoPrescaler;
 pub use crate::pac::rcc::vals::Mcosel as McoSource;
 use crate::pac::RCC;
-use crate::{peripherals, Peripheral};
+use crate::peripherals;
 
 pub(crate) trait SealedMcoInstance {}
 
 #[allow(private_bounds)]
-pub trait McoInstance: SealedMcoInstance + 'static {
+pub trait McoInstance: SealedMcoInstance + PeripheralType + 'static {
     type Source;
 
     #[doc(hidden)]
@@ -50,13 +50,11 @@ pub struct Mco<'d, T: McoInstance> {
 impl<'d, T: McoInstance> Mco<'d, T> {
     /// Create a new MCO instance.
     pub fn new(
-        _peri: impl Peripheral<P = T> + 'd,
-        pin: impl Peripheral<P = impl McoPin<T>> + 'd,
+        _peri: Peri<'d, T>,
+        pin: Peri<'d, impl McoPin<T>>,
         source: T::Source,
         prescaler: McoPrescaler,
     ) -> Self {
-        into_ref!(pin);
-
         critical_section::with(|_| unsafe {
             T::_apply_clock_settings(source, prescaler);
             pin.set_as_af(

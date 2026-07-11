@@ -18,7 +18,7 @@ macro_rules! peri_trait {
 
         /// Peripheral instance trait.
         #[allow(private_bounds)]
-        pub trait Instance: crate::Peripheral<P = Self> + SealedInstance + crate::rcc::RccPeripheral {
+        pub trait Instance: crate::PeripheralType + SealedInstance + crate::rcc::RccPeripheral {
             $($(
                 /// Interrupt for this peripheral.
                 type $irq: crate::interrupt::typelevel::Interrupt;
@@ -95,10 +95,9 @@ macro_rules! dma_trait_impl {
 #[allow(unused)]
 macro_rules! new_dma {
     ($name:ident) => {{
-        let dma = $name.into_ref();
-        let request = dma.request();
+        let request = $name.request();
         Some(crate::dma::ChannelAndRequest {
-            channel: dma.map_into(),
+            channel: $name.into(),
             request,
         })
     }};
@@ -106,8 +105,7 @@ macro_rules! new_dma {
 
 macro_rules! new_pin {
     ($name:ident, $af_type:expr) => {{
-        let pin = $name.into_ref();
-        pin.set_as_af(pin.af_num(), $af_type);
-        Some(pin.map_into())
+        $name.set_as_af($name.af_num(), $af_type);
+        Some($name.into())
     }};
 }

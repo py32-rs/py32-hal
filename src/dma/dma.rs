@@ -7,7 +7,7 @@ use core::pin::Pin;
 use core::sync::atomic::{fence, AtomicUsize, Ordering};
 use core::task::{Context, Poll, Waker};
 
-use embassy_hal_internal::{into_ref, Peripheral, PeripheralRef};
+use embassy_hal_internal::{impl_peripheral, Peri, PeripheralType};
 use embassy_sync::waitqueue::AtomicWaker;
 use py32_metapac::dma::vals;
 
@@ -344,13 +344,13 @@ impl AnyChannel {
 /// DMA transfer.
 #[must_use = "futures do nothing unless you `.await` or poll them"]
 pub struct Transfer<'a> {
-    channel: PeripheralRef<'a, AnyChannel>,
+    channel: Peri<'a, AnyChannel>,
 }
 
 impl<'a> Transfer<'a> {
     /// Create a new read DMA transfer (peripheral to memory).
     pub unsafe fn new_read<W: Word>(
-        channel: impl Peripheral<P = impl Channel> + 'a,
+        channel: Peri<'a, impl Channel>,
         request: Request,
         peri_addr: *mut W,
         buf: &'a mut [W],
@@ -361,16 +361,14 @@ impl<'a> Transfer<'a> {
 
     /// Create a new read DMA transfer (peripheral to memory), using raw pointers.
     pub unsafe fn new_read_raw<W: Word>(
-        channel: impl Peripheral<P = impl Channel> + 'a,
+        channel: Peri<'a, impl Channel>,
         request: Request,
         peri_addr: *mut W,
         buf: *mut [W],
         options: TransferOptions,
     ) -> Self {
-        into_ref!(channel);
-
         Self::new_inner(
-            channel.map_into(),
+            channel.into(),
             request,
             Dir::PeripheralToMemory,
             peri_addr as *const u32,
@@ -384,7 +382,7 @@ impl<'a> Transfer<'a> {
 
     /// Create a new write DMA transfer (memory to peripheral).
     pub unsafe fn new_write<W: Word>(
-        channel: impl Peripheral<P = impl Channel> + 'a,
+        channel: Peri<'a, impl Channel>,
         request: Request,
         buf: &'a [W],
         peri_addr: *mut W,
@@ -395,16 +393,14 @@ impl<'a> Transfer<'a> {
 
     /// Create a new write DMA transfer (memory to peripheral), using raw pointers.
     pub unsafe fn new_write_raw<W: Word>(
-        channel: impl Peripheral<P = impl Channel> + 'a,
+        channel: Peri<'a, impl Channel>,
         request: Request,
         buf: *const [W],
         peri_addr: *mut W,
         options: TransferOptions,
     ) -> Self {
-        into_ref!(channel);
-
         Self::new_inner(
-            channel.map_into(),
+            channel.into(),
             request,
             Dir::MemoryToPeripheral,
             peri_addr as *const u32,
@@ -418,17 +414,15 @@ impl<'a> Transfer<'a> {
 
     /// Create a new write DMA transfer (memory to peripheral), writing the same value repeatedly.
     pub unsafe fn new_write_repeated<W: Word>(
-        channel: impl Peripheral<P = impl Channel> + 'a,
+        channel: Peri<'a, impl Channel>,
         request: Request,
         repeated: &'a W,
         count: usize,
         peri_addr: *mut W,
         options: TransferOptions,
     ) -> Self {
-        into_ref!(channel);
-
         Self::new_inner(
-            channel.map_into(),
+            channel.into(),
             request,
             Dir::MemoryToPeripheral,
             peri_addr as *const u32,
@@ -441,7 +435,7 @@ impl<'a> Transfer<'a> {
     }
 
     unsafe fn new_inner(
-        channel: PeripheralRef<'a, AnyChannel>,
+        channel: Peri<'a, AnyChannel>,
         _request: Request,
         dir: Dir,
         peri_addr: *const u32,
@@ -531,7 +525,7 @@ impl<'a> Future for Transfer<'a> {
 
 // ==============================
 
-struct DmaCtrlImpl<'a>(PeripheralRef<'a, AnyChannel>);
+struct DmaCtrlImpl<'a>(Peri<'a, AnyChannel>);
 
 impl<'a> DmaCtrl for DmaCtrlImpl<'a> {
     fn get_remaining_transfers(&self) -> usize {
@@ -557,21 +551,20 @@ impl<'a> DmaCtrl for DmaCtrlImpl<'a> {
 
 /// Ringbuffer for receiving data using DMA circular mode.
 pub struct ReadableRingBuffer<'a, W: Word> {
-    channel: PeripheralRef<'a, AnyChannel>,
+    channel: Peri<'a, AnyChannel>,
     ringbuf: ReadableDmaRingBuffer<'a, W>,
 }
 
 impl<'a, W: Word> ReadableRingBuffer<'a, W> {
     /// Create a new ring buffer.
     pub unsafe fn new(
-        channel: impl Peripheral<P = impl Channel> + 'a,
+        channel: Peri<'a, impl Channel>,
         _request: Request,
         peri_addr: *mut W,
         buffer: &'a mut [W],
         mut options: TransferOptions,
     ) -> Self {
-        into_ref!(channel);
-        let channel: PeripheralRef<'a, AnyChannel> = channel.map_into();
+        let channel: Peri<'a, AnyChannel> = channel.into();
 
         let buffer_ptr = buffer.as_mut_ptr();
         let len = buffer.len();
@@ -713,21 +706,20 @@ impl<'a, W: Word> Drop for ReadableRingBuffer<'a, W> {
 
 /// Ringbuffer for writing data using DMA circular mode.
 pub struct WritableRingBuffer<'a, W: Word> {
-    channel: PeripheralRef<'a, AnyChannel>,
+    channel: Peri<'a, AnyChannel>,
     ringbuf: WritableDmaRingBuffer<'a, W>,
 }
 
 impl<'a, W: Word> WritableRingBuffer<'a, W> {
     /// Create a new ring buffer.
     pub unsafe fn new(
-        channel: impl Peripheral<P = impl Channel> + 'a,
+        channel: Peri<'a, impl Channel>,
         _request: Request,
         peri_addr: *mut W,
         buffer: &'a mut [W],
         mut options: TransferOptions,
     ) -> Self {
-        into_ref!(channel);
-        let channel: PeripheralRef<'a, AnyChannel> = channel.map_into();
+        let channel: Peri<'a, AnyChannel> = channel.into();
 
         let len = buffer.len();
         let dir = Dir::MemoryToPeripheral;

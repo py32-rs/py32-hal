@@ -2,15 +2,15 @@
 // https://github.com/embassy-rs/embassy/tree/main/embassy-stm32
 // Special thanks to the Embassy Project and its contributors for their work!
 
-use embassy_hal_internal::into_ref;
+use embassy_hal_internal::{impl_peripheral, Peri, PeripheralType};
 
 use super::blocking_delay_us;
 use crate::adc::{Adc, AdcChannel, Instance, Resolution, SampleTime};
 use crate::pac::adc::vals::Extsel;
 use crate::pac::RCC;
 use crate::peripherals::ADC1;
+use crate::rcc;
 use crate::time::Hertz;
-use crate::{rcc, Peripheral};
 
 mod ringbuffered_v2;
 pub use ringbuffered_v2::{RingBufferedAdc, Sequence};
@@ -95,14 +95,13 @@ impl<'d, T> Adc<'d, T>
 where
     T: Instance,
 {
-    pub fn new(adc: impl Peripheral<P = T> + 'd) -> Self {
+    pub fn new(adc: Peri<'d, T>) -> Self {
         let presc = Prescaler::from_pclk(T::frequency());
         Self::new_with_prediv(adc, presc)
     }
 
     /// adc_div: The PCLK division factor
-    pub fn new_with_prediv(adc: impl Peripheral<P = T> + 'd, adc_div: Prescaler) -> Self {
-        into_ref!(adc);
+    pub fn new_with_prediv(adc: Peri<'d, T>, adc_div: Prescaler) -> Self {
         rcc::enable_and_reset::<T>();
 
         RCC.cr().modify(|reg| {

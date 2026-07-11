@@ -29,7 +29,7 @@ dma_trait!(RxDma, Instance);
 /// Analog to Digital driver.
 pub struct Adc<'d, T: Instance> {
     #[allow(unused)]
-    adc: crate::PeripheralRef<'d, T>,
+    adc: crate::Peri<'d, T>,
     sample_time: SampleTime,
 }
 
@@ -75,9 +75,7 @@ pub(crate) fn blocking_delay_us(us: u32) {
 
 /// ADC instance.
 #[allow(private_bounds)]
-pub trait Instance:
-    SealedInstance + crate::Peripheral<P = Self> + crate::rcc::RccPeripheral
-{
+pub trait Instance: SealedInstance + crate::PeripheralType + crate::rcc::RccPeripheral {
     type Interrupt: crate::interrupt::typelevel::Interrupt;
 }
 
@@ -133,10 +131,15 @@ foreach_adc!(
 #[allow(unused_macros)]
 macro_rules! impl_adc_pin {
     ($inst:ident, $pin:ident, $ch:expr) => {
-        impl crate::adc::AdcChannel<peripherals::$inst> for crate::peripherals::$pin {}
-        impl crate::adc::SealedAdcChannel<peripherals::$inst> for crate::peripherals::$pin {
+        impl crate::adc::AdcChannel<peripherals::$inst>
+            for crate::Peri<'_, crate::peripherals::$pin>
+        {
+        }
+        impl crate::adc::SealedAdcChannel<peripherals::$inst>
+            for crate::Peri<'_, crate::peripherals::$pin>
+        {
             fn setup(&mut self) {
-                <Self as crate::gpio::SealedPin>::set_as_analog(self);
+                <crate::peripherals::$pin as crate::gpio::SealedPin>::set_as_analog(self);
             }
 
             fn channel(&self) -> u8 {

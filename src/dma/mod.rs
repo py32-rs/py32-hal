@@ -15,7 +15,7 @@ pub(crate) use util::*;
 pub(crate) mod ringbuffer;
 pub mod word;
 
-use embassy_hal_internal::{impl_peripheral, Peripheral};
+use embassy_hal_internal::{impl_peripheral, Peri, PeripheralType};
 
 use crate::interrupt;
 
@@ -41,7 +41,7 @@ pub(crate) trait ChannelInterrupt {
 
 /// DMA channel.
 #[allow(private_bounds)]
-pub trait Channel: SealedChannel + Peripheral<P = Self> + Into<AnyChannel> + 'static {
+pub trait Channel: SealedChannel + PeripheralType + Into<AnyChannel> + 'static {
     /// Type-erase (degrade) this pin into an `AnyChannel`.
     ///
     /// This converts DMA channel singletons (`DMA1_CH3`, `DMA2_CH1`, ...), which

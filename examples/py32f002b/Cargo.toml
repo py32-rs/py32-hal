@@ -10,23 +10,23 @@ py32-hal = { path = "../../", features = [ "time-driver-tim1", "py32f002b"]}
 # but Cortex-M0 does not provide Atomic (CAS) support.
 portable-atomic = { version = "1", features = ["critical-section"] }
 
-panic-halt = "1.0.0"
+panic-halt = "1.0"
 cortex-m = { version = "0.7.7", features = [
     "critical-section-single-core",
     "critical-section",
 ] }
-cortex-m-rt = "0.7.3"
-cortex-m-semihosting = { version = "0.5" }
-panic-probe = { version = "1.0.0", features = ["print-defmt"] }
+cortex-m-rt = "0.7.5"
+cortex-m-semihosting = "0.5"
+panic-probe = { version = "1.0", features = ["print-defmt"] }
 
-embassy-sync = { version = "0.7.1", features = ["defmt"] }
-embassy-executor = { version = "0.9.1", features = ["arch-cortex-m", "executor-thread", "defmt"] }
-embassy-time = { version = "0.5.0", features = ["defmt", "defmt-timestamp-uptime", "tick-hz-32_768"] }
+embassy-sync = { version = "0.8", features = ["defmt"] }
+embassy-executor = { version = "0.10", features = ["platform-cortex-m", "executor-thread", "defmt"] }
+embassy-time = { version = "0.5", features = ["defmt", "defmt-timestamp-uptime", "tick-hz-32_768"] }
 
-embedded-io = { version = "0.6.0" }
-embedded-io-async = { version = "0.6.1" }
-defmt = "1"
-defmt-rtt = "1"
+embedded-io = "0.7"
+embedded-io-async = "0.7"
+defmt = "1.1"
+defmt-rtt = "1.2"
 
 # cargo build/run
 [profile.dev]

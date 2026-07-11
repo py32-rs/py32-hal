@@ -86,13 +86,13 @@ fn main() {
                     for pin_num in 0..16 {
                         let pin_name = format!("P{}{}", port_letter, pin_num);
 
-                    // If the feature is NOT enabled and the current pin name is in the swd_pins set, skip it.
-                    if !reuse_swd_pins && swd_pins.contains(&pin_name) {
-                        continue;
+                        // If the feature is NOT enabled and the current pin name is in the swd_pins set, skip it.
+                        if !reuse_swd_pins && swd_pins.contains(&pin_name) {
+                            continue;
+                        }
+                        singletons.push(pin_name);
                     }
-                    singletons.push(pin_name);
                 }
-}
 
                 // No singleton for these, the HAL handles them specially.
                 "exti" => {}

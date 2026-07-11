@@ -3,7 +3,7 @@ use core::sync::atomic::{fence, Ordering};
 
 use crate::pac::rcc::vals::HsiFs;
 use embassy_hal_internal::drop::OnDrop;
-use embassy_hal_internal::{into_ref, Peripheral, PeripheralRef};
+use embassy_hal_internal::{impl_peripheral, Peri, PeripheralType};
 use embedded_storage::nor_flash::{NorFlashError, NorFlashErrorKind};
 
 use crate::mode::{Async, Blocking};
@@ -60,7 +60,7 @@ pub enum FlashUnit {
 
 /// Internal flash memory driver.
 pub struct Flash<'d, MODE = Async> {
-    pub(crate) _inner: PeripheralRef<'d, FLASH>,
+    pub(crate) _inner: Peri<'d, FLASH>,
     pub(crate) _mode: PhantomData<MODE>,
     // size_of::<Option<crate::pac::rcc::vals::HsiFs>>() == 1 byte
     // TODO: PY32F072 timing regs reset value is 24mhz. Should we use that?
@@ -69,9 +69,7 @@ pub struct Flash<'d, MODE = Async> {
 
 impl<'d> Flash<'d, Blocking> {
     /// Create a new flash driver, usable in blocking mode.
-    pub fn new_blocking(p: impl Peripheral<P = FLASH> + 'd) -> Self {
-        into_ref!(p);
-
+    pub fn new_blocking(p: Peri<'d, FLASH>) -> Self {
         // unsafe { low_level::timing_sequence_config() };
         // let ts1 = crate::pac::FLASH.ts1().read().ts1();
         // info!("FLASH TS1: 0x{:x}", ts1 as u16);

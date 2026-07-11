@@ -31,7 +31,7 @@ async fn main(spawner: Spawner) {
     cfg.rcc.sys = Sysclk::PLL;
     let p = py32_hal::init(cfg);
 
-    spawner.must_spawn(adc_task(p));
+    spawner.spawn(adc_task(p).unwrap());
 }
 
 #[embassy_executor::task]
