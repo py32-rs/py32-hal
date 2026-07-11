@@ -3,104 +3,121 @@ name = "py32-hal"
 version = "0.4.0"
 edition = "2021"
 authors = ["Decaday <myDecaday@outlook.com>", "Andelf <andelf@gmail.com>"]
+description = "HAL and Embassy support for the Py32 family of microcontrollers"
 repository = "https://github.com/py32-rs/py32-hal"
 documentation = "https://docs.rs/py32-hal"
 homepage = "https://github.com/py32-rs/py32-hal"
 categories = ["embedded", "no-std", "hardware-support"]
-description = "HAL and Embassy support for the Py32 family of microcontrollers"
 keywords = ["py32", "hal", "embedded", "no-std", "hardware-support"]
 readme = "README.md"
 license = "MIT OR Apache-2.0"
 
-[dependencies]
-# py32-metapac = "0.3.0"
-# py32-metapac = { path = "../py32-data/build/py32-metapac"}
-py32-metapac = { version = "0.4.1", git = "https://github.com/py32-rs/py32-metapac.git" }
+# ---------------------------------------------------------------------------
+# Dependencies
+# ---------------------------------------------------------------------------
 
-cortex-m = { version = "0.7.7", features = [
+[dependencies]
+py32-metapac = { version = "0.4", git = "https://github.com/py32-rs/py32-metapac.git" }
+
+# --- Cortex-M ---
+cortex-m = { version = "0.7", features = [
     "critical-section-single-core",
     "critical-section",
 ] }
-cortex-m-rt = "0.7.5"
+cortex-m-rt = "0.7"
 
-embedded-hal-02 = { package = "embedded-hal", version = "0.2.6", features = [
-    "unproven",
-] }
+# --- embedded-hal family ---
+embedded-hal-02 = { package = "embedded-hal", version = "0.2.7", features = ["unproven"] }
 embedded-hal-1 = { package = "embedded-hal", version = "1.0" }
-embedded-hal-async = { version = "1.0" }
-embedded-hal-nb = { version = "1.0" }
+embedded-hal-async = "1.0"
+embedded-hal-nb = "1.0"
+
+# --- Other embedded crates ---
 embedded-can = "0.4"
-embedded-io = { version = "0.6.0" }
-embedded-io-async = { version = "0.6.1" }
-embedded-storage = "0.3.1"
-nb = "1.0.0"
+embedded-io = "0.7"
+embedded-io-async = "0.7"
+embedded-storage = "0.3"
+nb = "1.1"
 
-defmt = { version = "1", optional = true }
-defmt-rtt = { version = "1", optional = true }
-log = { version = "0.4", optional = true }
-critical-section = "1.2"
-cfg-if = "1.0.0"
-portable-atomic = { version = "1", features = ["require-cas"], optional = true }
-futures-util = { version = "0.3.30", default-features = false }
-
-embassy-hal-internal = { version = "0.2.0", features = [
+# --- Embassy ---
+embassy-hal-internal = { version = "0.5", features = [
     "cortex-m",
     "prio-bits-4",
 ] }
-embassy-sync = { version = "0.7" }
-embassy-futures = { version = "0.1.2" }
-embassy-time-driver = { version = "0.2.1", optional = true }
-embassy-time = { version = "0.5.0", optional = true }
+embassy-sync = "0.8"
+embassy-futures = "0.1"
+embassy-time-driver = { version = "0.2", optional = true }
+embassy-time = { version = "0.5", optional = true }
 embassy-time-queue-utils = { version = "0.3", optional = true }
-embassy-embedded-hal = { version = "0.5.0", default-features = false }
-embassy-usb-driver = {version = "0.2.0", optional = true }
-usb-device = {version = "0.3.2", optional = true }
-musb = { version = "0.3.0", optional = true, features = ["prebuild"] }
-# musb = { git = "https://github.com/decaday/musb.git", optional = true, features = ["prebuild"] }
-# musb = { path = "../musb", optional = true , features = ["prebuild"] }
+embassy-embedded-hal = { version = "0.6", default-features = false }
+embassy-usb-driver = { version = "0.2", optional = true }
 
+# --- USB ---
+musb = { version = "0.3", optional = true, features = ["prebuild"] }
+usb-device = { version = "0.3", optional = true }
 
+# --- Utilities ---
+cfg-if = "1.0"
+critical-section = "1.2"
+futures-util = { version = "0.3", default-features = false }
+portable-atomic = { version = "1", features = ["require-cas"], optional = true }
+
+# --- Opt-in logging ---
+defmt = { version = "1", optional = true }
+defmt-rtt = { version = "1", optional = true }
+log = { version = "0.4", optional = true }
+
+# ---------------------------------------------------------------------------
+# Build dependencies
+# ---------------------------------------------------------------------------
 
 [build-dependencies]
-# py32-metapac = { path = "../py32-data/build/py32-metapac", default-features = false, features = [
-py32-metapac = { version = "0.4.1", git = "https://github.com/py32-rs/py32-metapac.git", default-features = false, features = [
-    "metadata",
-] }
-
+py32-metapac = { version = "0.4.1", git = "https://github.com/py32-rs/py32-metapac.git", default-features = false, features = ["metadata"] }
 proc-macro2 = "1.0.89"
 quote = "1.0.37"
+
+# ---------------------------------------------------------------------------
+# Dev dependencies
+# ---------------------------------------------------------------------------
 
 [dev-dependencies]
 critical-section = { version = "1.1", features = ["std"] }
 proptest = "1.5.0"
 proptest-state-machine = "0.3.0"
-# cargo test --no-default-features --features "time exti embassy-usb-driver-impl py32f072c1b"
+
+# ---------------------------------------------------------------------------
+# Features
+# ---------------------------------------------------------------------------
 
 [features]
 default = ["rt", "memory-x", "defmt", "time", "exti"]
 
+# --- Core ---
 rt = ["py32-metapac/rt"]
-
-defmt = ["dep:defmt", "dep:defmt-rtt", "embassy-usb-driver/defmt", "musb?/defmt"]
-
 memory-x = ["py32-metapac/memory-x"]
 
-time = ["dep:embassy-time", "embassy-embedded-hal/time"]
+# --- Debug / logging ---
+defmt = ["dep:defmt", "dep:defmt-rtt", "embassy-usb-driver/defmt", "musb?/defmt"]
 
+# --- Embassy ---
+time = ["dep:embassy-time", "embassy-embedded-hal/time"]
 exti = []
 
-embassy-usb-driver-impl = ["dep:musb","dep:embassy-usb-driver", "musb/embassy-usb-driver-impl"]
-usb-device-impl = ["dep:musb","dep:usb-device", "musb/usb-device-impl"]
+# --- USB ---
+embassy-usb-driver-impl = ["dep:musb", "dep:embassy-usb-driver", "musb/embassy-usb-driver-impl"]
+usb-device-impl = ["dep:musb", "dep:usb-device", "musb/usb-device-impl"]
 
+# --- MCU selection ---
 py32f002b = ["py32-metapac/py32f002b"]
-py32f030k28 = ["py32-metapac/py32f030k28"]
 py32f030f16 = ["py32-metapac/py32f030f16"]
+py32f030k28 = ["py32-metapac/py32f030k28"]
 py32f072c1b = ["py32-metapac/py32f072c1b", "dep:musb", "musb/builtin-py32f07x"]
 
-# As of 2023-12-04, this driver is implemented using CC1 as the halfway rollover interrupt, and any
-# additional CC capabilities to provide timer alarms to embassy-time. embassy-time requires AT LEAST
-# one alarm to be allocatable, which means timers that only have CC1, such as TIM16/TIM17, are not
-# candidates for use as an embassy-time driver provider. (a.k.a 1CH and 1CH_CMP are not, others are good.)
+# --- Time driver ---
+# CC1 is used as the halfway-rollover interrupt; any additional CC channels
+# provide timer alarms for embassy-time. embassy-time requires at least one
+# allocatable alarm, so timers with only CC1 (e.g. TIM16/TIM17) are NOT
+# eligible. (1CH / 1CH_CMP are excluded; all others are fine.)
 time-driver-any = ["_time-driver"]
 time-driver-tim1 = ["_time-driver"]
 time-driver-tim3 = ["_time-driver"]
@@ -109,14 +126,18 @@ time-driver-systick = ["dep:portable-atomic", "_time-driver"]
 
 _time-driver = ["dep:embassy-time-driver", "time", "dep:embassy-time-queue-utils"]
 
-
-# WARNING: This allows reusing SWD debug pins. This is dangerous!
-# This HAL has no power-on delay, so reconfiguring SWD pins immediately on startup
-# can permanently lock you out from reprogramming ('brick') the chip.
-# The risk is critical on MCUs without a BOOT button and bootloader.
-# (like PY32F002B, PY32L020, PY32C64x) (on PA2 and PB6).
+# --- Safety ---
+# WARNING: this allows reusing SWD debug pins, which is dangerous!
+# This HAL has no power-on delay, so reconfiguring SWD pins immediately on
+# startup can permanently lock you out of reprogramming ("brick") the chip.
+# The risk is critical on MCUs without a BOOT button and bootloader
+# (e.g. PY32F002B, PY32L020, PY32C64x — on PA2 and PB6).
 # Enable only if you understand the risk and have a recovery plan.
 unsafe-reuse-swd-pins = []
+
+# ---------------------------------------------------------------------------
+# Package metadata
+# ---------------------------------------------------------------------------
 
 [package.metadata.docs.rs]
 default-target = "thumbv6m-none-eabi"
