@@ -23,7 +23,17 @@ impl<'d> ChannelAndRequest<'d> {
         buf: &'a mut [W],
         options: TransferOptions,
     ) -> Transfer<'a> {
-        Transfer::new_read(&mut self.channel, self.request, peri_addr, buf, options)
+        Transfer::new_read(&mut self.channel, self.request, peri_addr, buf, true, options)
+    }
+
+    #[allow(dead_code)]
+    pub unsafe fn read_repeated<'a, W: Word>(
+        &'a mut self,
+        peri_addr: *mut W,
+        buf: &'a mut [W],
+        options: TransferOptions,
+    ) -> Transfer<'a> {
+        Transfer::new_read(&mut self.channel, self.request, peri_addr, buf, false, options)
     }
 
     #[allow(dead_code)]
@@ -33,7 +43,7 @@ impl<'d> ChannelAndRequest<'d> {
         buf: *mut [W],
         options: TransferOptions,
     ) -> Transfer<'a> {
-        Transfer::new_read_raw(&mut self.channel, self.request, peri_addr, buf, options)
+        Transfer::new_read_raw(&mut self.channel, self.request, peri_addr, buf, true, options)
     }
 
     pub unsafe fn write<'a, W: Word>(

@@ -354,9 +354,10 @@ impl<'a> Transfer<'a> {
         request: Request,
         peri_addr: *mut W,
         buf: &'a mut [W],
+        increment: bool,
         options: TransferOptions,
     ) -> Self {
-        Self::new_read_raw(channel, request, peri_addr, buf, options)
+        Self::new_read_raw(channel, request, peri_addr, buf, increment, options)
     }
 
     /// Create a new read DMA transfer (peripheral to memory), using raw pointers.
@@ -365,6 +366,7 @@ impl<'a> Transfer<'a> {
         request: Request,
         peri_addr: *mut W,
         buf: *mut [W],
+        increment: bool,
         options: TransferOptions,
     ) -> Self {
         into_ref!(channel);
@@ -376,7 +378,7 @@ impl<'a> Transfer<'a> {
             peri_addr as *const u32,
             buf as *mut W as *mut u32,
             buf.len(),
-            true,
+            increment,
             W::size(),
             options,
         )

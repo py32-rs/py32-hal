@@ -40,6 +40,7 @@ pub mod dma;
 pub mod flash;
 pub mod gpio;
 pub mod i2c;
+pub mod spi;
 pub mod rcc;
 pub mod timer;
 pub mod usart;
