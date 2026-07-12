@@ -1,6 +1,6 @@
 [package]
 name = "py32-hal"
-version = "0.4.0"
+version = "0.4.1"
 edition = "2024"
 authors = ["Decaday <myDecaday@outlook.com>", "Andelf <andelf@gmail.com>"]
 description = "HAL and Embassy support for the Py32 family of microcontrollers"
@@ -17,7 +17,7 @@ license = "MIT OR Apache-2.0"
 # ---------------------------------------------------------------------------
 
 [dependencies]
-py32-metapac = { version = "0.4", git = "https://github.com/py32-rs/py32-metapac.git" }
+py32-metapac = { version = "0.5.0", git = "https://github.com/py32-rs/py32-metapac.git" }
 
 # --- Cortex-M ---
 cortex-m = { version = "0.7", features = [
@@ -72,7 +72,9 @@ log = { version = "0.4", optional = true }
 # ---------------------------------------------------------------------------
 
 [build-dependencies]
-py32-metapac = { version = "0.4.1", git = "https://github.com/py32-rs/py32-metapac.git", default-features = false, features = ["metadata"] }
+py32-metapac = { version = "0.5.0", git = "https://github.com/py32-rs/py32-metapac.git", default-features = false, features = [
+    "metadata",
+] }
 proc-macro2 = "1.0.89"
 quote = "1.0.37"
 
