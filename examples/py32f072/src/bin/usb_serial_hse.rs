@@ -85,7 +85,7 @@ async fn main(spawner: Spawner) {
     let usb = builder.build();
 
     // Run the USB device.
-    unwrap!(spawner.spawn(usb_task(usb)));
+    spawner.spawn(usb_task(usb).unwrap());
 
     // Do stuff with the class!
     loop {

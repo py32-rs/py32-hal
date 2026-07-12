@@ -6,7 +6,7 @@
 
 use core::marker::PhantomData;
 
-use embassy_hal_internal::Peripheral;
+use embassy_hal_internal::PeripheralType;
 use embassy_sync::waitqueue::AtomicWaker;
 
 pub mod complementary_pwm;
@@ -70,7 +70,7 @@ impl State {
     }
 }
 
-trait SealedInstance: RccPeripheral + Peripheral<P = Self> {
+trait SealedInstance: RccPeripheral + PeripheralType {
     /// Async state for this timer
     fn state() -> &'static State;
 }
@@ -338,7 +338,7 @@ pub struct UpdateInterruptHandler<T: CoreInstance> {
 impl<T: CoreInstance> interrupt::typelevel::Handler<T::UpdateInterrupt>
     for UpdateInterruptHandler<T>
 {
-    unsafe fn on_interrupt() {
+    unsafe fn on_interrupt() { unsafe {
         // #[cfg(feature = "low-power")]
         // crate::low_power::on_wakeup_irq();
 
@@ -357,7 +357,7 @@ impl<T: CoreInstance> interrupt::typelevel::Handler<T::UpdateInterrupt>
         if sr.uif() {
             T::state().up_waker.wake();
         }
-    }
+    }}
 }
 
 /// Capture/Compare interrupt handler.
@@ -368,7 +368,7 @@ pub struct CaptureCompareInterruptHandler<T: GeneralInstance1Channel> {
 impl<T: GeneralInstance1Channel> interrupt::typelevel::Handler<T::CaptureCompareInterrupt>
     for CaptureCompareInterruptHandler<T>
 {
-    unsafe fn on_interrupt() {
+    unsafe fn on_interrupt() { unsafe {
         // #[cfg(feature = "low-power")]
         // crate::low_power::on_wakeup_irq();
 
@@ -389,5 +389,5 @@ impl<T: GeneralInstance1Channel> interrupt::typelevel::Handler<T::CaptureCompare
                 T::state().cc_waker[ch].wake();
             }
         }
-    }
+    }}
 }

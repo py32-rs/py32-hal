@@ -97,7 +97,7 @@ impl Default for Config {
 }
 
 /// Initialize and Set the clock frequencies
-pub(crate) unsafe fn init(config: Config) {
+pub(crate) unsafe fn init(config: Config) { unsafe {
     // Turn on the HSI
     RCC.cr().modify(|w| w.set_hsion(true));
     let hsi_value = if let Some(value) = config.hsi {
@@ -291,7 +291,7 @@ pub(crate) unsafe fn init(config: Config) {
         pll: pll.into(),
     };
     crate::rcc::set_freqs(clocks);
-}
+}}
 
 mod max {
     use core::ops::RangeInclusive;

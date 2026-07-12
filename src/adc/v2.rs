@@ -6,7 +6,7 @@ use core::future::poll_fn;
 use core::marker::PhantomData;
 use core::task::Poll;
 
-use embassy_hal_internal::into_ref;
+use crate::Peri;
 
 use super::blocking_delay_us;
 use crate::adc::{Adc, AdcChannel, Instance, Resolution, SampleTime};
@@ -15,7 +15,7 @@ use crate::pac::adc::vals::Extsel;
 use crate::pac::RCC;
 use crate::peripherals::ADC1;
 use crate::time::Hertz;
-use crate::{interrupt, rcc, Peripheral};
+use crate::{interrupt, rcc};
 
 mod ringbuffered_v2;
 pub use ringbuffered_v2::{RingBufferedAdc, Sequence};
@@ -117,13 +117,13 @@ impl<'d, T> Adc<'d, T>
 where
     T: Instance,
 {
-    pub fn new(adc: impl Peripheral<P = T> + 'd) -> Self {
+    pub fn new(adc: Peri<'d, T>) -> Self {
         let presc = Prescaler::from_pclk(T::frequency());
         Self::new_with_prediv(adc, presc)
     }
 
     pub fn new_async(
-        adc: impl Peripheral<P = T> + 'd,
+        adc: Peri<'d, T>,
         _irq: impl interrupt::typelevel::Binding<T::Interrupt, InterruptHandler<T>> + 'd,
     ) -> Self {
         let presc = Prescaler::from_pclk(T::frequency());
@@ -131,8 +131,7 @@ where
     }
 
     /// adc_div: The PCLK division factor
-    pub fn new_with_prediv(adc: impl Peripheral<P = T> + 'd, adc_div: Prescaler) -> Self {
-        into_ref!(adc);
+    pub fn new_with_prediv(adc: Peri<'d, T>, adc_div: Prescaler) -> Self {
         rcc::enable_and_reset::<T>();
 
         RCC.cr().modify(|reg| {
@@ -158,7 +157,7 @@ where
 
     /// adc_div: The PCLK division factor
     pub fn new_with_prediv_async(
-        adc: impl Peripheral<P = T> + 'd,
+        adc: Peri<'d, T>,
         adc_div: Prescaler,
         _irq: impl interrupt::typelevel::Binding<T::Interrupt, InterruptHandler<T>> + 'd,
     ) -> Self {

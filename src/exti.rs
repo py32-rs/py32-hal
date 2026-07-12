@@ -10,13 +10,13 @@ use core::marker::PhantomData;
 use core::pin::Pin;
 use core::task::{Context, Poll};
 
-use embassy_hal_internal::{impl_peripheral, into_ref};
+use embassy_hal_internal::{impl_peripheral, Peri, PeripheralType};
 use embassy_sync::waitqueue::AtomicWaker;
 
 use crate::gpio::{AnyPin, Input, Level, Pin as GpioPin, Pull};
 use crate::pac::exti::regs::Lines;
 use crate::pac::EXTI;
-use crate::{interrupt, pac, peripherals, Peripheral};
+use crate::{interrupt, pac, peripherals};
 
 const EXTI_COUNT: usize = 16;
 const NEW_AW: AtomicWaker = AtomicWaker::new();
@@ -82,13 +82,7 @@ impl<'d> Unpin for ExtiInput<'d> {}
 
 impl<'d> ExtiInput<'d> {
     /// Create an EXTI input.
-    pub fn new<T: GpioPin>(
-        pin: impl Peripheral<P = T> + 'd,
-        ch: impl Peripheral<P = T::ExtiChannel> + 'd,
-        pull: Pull,
-    ) -> Self {
-        into_ref!(pin, ch);
-
+    pub fn new<T: GpioPin>(pin: Peri<'d, T>, ch: Peri<'d, T::ExtiChannel>, pull: Pull) -> Self {
         // Needed if using AnyPin+AnyChannel.
         assert_eq!(pin.pin(), ch.number());
 
@@ -303,9 +297,9 @@ macro_rules! impl_irq {
         #[allow(non_snake_case)]
         #[cfg(feature = "rt")]
         #[interrupt]
-        unsafe fn $e() {
+        unsafe fn $e() { unsafe {
             on_irq()
-        }
+        }}
     };
 }
 
@@ -315,7 +309,7 @@ trait SealedChannel {}
 
 /// EXTI channel trait.
 #[allow(private_bounds)]
-pub trait Channel: SealedChannel + Sized {
+pub trait Channel: SealedChannel + PeripheralType + Sized {
     /// Get the EXTI channel number.
     fn number(&self) -> u8;
 
@@ -381,8 +375,8 @@ macro_rules! enable_irq {
 }
 
 /// safety: must be called only once
-pub(crate) unsafe fn init(_cs: critical_section::CriticalSection) {
+pub(crate) unsafe fn init(_cs: critical_section::CriticalSection) { unsafe {
     use crate::interrupt::typelevel::Interrupt;
 
     foreach_exti_irq!(enable_irq);
-}
+}}

@@ -13,7 +13,7 @@
 use core::mem::ManuallyDrop;
 
 use crate::pac;
-use embassy_hal_internal::{into_ref, Peripheral, PeripheralRef};
+use embassy_hal_internal::Peri;
 // Re-export useful enums
 pub use pac::timer::vals::{FilterValue, Sms as SlaveMode, Ts as TriggerSource};
 
@@ -189,7 +189,7 @@ impl From<OutputPolarity> for bool {
 
 /// Low-level timer driver.
 pub struct Timer<'d, T: CoreInstance> {
-    tim: PeripheralRef<'d, T>,
+    tim: Peri<'d, T>,
 }
 
 impl<'d, T: CoreInstance> Drop for Timer<'d, T> {
@@ -200,9 +200,7 @@ impl<'d, T: CoreInstance> Drop for Timer<'d, T> {
 
 impl<'d, T: CoreInstance> Timer<'d, T> {
     /// Create a new timer driver.
-    pub fn new(tim: impl Peripheral<P = T> + 'd) -> Self {
-        into_ref!(tim);
-
+    pub fn new(tim: Peri<'d, T>) -> Self {
         rcc::enable_and_reset::<T>();
 
         Self { tim }

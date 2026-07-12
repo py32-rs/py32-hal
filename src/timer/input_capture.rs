@@ -9,7 +9,7 @@ use core::marker::PhantomData;
 use core::pin::Pin;
 use core::task::{Context, Poll};
 
-use embassy_hal_internal::{into_ref, PeripheralRef};
+use embassy_hal_internal::Peri;
 
 use super::low_level::{CountingMode, FilterValue, InputCaptureMode, InputTISelection, Timer};
 use super::{
@@ -19,7 +19,6 @@ use super::{
 use crate::gpio::{AfType, AnyPin, Pull};
 use crate::interrupt::typelevel::{Binding, Interrupt};
 use crate::time::Hertz;
-use crate::Peripheral;
 
 /// Channel 1 marker type.
 pub enum Ch1 {}
@@ -34,7 +33,7 @@ pub enum Ch4 {}
 ///
 /// This wraps a pin to make it usable with capture.
 pub struct CapturePin<'d, T, C> {
-    _pin: PeripheralRef<'d, AnyPin>,
+    _pin: Peri<'d, AnyPin>,
     phantom: PhantomData<(T, C)>,
 }
 
@@ -42,11 +41,10 @@ macro_rules! channel_impl {
     ($new_chx:ident, $channel:ident, $pin_trait:ident) => {
         impl<'d, T: GeneralInstance4Channel> CapturePin<'d, T, $channel> {
             #[doc = concat!("Create a new ", stringify!($channel), " capture pin instance.")]
-            pub fn $new_chx(pin: impl Peripheral<P = impl $pin_trait<T>> + 'd, pull: Pull) -> Self {
-                into_ref!(pin);
+            pub fn $new_chx(pin: Peri<'d, impl $pin_trait<T>>, pull: Pull) -> Self {
                 pin.set_as_af(pin.af_num(), AfType::input(pull));
                 CapturePin {
-                    _pin: pin.map_into(),
+                    _pin: pin.into(),
                     phantom: PhantomData,
                 }
             }
@@ -67,7 +65,7 @@ pub struct InputCapture<'d, T: GeneralInstance4Channel> {
 impl<'d, T: GeneralInstance4Channel> InputCapture<'d, T> {
     /// Create a new input capture driver.
     pub fn new(
-        tim: impl Peripheral<P = T> + 'd,
+        tim: Peri<'d, T>,
         _ch1: Option<CapturePin<'d, T, Ch1>>,
         _ch2: Option<CapturePin<'d, T, Ch2>>,
         _ch3: Option<CapturePin<'d, T, Ch3>>,
@@ -79,11 +77,7 @@ impl<'d, T: GeneralInstance4Channel> InputCapture<'d, T> {
         Self::new_inner(tim, freq, counting_mode)
     }
 
-    fn new_inner(
-        tim: impl Peripheral<P = T> + 'd,
-        freq: Hertz,
-        counting_mode: CountingMode,
-    ) -> Self {
+    fn new_inner(tim: Peri<'d, T>, freq: Hertz, counting_mode: CountingMode) -> Self {
         let mut this = Self {
             inner: Timer::new(tim),
         };

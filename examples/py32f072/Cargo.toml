@@ -1,7 +1,7 @@
 [package]
 name = "py32f072-examples"
 version = "0.4.1"
-edition = "2021"
+edition = "2024"
 publish = false
 
 [dependencies]
@@ -15,22 +15,22 @@ cortex-m = { version = "0.7.7", features = [
     "critical-section-single-core",
     "critical-section",
 ] }
-cortex-m-rt = "0.7.3"
-cortex-m-semihosting = { version = "0.5" }
-panic-halt = "1.0.0"
-panic-probe = { version = "1.0.0", features = ["print-defmt"] }
+cortex-m-rt = "0.7.5"
+cortex-m-semihosting = "0.5"
+panic-halt = "1.0"
+panic-probe = { version = "1.0", features = ["print-defmt"] }
 
-embassy-sync = { version = "0.7.1", features = ["defmt"] }
-embassy-executor = { version = "0.9.1", features = ["arch-cortex-m", "executor-thread", "defmt"] }
-embassy-time = { version = "0.5.0", features = ["defmt", "defmt-timestamp-uptime", "tick-hz-32_768"] }
-embassy-futures = "0.1.1"
-embassy-usb = { version = "0.5.0", features = [ "defmt"]}
-usbd-hid = "0.8.2"
+embassy-sync = { version = "0.8", features = ["defmt"] }
+embassy-executor = { version = "0.10", features = ["platform-cortex-m", "executor-thread", "defmt"] }
+embassy-time = { version = "0.5", features = ["defmt", "defmt-timestamp-uptime", "tick-hz-32_768"] }
+embassy-futures = "0.1"
+embassy-usb = { version = "0.5", features = [ "defmt"]}
+usbd-hid = "0.8"
 
-embedded-io = { version = "0.6.0" }
-embedded-io-async = { version = "0.6.1" }
-defmt = "1"
-defmt-rtt = "1"
+embedded-io = "0.7"
+embedded-io-async = "0.7"
+defmt = "1.1"
+defmt-rtt = "1.2"
 # embassy-usb-logger = "0.2.0"
 log = "0.4"
 static_cell = "2.1"

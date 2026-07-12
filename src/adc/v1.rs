@@ -6,14 +6,14 @@ use core::future::poll_fn;
 use core::marker::PhantomData;
 use core::task::Poll;
 
-use embassy_hal_internal::into_ref;
+use embassy_hal_internal::Peri;
 use py32_metapac::adc::vals::Ckmode;
 
 use super::blocking_delay_us;
 use crate::adc::{Adc, AdcChannel, Instance, Resolution, SampleTime};
 use crate::interrupt::typelevel::Interrupt;
 use crate::peripherals::ADC1;
-use crate::{interrupt, rcc, Peripheral};
+use crate::{interrupt, rcc};
 
 pub const VDDA_CALIB_MV: u32 = 3300;
 pub const VREF_INT: u32 = 1200;
@@ -50,7 +50,7 @@ impl AdcChannel<ADC1> for Vref {}
 impl super::SealedAdcChannel<ADC1> for Vref {
     fn channel(&self) -> u8 {
         // TODO: move to py32-metapac
-        cfg_if::cfg_if!{
+        cfg_if::cfg_if! {
             if #[cfg(py32f002b)] {
                 9
             } else {
@@ -65,7 +65,7 @@ impl AdcChannel<ADC1> for Temperature {}
 impl super::SealedAdcChannel<ADC1> for Temperature {
     fn channel(&self) -> u8 {
         // TODO: move to py32-metapac
-        cfg_if::cfg_if!{
+        cfg_if::cfg_if! {
             if #[cfg(py32f002b)] {
                 8
             } else {
@@ -77,10 +77,9 @@ impl super::SealedAdcChannel<ADC1> for Temperature {
 
 impl<'d, T: Instance> Adc<'d, T> {
     pub fn new(
-        adc: impl Peripheral<P = T> + 'd,
+        adc: Peri<'d, T>,
         _irq: impl interrupt::typelevel::Binding<T::Interrupt, InterruptHandler<T>> + 'd,
     ) -> Self {
-        into_ref!(adc);
         rcc::enable_and_reset::<T>();
 
         // Delay 1μs when using HSI14 as the ADC clock.
@@ -209,7 +208,7 @@ impl<'d, T: Instance> Adc<'d, T> {
     pub async fn read(&mut self, channel: &mut impl AdcChannel<T>) -> u16 {
         let ch_num = channel.channel();
         channel.setup();
-        
+
         #[cfg(adc_v1b)]
         T::regs().cr().modify(|reg| reg.set_addis(true));
 

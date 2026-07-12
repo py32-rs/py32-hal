@@ -10,7 +10,7 @@ use core::sync::atomic::{compiler_fence, Ordering};
 use core::task::Poll;
 
 use embassy_embedded_hal::SetConfig;
-use embassy_hal_internal::PeripheralRef;
+use embassy_hal_internal::Peri;
 use embedded_io_async::ReadReady;
 use futures_util::future::{select, Either};
 
@@ -31,8 +31,8 @@ pub struct RingBufferedUartRx<'d> {
     info: &'static Info,
     state: &'static State,
     kernel_clock: Hertz,
-    rx: Option<PeripheralRef<'d, AnyPin>>,
-    rts: Option<PeripheralRef<'d, AnyPin>>,
+    rx: Option<Peri<'d, AnyPin>>,
+    rts: Option<Peri<'d, AnyPin>>,
     ring_buf: ReadableRingBuffer<'d, u8>,
 }
 
@@ -280,7 +280,7 @@ impl ReadReady for RingBufferedUartRx<'_> {
             crate::dma::ringbuffer::Error::Overrun => Self::Error::Overrun,
             crate::dma::ringbuffer::Error::DmaUnsynced => {
                 error!(
-                    "Ringbuffer error: DmaUNsynced, driver implementation is 
+                    "Ringbuffer error: DmaUNsynced, driver implementation is
                     probably bugged please open an issue"
                 );
                 // we report this as overrun since its recoverable in the same way

@@ -30,7 +30,7 @@ pub(crate) unsafe fn disable_blocking_write() {
 pub(crate) unsafe fn blocking_write(
     start_address: u32,
     buf: &[u8; WRITE_SIZE],
-) -> Result<(), Error> {
+) -> Result<(), Error> { unsafe {
     wait_ready_blocking()?;
 
     let mut address = start_address;
@@ -59,7 +59,7 @@ pub(crate) unsafe fn blocking_write(
         pac::FLASH.sr().modify(|w| w.set_eop(true));
         Ok(())
     }
-}
+}}
 
 unsafe fn wait_ready_blocking() -> Result<(), Error> {
     loop {
@@ -75,7 +75,7 @@ unsafe fn wait_ready_blocking() -> Result<(), Error> {
     }
 }
 
-pub(crate) unsafe fn blocking_erase_unit(unit: &FlashUnit) -> Result<(), Error> {
+pub(crate) unsafe fn blocking_erase_unit(unit: &FlashUnit) -> Result<(), Error> { unsafe {
     wait_ready_blocking()?;
     pac::FLASH.cr().modify(|w| {
         match unit {
@@ -117,7 +117,7 @@ pub(crate) unsafe fn blocking_erase_unit(unit: &FlashUnit) -> Result<(), Error> 
     });
     clear_all_err();
     Ok(())
-}
+}}
 
 pub(crate) unsafe fn clear_all_err() {
     // read and write back the same value.

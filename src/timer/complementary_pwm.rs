@@ -7,7 +7,7 @@
 use core::marker::PhantomData;
 
 use crate::pac::timer::vals::Ckd;
-use embassy_hal_internal::{into_ref, PeripheralRef};
+use embassy_hal_internal::Peri;
 
 use super::low_level::{CountingMode, OutputPolarity, Timer};
 use super::simple_pwm::{Ch1, Ch2, Ch3, Ch4, PwmPin};
@@ -18,13 +18,12 @@ use super::{
 use crate::gpio::{AnyPin, OutputType};
 use crate::time::Hertz;
 use crate::timer::low_level::OutputCompareMode;
-use crate::Peripheral;
 
 /// Complementary PWM pin wrapper.
 ///
 /// This wraps a pin to make it usable with PWM.
 pub struct ComplementaryPwmPin<'d, T, C> {
-    _pin: PeripheralRef<'d, AnyPin>,
+    _pin: Peri<'d, AnyPin>,
     phantom: PhantomData<(T, C)>,
 }
 
@@ -32,8 +31,7 @@ macro_rules! complementary_channel_impl {
     ($new_chx:ident, $channel:ident, $pin_trait:ident) => {
         impl<'d, T: AdvancedInstance4Channel> ComplementaryPwmPin<'d, T, $channel> {
             #[doc = concat!("Create a new ", stringify!($channel), " complementary PWM pin instance.")]
-            pub fn $new_chx(pin: impl Peripheral<P = impl $pin_trait<T>> + 'd, output_type: OutputType) -> Self {
-                into_ref!(pin);
+            pub fn $new_chx(pin: Peri<'d, impl $pin_trait<T>>, output_type: OutputType) -> Self {
                 critical_section::with(|_| {
                     pin.set_low();
                     pin.set_as_af(
@@ -42,7 +40,7 @@ macro_rules! complementary_channel_impl {
                     );
                 });
                 ComplementaryPwmPin {
-                    _pin: pin.map_into(),
+                    _pin: pin.into(),
                     phantom: PhantomData,
                 }
             }
@@ -64,7 +62,7 @@ impl<'d, T: AdvancedInstance4Channel> ComplementaryPwm<'d, T> {
     /// Create a new complementary PWM driver.
     #[allow(clippy::too_many_arguments)]
     pub fn new(
-        tim: impl Peripheral<P = T> + 'd,
+        tim: Peri<'d, T>,
         _ch1: Option<PwmPin<'d, T, Ch1>>,
         _ch1n: Option<ComplementaryPwmPin<'d, T, Ch1>>,
         _ch2: Option<PwmPin<'d, T, Ch2>>,
@@ -79,11 +77,7 @@ impl<'d, T: AdvancedInstance4Channel> ComplementaryPwm<'d, T> {
         Self::new_inner(tim, freq, counting_mode)
     }
 
-    fn new_inner(
-        tim: impl Peripheral<P = T> + 'd,
-        freq: Hertz,
-        counting_mode: CountingMode,
-    ) -> Self {
+    fn new_inner(tim: Peri<'d, T>, freq: Hertz, counting_mode: CountingMode) -> Self {
         let mut this = Self {
             inner: Timer::new(tim),
         };
@@ -280,7 +274,7 @@ fn compute_dead_time_value(value: u16) -> (Ckd, u8) {
 
 #[cfg(test)]
 mod tests {
-    use super::{compute_dead_time_value, Ckd};
+    use super::{Ckd, compute_dead_time_value};
 
     #[test]
     fn test_compute_dead_time_value() {

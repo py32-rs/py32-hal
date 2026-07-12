@@ -8,10 +8,10 @@
 use core::convert::Infallible;
 
 use critical_section::CriticalSection;
-use embassy_hal_internal::{impl_peripheral, into_ref, PeripheralRef};
+use embassy_hal_internal::{impl_peripheral, Peri, PeripheralType};
 
 use crate::pac::gpio::{self, vals};
-use crate::{pac, peripherals, Peripheral};
+use crate::{pac, peripherals};
 
 /// GPIO flexible pin.
 ///
@@ -19,7 +19,7 @@ use crate::{pac, peripherals, Peripheral};
 /// set while not in output mode, so the pin's level will be 'remembered' when it is not in output
 /// mode.
 pub struct Flex<'d> {
-    pub(crate) pin: PeripheralRef<'d, AnyPin>,
+    pub(crate) pin: Peri<'d, AnyPin>,
 }
 
 impl<'d> Flex<'d> {
@@ -29,12 +29,9 @@ impl<'d> Flex<'d> {
     /// before the pin is put into output mode.
     ///
     #[inline]
-    pub fn new(pin: impl Peripheral<P = impl Pin> + 'd) -> Self {
-        into_ref!(pin);
+    pub fn new(pin: Peri<'d, impl Pin>) -> Self {
         // Pin will be in disconnected state.
-        Self {
-            pin: pin.map_into(),
-        }
+        Self { pin: pin.into() }
     }
 
     /// Put the pin into input mode.
@@ -261,7 +258,7 @@ pub struct Input<'d> {
 impl<'d> Input<'d> {
     /// Create GPIO input driver for a [Pin] with the provided [Pull] configuration.
     #[inline]
-    pub fn new(pin: impl Peripheral<P = impl Pin> + 'd, pull: Pull) -> Self {
+    pub fn new(pin: Peri<'d, impl Pin>, pull: Pull) -> Self {
         let mut pin = Flex::new(pin);
         pin.set_as_input(pull);
         Self { pin }
@@ -326,11 +323,7 @@ pub struct Output<'d> {
 impl<'d> Output<'d> {
     /// Create GPIO output driver for a [Pin] with the provided [Level] and [Speed] configuration.
     #[inline]
-    pub fn new(
-        pin: impl Peripheral<P = impl Pin> + 'd,
-        initial_output: Level,
-        speed: Speed,
-    ) -> Self {
+    pub fn new(pin: Peri<'d, impl Pin>, initial_output: Level, speed: Speed) -> Self {
         let mut pin = Flex::new(pin);
         match initial_output {
             Level::High => pin.set_high(),
@@ -395,11 +388,7 @@ pub struct OutputOpenDrain<'d> {
 impl<'d> OutputOpenDrain<'d> {
     /// Create a new GPIO open drain output driver for a [Pin] with the provided [Level] and [Speed].
     #[inline]
-    pub fn new(
-        pin: impl Peripheral<P = impl Pin> + 'd,
-        initial_output: Level,
-        speed: Speed,
-    ) -> Self {
+    pub fn new(pin: Peri<'d, impl Pin>, initial_output: Level, speed: Speed) -> Self {
         let mut pin = Flex::new(pin);
         match initial_output {
             Level::High => pin.set_high(),
@@ -413,7 +402,7 @@ impl<'d> OutputOpenDrain<'d> {
     /// and [Pull].
     #[inline]
     pub fn new_pull(
-        pin: impl Peripheral<P = impl Pin> + 'd,
+        pin: Peri<'d, impl Pin>,
         initial_output: Level,
         speed: Speed,
         pull: Pull,
@@ -639,7 +628,7 @@ pub(crate) trait SealedPin {
 
 /// GPIO pin trait.
 #[allow(private_bounds)]
-pub trait Pin: Peripheral<P = Self> + Into<AnyPin> + SealedPin + Sized + 'static {
+pub trait Pin: PeripheralType + Into<AnyPin> + SealedPin + Sized + 'static {
     /// EXTI channel assigned to this pin.
     ///
     /// For example, PC4 uses EXTI4.
@@ -733,12 +722,12 @@ foreach_pin!(
     };
 );
 
-pub(crate) unsafe fn init(_cs: CriticalSection) {
+pub(crate) unsafe fn init(_cs: CriticalSection) { unsafe {
     // #[cfg(afio)]
     // crate::rcc::enable_and_reset_with_cs::<crate::peripherals::AFIO>(_cs);
 
     crate::_generated::init_gpio();
-}
+}}
 
 impl<'d> embedded_hal_02::digital::v2::InputPin for Input<'d> {
     type Error = Infallible;

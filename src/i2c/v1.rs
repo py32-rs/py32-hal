@@ -373,7 +373,7 @@ impl<'d, M: PeriMode> I2c<'d, M> {
     }
 }
 
-#[cfg(dma)] 
+#[cfg(dma)]
 impl<'d> I2c<'d, Async> {
     async fn write_frame(
         &mut self,

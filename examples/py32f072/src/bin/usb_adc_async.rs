@@ -97,7 +97,7 @@ async fn usb_task(mut usb: MyUsbDevice) -> ! {
 
 async fn adc_task(
     mut adc: Adc<'static, ADC1>,
-    mut pin: py32_hal::peripherals::PA7,
+    mut pin: impl py32_hal::adc::AdcChannel<ADC1>,
     mut vrefint: adc::VrefInt,
     mut class: MyUsbClass,
 ) -> ! {
@@ -127,7 +127,7 @@ impl From<EndpointError> for Disconnected {
 
 async fn sample_and_write(
     adc: &mut Adc<'static, ADC1>,
-    pin: &mut py32_hal::peripherals::PA7,
+    pin: &mut impl py32_hal::adc::AdcChannel<ADC1>,
     vrefint: &mut adc::VrefInt,
     class: &mut MyUsbClass,
 ) -> Result<(), Disconnected> {

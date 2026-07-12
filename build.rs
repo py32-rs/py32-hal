@@ -12,9 +12,8 @@ use std::{env, fs};
 use proc_macro2::{Ident, TokenStream};
 use py32_metapac::metadata::ir::BitOffset;
 use py32_metapac::metadata::{
-    MemoryRegionKind, PeripheralRccKernelClock, PeripheralRccRegister,
-    PeripheralRegisters, /*StopMode,*/
-    ALL_CHIPS, ALL_PERIPHERAL_VERSIONS, METADATA,
+    ALL_CHIPS, ALL_PERIPHERAL_VERSIONS, METADATA, MemoryRegionKind, PeripheralRccKernelClock,
+    PeripheralRccRegister, PeripheralRegisters, /*StopMode,*/
 };
 use quote::{format_ident, quote};
 
@@ -86,13 +85,13 @@ fn main() {
                     for pin_num in 0..16 {
                         let pin_name = format!("P{}{}", port_letter, pin_num);
 
-                    // If the feature is NOT enabled and the current pin name is in the swd_pins set, skip it.
-                    if !reuse_swd_pins && swd_pins.contains(&pin_name) {
-                        continue;
+                        // If the feature is NOT enabled and the current pin name is in the swd_pins set, skip it.
+                        if !reuse_swd_pins && swd_pins.contains(&pin_name) {
+                            continue;
+                        }
+                        singletons.push(pin_name);
                     }
-                    singletons.push(pin_name);
                 }
-}
 
                 // No singleton for these, the HAL handles them specially.
                 "exti" => {}
@@ -1679,7 +1678,7 @@ fn main() {
                 #[crate::interrupt]
                 unsafe fn #irq () {
                     #(
-                        <crate::peripherals::#channels as crate::dma::ChannelInterrupt>::on_irq();
+                        unsafe { <crate::peripherals::#channels as crate::dma::ChannelInterrupt>::on_irq(); }
                     )*
                 }
             }
@@ -1754,7 +1753,7 @@ fn main() {
         if &chip_name[..9] == "py32f002a" || &chip_name[..9] == "py32f002b" {
             cfgs.push(chip_name[..6].to_owned()); // py32f0
             cfgs.push(chip_name[..9].to_owned()); // py32f002a
-                                                  // TODO
+        // TODO
         } else {
             cfgs.push(chip_name[..6].to_owned()); // py32f0
             cfgs.push(chip_name[..8].to_owned()); // py32f030

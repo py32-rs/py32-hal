@@ -9,7 +9,7 @@ use core::marker::PhantomData;
 #[cfg(feature = "embassy-usb-driver-impl")]
 use embassy_usb_driver as driver;
 #[cfg(feature = "embassy-usb-driver-impl")]
-use embassy_usb_driver::{EndpointType, EndpointAddress};
+use embassy_usb_driver::{EndpointAddress, EndpointType};
 #[cfg(feature = "usb-device-impl")]
 pub use musb::UsbdBus;
 #[cfg(feature = "embassy-usb-driver-impl")]
@@ -17,9 +17,11 @@ use musb::{Bus, ControlPipe, Endpoint, In, MusbDriver, Out};
 
 use musb::UsbInstance;
 
+use embassy_hal_internal::{Peri, PeripheralType};
+
+use crate::interrupt;
 use crate::interrupt::typelevel::Interrupt;
 use crate::rcc::{self, RccPeripheral};
-use crate::{interrupt, Peripheral};
 
 /// Interrupt handler.
 pub struct InterruptHandler<T: Instance> {
@@ -27,9 +29,9 @@ pub struct InterruptHandler<T: Instance> {
 }
 
 impl<T: Instance> interrupt::typelevel::Handler<T::Interrupt> for InterruptHandler<T> {
-    unsafe fn on_interrupt() {
+    unsafe fn on_interrupt() { unsafe {
         musb::on_interrupt::<UsbInstance>();
-    }
+    }}
 }
 
 fn init<T: Instance>() {
@@ -59,10 +61,10 @@ pub struct Driver<'d, T: Instance> {
 impl<'d, T: Instance> Driver<'d, T> {
     /// Create a new USB driver.
     pub fn new(
-        _usb: impl Peripheral<P = T> + 'd,
+        _usb: Peri<'d, T>,
         _irq: impl interrupt::typelevel::Binding<T::Interrupt, InterruptHandler<T>> + 'd,
-        _dp: impl Peripheral<P = impl DpPin<T>> + 'd,
-        _dm: impl Peripheral<P = impl DmPin<T>> + 'd,
+        _dp: Peri<'d, impl DpPin<T>>,
+        _dm: Peri<'d, impl DmPin<T>>,
     ) -> Self {
         init::<T>();
 
@@ -112,10 +114,10 @@ impl<'d, T: Instance> driver::Driver<'d> for Driver<'d, T> {
 
 #[cfg(feature = "usb-device-impl")]
 pub fn new_bus<'d, T: Instance>(
-    _usb: impl Peripheral<P = T> + 'd,
+    _usb: Peri<'d, T>,
     _irq: impl interrupt::typelevel::Binding<T::Interrupt, InterruptHandler<T>> + 'd,
-    _dp: impl Peripheral<P = impl DpPin<T>> + 'd,
-    _dm: impl Peripheral<P = impl DmPin<T>> + 'd,
+    _dp: Peri<'d, impl DpPin<T>>,
+    _dm: Peri<'d, impl DmPin<T>>,
 ) -> UsbdBus<UsbInstance> {
     init::<T>();
 
@@ -126,7 +128,7 @@ trait SealedInstance {}
 
 /// USB instance trait.
 #[allow(private_bounds)]
-pub trait Instance: SealedInstance + RccPeripheral + 'static {
+pub trait Instance: SealedInstance + PeripheralType + RccPeripheral + 'static {
     /// Interrupt for this USB instance.
     type Interrupt: interrupt::typelevel::Interrupt;
 }

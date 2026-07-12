@@ -1,5 +1,6 @@
 #![cfg_attr(not(test), no_std)]
 #![allow(async_fn_in_trait)]
+#![allow(unsafe_op_in_unsafe_fn)]
 
 // This must go FIRST so that all the other modules see its macros.
 mod fmt;
@@ -42,8 +43,8 @@ pub mod gpio;
 pub mod i2c;
 pub mod rcc;
 pub mod timer;
-pub mod usart;
 pub mod uid;
+pub mod usart;
 
 #[cfg(any(feature = "embassy-usb-driver-impl", feature = "usb-device-impl"))]
 pub mod usb;
@@ -116,7 +117,7 @@ impl Default for Config {
 pub fn init(config: Config, #[cfg(feature = "time-driver-systick")] systick: SYST) -> Peripherals {
     critical_section::with(|cs| {
         let p = Peripherals::take_with_cs(cs);
-        
+
         rcc::enable_and_reset_with_cs::<peripherals::DBGMCU>(cs);
         crate::pac::DBGMCU.cr().modify(|cr| {
             #[cfg(dbgmcu_f072)]
@@ -162,7 +163,7 @@ pub(crate) mod _generated {
 pub use crate::_generated::interrupt;
 
 pub use _generated::{peripherals, Peripherals};
-pub use embassy_hal_internal::{into_ref, Peripheral, PeripheralRef};
+pub use embassy_hal_internal::{impl_peripheral, Peri, PeripheralType};
 
 // developer note: this macro can't be in `embassy-hal-internal` due to the use of `$crate`.
 #[macro_export]
@@ -181,7 +182,7 @@ macro_rules! bind_interrupts {
 
         $(
             #[allow(non_snake_case)]
-            #[no_mangle]
+            #[unsafe(no_mangle)]
             $(#[cfg($cond_irq)])?
             unsafe extern "C" fn $irq() {
                 $(
