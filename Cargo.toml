@@ -12,11 +12,9 @@ keywords = ["py32", "hal", "embedded", "no-std", "hardware-support"]
 readme = "README.md"
 license = "MIT OR Apache-2.0"
 
-# ---------------------------------------------------------------------------
-# Dependencies
-# ---------------------------------------------------------------------------
 
 [dependencies]
+# py32-metapac = { version = "0.5.0", path = "../py32-data/build/py32-metapac"}
 py32-metapac = { version = "0.5.0", git = "https://github.com/py32-rs/py32-metapac.git" }
 
 # --- Cortex-M ---
@@ -67,29 +65,21 @@ defmt = { version = "1", optional = true }
 defmt-rtt = { version = "1", optional = true }
 log = { version = "0.4", optional = true }
 
-# ---------------------------------------------------------------------------
-# Build dependencies
-# ---------------------------------------------------------------------------
 
 [build-dependencies]
+# py32-metapac = { version = "0.5.0", path = "../py32-data/build/py32-metapac", default-features = false, features = [
 py32-metapac = { version = "0.5.0", git = "https://github.com/py32-rs/py32-metapac.git", default-features = false, features = [
     "metadata",
 ] }
 proc-macro2 = "1.0.89"
 quote = "1.0.37"
 
-# ---------------------------------------------------------------------------
-# Dev dependencies
-# ---------------------------------------------------------------------------
 
 [dev-dependencies]
 critical-section = { version = "1.1", features = ["std"] }
 proptest = "1.5.0"
 proptest-state-machine = "0.3.0"
 
-# ---------------------------------------------------------------------------
-# Features
-# ---------------------------------------------------------------------------
 
 [features]
 default = ["rt", "memory-x", "defmt", "time", "exti"]
@@ -136,10 +126,6 @@ _time-driver = ["dep:embassy-time-driver", "time", "dep:embassy-time-queue-utils
 # (e.g. PY32F002B, PY32L020, PY32C64x — on PA2 and PB6).
 # Enable only if you understand the risk and have a recovery plan.
 unsafe-reuse-swd-pins = []
-
-# ---------------------------------------------------------------------------
-# Package metadata
-# ---------------------------------------------------------------------------
 
 [package.metadata.docs.rs]
 default-target = "thumbv6m-none-eabi"

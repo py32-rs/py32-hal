@@ -12,6 +12,6 @@ use {defmt_rtt as _, panic_probe as _};
 #[embassy_executor::main]
 async fn main(_spawner: Spawner) {
     info!("Hello world!");
-    let p = py32_hal::init(Default::default());
+    let _p = py32_hal::init(Default::default());
     info!("UID: {}", uid::uid());
 }

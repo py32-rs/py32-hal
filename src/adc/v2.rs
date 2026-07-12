@@ -123,7 +123,7 @@ where
     }
 
     pub fn new_async(
-        adc: impl Peripheral<P = T> + 'd,
+        adc: Peri<'d, T>,
         _irq: impl interrupt::typelevel::Binding<T::Interrupt, InterruptHandler<T>> + 'd,
     ) -> Self {
         let presc = Prescaler::from_pclk(T::frequency());
@@ -157,7 +157,7 @@ where
 
     /// adc_div: The PCLK division factor
     pub fn new_with_prediv_async(
-        adc: impl Peripheral<P = T> + 'd,
+        adc: Peri<'d, T>,
         adc_div: Prescaler,
         _irq: impl interrupt::typelevel::Binding<T::Interrupt, InterruptHandler<T>> + 'd,
     ) -> Self {
