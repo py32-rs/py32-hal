@@ -90,6 +90,7 @@ The risk is critical on MCUs that lack a BOOT button and a factory bootloader, s
 ## Awesome List
 
 [py32csdk-hal-sys](https://github.com/decaday/py32csdk-hal-sys): PY32F0 MCU c SDK bindings rust crate
+
 [puyaisp](https://github.com/wagiminator/MCU-Flash-Tools/blob/main/puyaisp.py): PY32 UART/USB-HID flasher
 
 ## TODOs
