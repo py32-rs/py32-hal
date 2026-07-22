@@ -5,7 +5,7 @@ edition = "2024"
 publish = false
 
 [dependencies]
-py32-hal = { path = "../../", features = [ "time-driver-tim1", "py32f002b"]}
+py32-hal = { path = "../../", features = [ "time-driver-tim1", "py32f002bx5"]}
 
 # This is necessary because `py32-hal` uses `portable-atomic`,
 # but Cortex-M0 does not provide Atomic (CAS) support.

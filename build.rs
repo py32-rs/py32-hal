@@ -603,7 +603,7 @@ fn main() {
                     .fields
                     .iter()
                     .find(|i| i.name.eq_ignore_ascii_case(reg.field))
-                    .unwrap()
+                    .expect(&format!("field {} not found in register {}", reg.field, reg.register))
                     .bit_offset;
                 let BitOffset::Regular(bit_offset) = bit_offset else {
                     panic!("cursed bit offset")
@@ -1749,17 +1749,27 @@ fn main() {
             cfgs.push(format!("{}_{}", &chip_name[..chip_name.len() - 2], core));
         }
 
-        // Configs for targeting groups of chips
-        if &chip_name[..9] == "py32f002a" || &chip_name[..9] == "py32f002b" {
-            cfgs.push(chip_name[..6].to_owned()); // py32f0
-            cfgs.push(chip_name[..9].to_owned()); // py32f002a
-        // TODO
-        } else {
-            cfgs.push(chip_name[..6].to_owned()); // py32f0
-            cfgs.push(chip_name[..8].to_owned()); // py32f030
-            cfgs.push(format!("package_{}", &chip_name[8..10]));
-            cfgs.push(format!("flashsize_{}", &chip_name[10..11]));
-        }
+        let len = chip_name.len();
+        
+        // Extract Flash Size (Always the last 1 character)
+        // E.g., "5" from "py32f002ax5" or "py32f002af15"
+        let flashsize = &chip_name[len - 1..];
+
+        // Extract Package
+        // Rule: If the 2nd-to-last character is 'x', the package string length is 1 ('x').
+        // Otherwise, it is a 2-character package (e.g., 'f1', 'c1', 'k2').
+        let package_len = if chip_name.as_bytes()[len - 2] == b'x' { 1 } else { 2 };
+        let package = &chip_name[len - 1 - package_len .. len - 1];
+
+        // Extract Series
+        // Rule: The prefix remaining after dropping Flash and Package.
+        // E.g., "py32f002a" (len=9) or "py32f030" (len=8)
+        let series = &chip_name[.. len - 1 - package_len];
+
+        cfgs.push(chip_name[..6].to_owned());          // Family (e.g., py32f0)
+        cfgs.push(series.to_owned());                  // Series (e.g., py32f002a)
+        cfgs.push(format!("package_{}", package));     // Package (e.g., package_x, package_f1)
+        cfgs.push(format!("flashsize_{}", flashsize)); // Flash Size (e.g., flashsize_5)
 
         // cfgs.push(format!("{}x", &chip_name[..8])); // stm32f42x
         // cfgs.push(format!("{}x{}", &chip_name[..7], &chip_name[8..9])); // stm32f4x9
