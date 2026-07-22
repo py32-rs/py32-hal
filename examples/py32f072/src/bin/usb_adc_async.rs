@@ -7,11 +7,12 @@ use defmt::*;
 use embassy_executor::Spawner;
 use embassy_futures::join::join;
 use embassy_time::Timer;
+use embassy_usb::UsbDevice;
 use embassy_usb::class::cdc_acm::{CdcAcmClass, State};
 use embassy_usb::driver::EndpointError;
-use embassy_usb::UsbDevice;
 use heapless::String;
 use py32_hal::adc::{Adc, SampleTime};
+use py32_hal::mode::Async;
 use py32_hal::peripherals::{ADC1, USB};
 use py32_hal::rcc::{HsiFs, Pll, PllMul, PllSource, Sysclk};
 use py32_hal::usb::{Driver, InterruptHandler as UsbInterruptHandler};
@@ -96,7 +97,7 @@ async fn usb_task(mut usb: MyUsbDevice) -> ! {
 }
 
 async fn adc_task(
-    mut adc: Adc<'static, ADC1>,
+    mut adc: Adc<'static, ADC1, Async>,
     mut pin: impl py32_hal::adc::AdcChannel<ADC1>,
     mut vrefint: adc::VrefInt,
     mut class: MyUsbClass,
@@ -126,7 +127,7 @@ impl From<EndpointError> for Disconnected {
 }
 
 async fn sample_and_write(
-    adc: &mut Adc<'static, ADC1>,
+    adc: &mut Adc<'static, ADC1, Async>,
     pin: &mut impl py32_hal::adc::AdcChannel<ADC1>,
     vrefint: &mut adc::VrefInt,
     class: &mut MyUsbClass,
