@@ -25,6 +25,9 @@ Examples compatible with the following MCU series:
 - PY32M070
 - PY32MD410
 
+## py32f071
+Demonstrates asynchronous ADC sampling and USB CDC-ACM output on the PY32F071R1B.
+
 ## heap-alloc-f030
 Demonstrates heap allocation using the [embedded-alloc](https://github.com/rust-embedded/embedded-alloc) crate with either LLFF or TLSF heap implementations.
 

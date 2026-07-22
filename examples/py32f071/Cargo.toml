@@ -1,0 +1,57 @@
+[package]
+name = "py32f071-examples"
+version = "0.4.1"
+edition = "2024"
+publish = false
+
+[dependencies]
+py32-hal = { path = "../../", features = [
+    "time-driver-tim15",
+    "py32f071r1b",
+    "embassy-usb-driver-impl",
+] }
+
+# Cortex-M0+ has no native compare-and-swap atomics.
+portable-atomic = { version = "1", features = ["critical-section"] }
+
+cortex-m = { version = "0.7.7", features = [
+    "critical-section-single-core",
+    "critical-section",
+] }
+cortex-m-rt = "0.7.5"
+panic-probe = { version = "1.0", features = ["print-defmt"] }
+
+embassy-executor = { version = "0.10", features = [
+    "platform-cortex-m",
+    "executor-thread",
+    "defmt",
+] }
+embassy-time = { version = "0.5", features = [
+    "defmt",
+    "defmt-timestamp-uptime",
+    "tick-hz-32_768",
+] }
+embassy-futures = "0.1"
+embassy-usb = { version = "0.5", features = ["defmt"] }
+
+defmt = "1.1"
+defmt-rtt = "1.2"
+static_cell = "2.1"
+heapless = "0.9"
+
+[profile.dev]
+codegen-units = 1
+debug = 2
+debug-assertions = true
+incremental = false
+opt-level = "z"
+overflow-checks = true
+
+[profile.release]
+codegen-units = 1
+debug = 2
+debug-assertions = false
+incremental = false
+lto = "fat"
+opt-level = 3
+overflow-checks = false
