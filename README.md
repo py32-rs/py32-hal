@@ -29,17 +29,11 @@ Keypoints:
 
 ## Supported Devices and Peripherals
 
-The currently supported chips are listed as feature flags in `Cargo.toml`:  
-- `py32f002b`  
-- `py32f030f16`  
-- `py32f030k28`  
-- `py32f072c1b`  
+This HAL supports a wide range of PY32 chips. The complete and auto-updated list of supported chips can be found as feature flags under the `# --- MCU selection ---` section in `Cargo.toml`.
 
-(More will be added soon!)
+To enable support for your specific MCU, simply select its exact part number as a feature (e.g., `features = ["py32f030f16"]` or `"py32f030x6"`, `"py32f002bf15"`, `"py32f002bx5"` ...).
 
-The current chip features are independent of packaging. We haven't implemented separate handling for cut-down series yet. Please check the [examples‘ readme](examples/README.md) for compatibility information.
-
- Chips outside the list may work if you proceed cautiously, as most peripherals are quite similar across the series. In fact, the peripheral IPs within different PY32 series are often consistent. Additionally, some series share the same die, which may minimize the effort required for compatibility.  
+Chips outside the list may work if you proceed cautiously, as most peripherals are quite similar across the series. In fact, the peripheral IPs within different PY32 series are often consistent. Additionally, some series share the same die, which may minimize the effort required for compatibility.  
 
 For a comprehensive list of chip capabilities and peripherals, refer to the [py32-data](https://github.com/py32-rs/py32-data) repository and [examples‘ readme](examples/README.md).
 
@@ -95,16 +89,12 @@ The risk is critical on MCUs that lack a BOOT button and a factory bootloader, s
 
 Too many...
 
-- Test F072 peripherals
-
+- Test F002B F072 peripherals
 - HSE test and examples
-
 - Other series, chips
-
 - SPI, RTC
-
 - F072 TIM2(GP32) support
-
+- PY32F403
 - ...
 
 ## Contributing
