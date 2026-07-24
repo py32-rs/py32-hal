@@ -218,7 +218,7 @@ impl AnyChannel {
                     w.set_dma_map(info.num % 4, request);
                 });
             }
-            #[cfg(py32f072)]
+            #[cfg(any(py32f071, py32f072))]
             1 => {
                 pac::SYSCFG.cfgr4().modify(|w| {
                     w.set_dma_map(info.num % 4, request);
