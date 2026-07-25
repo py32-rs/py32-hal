@@ -18,6 +18,8 @@ pub use _version::*;
 use core::marker::PhantomData;
 use embassy_sync::waitqueue::AtomicWaker;
 
+#[cfg(adc_v2)]
+use crate::mode::{Blocking, Mode};
 pub use crate::pac::adc::vals;
 pub use crate::pac::adc::vals::Res as Resolution;
 pub use crate::pac::adc::vals::SampleTime;
@@ -27,10 +29,20 @@ use crate::peripherals;
 dma_trait!(RxDma, Instance);
 
 /// Analog to Digital driver.
+#[cfg(any(adc_v1, adc_v1b))]
 pub struct Adc<'d, T: Instance> {
     #[allow(unused)]
     adc: crate::Peri<'d, T>,
     sample_time: SampleTime,
+}
+
+/// Analog to Digital driver.
+#[cfg(adc_v2)]
+pub struct Adc<'d, T: Instance, M: Mode = Blocking> {
+    #[allow(unused)]
+    adc: crate::Peri<'d, T>,
+    sample_time: SampleTime,
+    _mode: PhantomData<M>,
 }
 
 pub struct State {

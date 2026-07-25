@@ -11,8 +11,9 @@ use crate::Peri;
 use super::blocking_delay_us;
 use crate::adc::{Adc, AdcChannel, Instance, Resolution, SampleTime};
 use crate::interrupt::typelevel::Interrupt;
-use crate::pac::adc::vals::Extsel;
+use crate::mode::{Async, Blocking, Mode};
 use crate::pac::RCC;
+use crate::pac::adc::vals::Extsel;
 use crate::peripherals::ADC1;
 use crate::time::Hertz;
 use crate::{interrupt, rcc};
@@ -113,7 +114,7 @@ impl Prescaler {
     }
 }
 
-impl<'d, T> Adc<'d, T>
+impl<'d, T> Adc<'d, T, Blocking>
 where
     T: Instance,
 {
@@ -122,6 +123,54 @@ where
         Self::new_with_prediv(adc, presc)
     }
 
+    /// adc_div: The PCLK division factor
+    pub fn new_with_prediv(adc: Peri<'d, T>, adc_div: Prescaler) -> Self {
+        Self::new_inner(adc, adc_div)
+    }
+
+    /// Perform a single conversion.
+    fn convert(&mut self) -> u16 {
+        // clear end of conversion flag
+        T::regs().sr().modify(|reg| {
+            reg.set_eoc(false);
+        });
+
+        // Start conversion
+        T::regs().cr2().modify(|reg| {
+            reg.set_swstart(true);
+            reg.set_exttrig(true);
+        });
+
+        while T::regs().sr().read().strt() == false {
+            // spin //wait for actual start
+        }
+        while T::regs().sr().read().eoc() == false {
+            // spin //wait for finish
+        }
+
+        T::regs().dr().read().0 as u16
+    }
+
+    pub fn blocking_read(&mut self, channel: &mut impl AdcChannel<T>) -> u16 {
+        channel.setup();
+
+        // Configure ADC
+        let channel = channel.channel();
+
+        // Select channel
+        T::regs().sqr3().write(|reg| reg.set_sq(0, channel));
+
+        // Configure channel
+        Self::set_channel_sample_time(channel, self.sample_time);
+
+        self.convert()
+    }
+}
+
+impl<'d, T> Adc<'d, T, Async>
+where
+    T: Instance,
+{
     pub fn new_async(
         adc: Peri<'d, T>,
         _irq: impl interrupt::typelevel::Binding<T::Interrupt, InterruptHandler<T>> + 'd,
@@ -131,7 +180,69 @@ where
     }
 
     /// adc_div: The PCLK division factor
-    pub fn new_with_prediv(adc: Peri<'d, T>, adc_div: Prescaler) -> Self {
+    pub fn new_with_prediv_async(
+        adc: Peri<'d, T>,
+        adc_div: Prescaler,
+        _irq: impl interrupt::typelevel::Binding<T::Interrupt, InterruptHandler<T>> + 'd,
+    ) -> Self {
+        let adc = Self::new_inner(adc, adc_div);
+
+        T::Interrupt::unpend();
+        unsafe {
+            T::Interrupt::enable();
+        }
+
+        adc
+    }
+
+    async fn convert_async(&mut self) -> u16 {
+        T::regs().sr().modify(|reg| {
+            reg.set_eoc(false);
+        });
+
+        T::regs().cr1().modify(|reg| reg.set_eocie(true));
+
+        T::regs().cr2().modify(|reg| {
+            reg.set_swstart(true);
+            reg.set_exttrig(true);
+        });
+
+        poll_fn(|cx| {
+            T::state().waker.register(cx.waker());
+
+            if T::regs().sr().read().eoc() {
+                Poll::Ready(())
+            } else {
+                Poll::Pending
+            }
+        })
+        .await;
+
+        T::regs().dr().read().0 as u16
+    }
+
+    pub async fn read(&mut self, channel: &mut impl AdcChannel<T>) -> u16 {
+        channel.setup();
+
+        let channel = channel.channel();
+
+        // Select a single-channel regular sequence.
+        T::regs().sqr1().modify(|reg| reg.set_l(0));
+        T::regs().sqr3().write(|reg| reg.set_sq(0, channel));
+
+        // Configure channel
+        Self::set_channel_sample_time(channel, self.sample_time);
+
+        self.convert_async().await
+    }
+}
+
+impl<'d, T, M> Adc<'d, T, M>
+where
+    T: Instance,
+    M: Mode,
+{
+    fn new_inner(adc: Peri<'d, T>, adc_div: Prescaler) -> Self {
         rcc::enable_and_reset::<T>();
 
         RCC.cr().modify(|reg| {
@@ -152,23 +263,8 @@ where
         Self {
             adc,
             sample_time: SampleTime::from_bits(0),
+            _mode: PhantomData,
         }
-    }
-
-    /// adc_div: The PCLK division factor
-    pub fn new_with_prediv_async(
-        adc: Peri<'d, T>,
-        adc_div: Prescaler,
-        _irq: impl interrupt::typelevel::Binding<T::Interrupt, InterruptHandler<T>> + 'd,
-    ) -> Self {
-        let adc = Self::new_with_prediv(adc, adc_div);
-
-        T::Interrupt::unpend();
-        unsafe {
-            T::Interrupt::enable();
-        }
-
-        adc
     }
 
     pub fn set_sample_time(&mut self, sample_time: SampleTime) {
@@ -211,85 +307,6 @@ where
 
     //     Vbat {}
     // }
-
-    /// Perform a single conversion.
-    fn convert(&mut self) -> u16 {
-        // clear end of conversion flag
-        T::regs().sr().modify(|reg| {
-            reg.set_eoc(false);
-        });
-
-        // Start conversion
-        T::regs().cr2().modify(|reg| {
-            reg.set_swstart(true);
-            reg.set_exttrig(true);
-        });
-
-        while T::regs().sr().read().strt() == false {
-            // spin //wait for actual start
-        }
-        while T::regs().sr().read().eoc() == false {
-            // spin //wait for finish
-        }
-
-        T::regs().dr().read().0 as u16
-    }
-
-    async fn convert_async(&mut self) -> u16 {
-        T::regs().sr().modify(|reg| {
-            reg.set_eoc(false);
-        });
-
-        T::regs().cr1().modify(|reg| reg.set_eocie(true));
-
-        T::regs().cr2().modify(|reg| {
-            reg.set_swstart(true);
-            reg.set_exttrig(true);
-        });
-
-        poll_fn(|cx| {
-            T::state().waker.register(cx.waker());
-
-            if T::regs().sr().read().eoc() {
-                Poll::Ready(())
-            } else {
-                Poll::Pending
-            }
-        })
-        .await;
-
-        T::regs().dr().read().0 as u16
-    }
-
-    pub fn blocking_read(&mut self, channel: &mut impl AdcChannel<T>) -> u16 {
-        channel.setup();
-
-        // Configure ADC
-        let channel = channel.channel();
-
-        // Select channel
-        T::regs().sqr3().write(|reg| reg.set_sq(0, channel));
-
-        // Configure channel
-        Self::set_channel_sample_time(channel, self.sample_time);
-
-        self.convert()
-    }
-
-    pub async fn read(&mut self, channel: &mut impl AdcChannel<T>) -> u16 {
-        channel.setup();
-
-        let channel = channel.channel();
-
-        // Select a single-channel regular sequence.
-        T::regs().sqr1().modify(|reg| reg.set_l(0));
-        T::regs().sqr3().write(|reg| reg.set_sq(0, channel));
-
-        // Configure channel
-        Self::set_channel_sample_time(channel, self.sample_time);
-
-        self.convert_async().await
-    }
 
     fn set_channel_sample_time(ch: u8, sample_time: SampleTime) {
         let sample_time = sample_time.into();
@@ -348,7 +365,7 @@ where
     }
 }
 
-impl<'d, T: Instance> Drop for Adc<'d, T> {
+impl<'d, T: Instance, M: Mode> Drop for Adc<'d, T, M> {
     fn drop(&mut self) {
         T::regs().cr2().modify(|reg| {
             reg.set_adon(false);
