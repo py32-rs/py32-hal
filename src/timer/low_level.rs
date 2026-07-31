@@ -221,7 +221,7 @@ impl<'d, T: CoreInstance> Timer<'d, T> {
         unsafe { crate::pac::timer::TimCore::from_ptr(T::regs()) }
     }
 
-    #[cfg(py32f072)]
+    #[cfg(any(py32f071, py32f072))]
     fn regs_gp32_unchecked(&self) -> crate::pac::timer::TimGp32 {
         unsafe { crate::pac::timer::TimGp32::from_ptr(T::regs()) }
     }
@@ -269,7 +269,7 @@ impl<'d, T: CoreInstance> Timer<'d, T> {
                 regs.egr().write(|r| r.set_ug(true));
                 regs.cr1().modify(|r| r.set_urs(vals::Urs::ANYEVENT));
             }
-            #[cfg(py32f072)]
+            #[cfg(any(py32f071, py32f072))]
             TimerBits::Bits32 => {
                 let pclk_ticks_per_timer_period = (timer_f / f) as u64;
                 let psc: u16 = unwrap!(((pclk_ticks_per_timer_period - 1) / (1 << 32)).try_into());
@@ -343,7 +343,7 @@ impl<'d, T: CoreInstance> Timer<'d, T> {
 
                 timer_f / arr / (psc + 1)
             }
-            #[cfg(py32f072)]
+            #[cfg(any(py32f071, py32f072))]
             TimerBits::Bits32 => {
                 let regs = self.regs_gp32_unchecked();
                 let arr = regs.arr().read();
@@ -416,7 +416,7 @@ impl<'d, T: GeneralInstance1Channel> Timer<'d, T> {
     pub fn get_max_compare_value(&self) -> u32 {
         match T::BITS {
             TimerBits::Bits16 => self.regs_1ch().arr().read().arr() as u32,
-            #[cfg(py32f072)]
+            #[cfg(any(py32f071, py32f072))]
             TimerBits::Bits32 => self.regs_gp32_unchecked().arr().read(),
         }
     }
@@ -566,7 +566,7 @@ impl<'d, T: GeneralInstance4Channel> Timer<'d, T> {
                     .ccr(channel.index())
                     .modify(|w| w.set_ccr(value));
             }
-            #[cfg(py32f072)]
+            #[cfg(any(py32f071, py32f072))]
             TimerBits::Bits32 => {
                 self.regs_gp32_unchecked()
                     .ccr(channel.index())
@@ -579,7 +579,7 @@ impl<'d, T: GeneralInstance4Channel> Timer<'d, T> {
     pub fn get_compare_value(&self, channel: Channel) -> u32 {
         match T::BITS {
             TimerBits::Bits16 => self.regs_gp16().ccr(channel.index()).read().ccr() as u32,
-            #[cfg(py32f072)]
+            #[cfg(any(py32f071, py32f072))]
             TimerBits::Bits32 => self.regs_gp32_unchecked().ccr(channel.index()).read(),
         }
     }
@@ -630,7 +630,7 @@ impl<'d, T: GeneralInstance4Channel> Timer<'d, T> {
     }
 }
 
-// #[cfg(py32f072)]
+// #[cfg(any(py32f071, py32f072))]
 // impl<'d, T: GeneralInstance32bit4Channel> Timer<'d, T> {
 //     /// Get access to the general purpose 32bit timer registers.
 //     ///
