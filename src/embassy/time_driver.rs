@@ -273,27 +273,50 @@ impl RtcDriver {
         let r = regs_gp16();
 
         critical_section::with(|cs| {
-            let sr = r.sr().read();
-            let dier = r.dier().read();
+            // 处理循环：处理完已读标志后重读，缩小"读 SR → 清 SR"的竞争窗口。
+            // 若基于旧 SR 的清除误清掉处理期间新置位的标志，该半程/溢出会永久
+            // 丢失（NVIC pending 重入后读到的标志为 0），period 少计 → 时间基准
+            // 周期性错位 → 显示扫描帧时间突变（闪烁）。
+            loop {
+                let sr = r.sr().read();
+                let dier = r.dier().read();
 
-            // Clear all interrupt flags. Bits in SR are "write 0 to clear", so write the bitwise NOT.
-            // Other approaches such as writing all zeros, or RMWing won't work, they can
-            // miss interrupts.
-            r.sr().write_value(regs::SrGp16(!sr.0));
+                if sr.uif() || sr.ccif(0) || (sr.ccif(1) && dier.ccie(1)) {
+                    // Clear all interrupt flags. Bits in SR are "write 0 to clear", so write the bitwise NOT.
+                    // Other approaches such as writing all zeros, or RMWing won't work, they can
+                    // miss interrupts.
+                    r.sr().write_value(regs::SrGp16(!sr.0));
 
-            // Overflow
-            if sr.uif() {
-                self.next_period();
+                    // Overflow
+                    if sr.uif() {
+                        self.next_period();
+                    }
+
+                    // Half overflow
+                    if sr.ccif(0) {
+                        self.next_period();
+                    }
+
+                    let n = 0;
+                    if sr.ccif(n + 1) && dier.ccie(n + 1) {
+                        self.trigger_alarm(cs);
+                    }
+                } else {
+                    break;
+                }
             }
 
-            // Half overflow
-            if sr.ccif(0) {
-                self.next_period();
-            }
-
-            let n = 0;
-            if sr.ccif(n + 1) && dier.ccie(n + 1) {
-                self.trigger_alarm(cs);
+            // 相位兜底：硬件 counter 永不丢失，用它校验 period 奇偶约束
+            // （period 偶数 ⇒ counter ∈ [0x0000, 0x7FFF]；奇数 ⇒ [0x8000, 0xFFFF]）。
+            // 失配说明期间丢失过一次半程/溢出（中断延迟/标志误清），补 +1 自愈。
+            // 处理循环耗时（µs 级）远小于半程间隔（32768 ticks），读 cnt 时 counter
+            // 仍在触发点对应的半程内，不会误判。
+            let cnt = r.cnt().read().cnt();
+            let period = self.period.load(Ordering::Relaxed);
+            if (period & 1) != u32::from(cnt >= 0x8000) {
+                self.period.store(period + 1, Ordering::Relaxed);
+                #[cfg(feature = "defmt")]
+                defmt::warn!("time period corrected (period={}, cnt={})", period, cnt);
             }
         })
     }
