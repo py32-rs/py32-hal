@@ -36,6 +36,8 @@ pub mod mode {
 }
 
 pub mod adc;
+#[cfg(dac)]
+pub mod dac;
 #[cfg(dma)]
 pub mod dma;
 pub mod flash;
@@ -162,7 +164,7 @@ pub(crate) mod _generated {
 
 pub use crate::_generated::interrupt;
 
-pub use _generated::{peripherals, Peripherals};
+pub use _generated::{peripherals, triggers, Peripherals};
 pub use embassy_hal_internal::{impl_peripheral, Peri, PeripheralType};
 
 // developer note: this macro can't be in `embassy-hal-internal` due to the use of `$crate`.

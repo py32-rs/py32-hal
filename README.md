@@ -52,7 +52,7 @@ For a comprehensive list of chip capabilities and peripherals, refer to the [py3
 | FLASH       | ❓          | ✅               | ✅               |      |
 | Timer(PWM)  | ❓          | ✅               | ❓               |      |
 | USB         | N/A        | N/A             | ✅+              |      |
-| DAC         | N/A        | N/A             |                 |      |
+| DAC         | N/A        | N/A             | ✅              |      |
 | I2S         | N/A        | N/A             |                 |      |
 
 - ✅ : Implemented
