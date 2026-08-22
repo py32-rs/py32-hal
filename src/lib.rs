@@ -36,6 +36,8 @@ pub mod mode {
 }
 
 pub mod adc;
+#[cfg(crc)]
+pub mod crc;
 #[cfg(dac)]
 pub mod dac;
 #[cfg(dma)]
