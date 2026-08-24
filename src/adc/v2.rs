@@ -246,7 +246,7 @@ where
         rcc::enable_and_reset::<T>();
 
         RCC.cr().modify(|reg| {
-            reg.set_adcdiv(adc_div.adcdiv());
+            reg.set_adc_div(adc_div.adcdiv());
         });
         T::regs().cr2().modify(|reg| {
             reg.set_extsel(Extsel::SWSTART);

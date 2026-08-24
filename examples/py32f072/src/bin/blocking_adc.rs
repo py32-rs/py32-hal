@@ -32,7 +32,7 @@ async fn main(_spawner: Spawner) {
     // 10-bit: 3.5 + 10.5 = 14 ADCCLK cycles
     // 8-bit:  3.5 + 8.5  = 12 ADCCLK cycles
     // 6-bit:  3.5 + 6.5  = 10 ADCCLK cycles
-    adc.set_sample_time(SampleTime::CYCLES71_5);
+    adc.set_sample_time(SampleTime::CYCLES134_5);
     let mut pin = p.PA7;
 
     let mut vrefint = adc.enable_vrefint();
