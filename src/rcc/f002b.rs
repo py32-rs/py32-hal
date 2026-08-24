@@ -24,7 +24,8 @@ pub struct Config {
     pub apb1_pre: APBPrescaler,
     /// Per-peripheral kernel clock selection muxes
     pub mux: super::mux::ClockMux,
-    // pub ls: super::LsConfig,
+    /// Low-speed oscillator (LSI/LSE) configuration
+    pub ls: super::LsConfig,
 }
 
 impl Default for Config {
@@ -36,7 +37,7 @@ impl Default for Config {
             hsidiv: Hsidiv::DIV1,
             ahb_pre: AHBPrescaler::DIV1,
             apb1_pre: APBPrescaler::DIV1,
-            // ls: Default::default(),
+            ls: Default::default(),
             mux: Default::default(),
         }
     }
@@ -123,7 +124,7 @@ pub(crate) unsafe fn init(config: Config) {
         RCC.cr().modify(|w| w.set_hsion(false));
     }
 
-    // let rtc = config.ls.init();
+    let (lsi, lse) = config.ls.init();
 
     config.mux.init();
 
@@ -133,7 +134,8 @@ pub(crate) unsafe fn init(config: Config) {
         pclk1_tim: Some(pclk1_tim).into(),
         sys: Some(sys).into(),
         hsi: hsi_value.into(),
-        lse: None.into(),
+        lsi,
+        lse,
     };
     crate::rcc::set_freqs(clocks);
 }

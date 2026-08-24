@@ -31,12 +31,105 @@ pub struct Clocks {
     pub sys: crate::time::MaybeHertz,
 
     pub hsi: crate::time::MaybeHertz,
+    pub lsi: crate::time::MaybeHertz,
     pub lse: crate::time::MaybeHertz,
     #[cfg(not(rcc_f002b))]
     pub pll: crate::time::MaybeHertz,
     // pub rtc: crate::time::MaybeHertz,
     // pub sys: Option<crate::time::Hertz>,
     // pub usb: Option<crate::time::Hertz>,
+}
+
+pub const LSI_FREQ: crate::time::Hertz = crate::time::Hertz(32_768);
+
+#[derive(Clone, Copy, Debug, Default, Eq, PartialEq)]
+pub enum LseMode {
+    #[default]
+    Oscillator,
+    Bypass,
+}
+
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub struct LseConfig {
+    pub frequency: crate::time::Hertz,
+    pub mode: LseMode,
+}
+
+impl LseConfig {
+    pub const fn new() -> Self {
+        Self {
+            frequency: crate::time::Hertz(32_768),
+            mode: LseMode::Oscillator,
+        }
+    }
+}
+
+impl Default for LseConfig {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub struct LsConfig {
+    pub lsi: bool,
+    pub lse: Option<LseConfig>,
+}
+
+impl LsConfig {
+    pub const fn default_lsi() -> Self {
+        Self { lsi: true, lse: None }
+    }
+
+    pub const fn default_lse() -> Self {
+        Self {
+            lsi: false,
+            lse: Some(LseConfig::new()),
+        }
+    }
+
+    pub const fn off() -> Self {
+        Self { lsi: false, lse: None }
+    }
+
+    pub(crate) fn init(&self) -> (crate::time::MaybeHertz, crate::time::MaybeHertz) {
+        use crate::pac::RCC;
+
+        // ~100 ms of spinning at the highest supported core clock.
+        const READY_TIMEOUT: u32 = 5_000_000;
+
+        fn wait(mut ready: impl FnMut() -> bool, name: &str) {
+            for _ in 0..READY_TIMEOUT {
+                if ready() {
+                    return;
+                }
+            }
+            panic!("{} did not become ready", name);
+        }
+
+        if self.lsi {
+            RCC.csr().modify(|w| w.set_lsion(true));
+            wait(|| RCC.csr().read().lsirdy(), "LSI");
+        }
+
+        let lse = self.lse.map(|cfg| {
+            // LSEBYP must be set together with (or before) LSEON.
+            RCC.bdcr().modify(|w| {
+                w.set_lsebyp(matches!(cfg.mode, LseMode::Bypass));
+                w.set_lseon(true);
+            });
+            wait(|| RCC.bdcr().read().lserdy(), "LSE");
+            cfg.frequency
+        });
+
+        (self.lsi.then_some(LSI_FREQ).into(), lse.into())
+    }
+}
+
+impl Default for LsConfig {
+    fn default() -> Self {
+        Self::off()
+    }
 }
 
 // #[cfg(feature = "low-power")]
