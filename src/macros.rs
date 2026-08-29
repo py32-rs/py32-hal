@@ -65,6 +65,7 @@ macro_rules! pin_trait_impl {
     };
 }
 
+#[allow(unused)]
 macro_rules! trigger_trait {
     ($signal:ident, $instance:path$(, $mode:path)?) => {
         #[doc = concat!(stringify!($signal), " trigger trait")]
