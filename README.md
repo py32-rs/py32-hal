@@ -49,7 +49,10 @@ For a comprehensive list of chip capabilities and peripherals, refer to the [py3
 | SPI         |            |                 |                 |      |
 | ADC         | ✅+         | ✅+              | ✅+              |      |
 | RTC         | ❓          |                 |                 |      |
-| DIV         | N/A         | N/A              | ✅               |      |
+| IWDG        | ❓          | ❓               | ✅               |      |
+| WWDG        | N/A        | ❓               | ✅               |      |
+| CRC         | ❓          | ❓               | ✅               |      |
+| DIV         | N/A        | N/A             | ✅               |      |
 | FLASH       | ❓          | ✅               | ✅               |      |
 | Timer(PWM)  | ❓          | ✅               | ❓               |      |
 | USB         | N/A        | N/A             | ✅+              |      |
