@@ -43,8 +43,6 @@ pub struct Clocks {
     // pub usb: Option<crate::time::Hertz>,
 }
 
-pub const LSI_FREQ: crate::time::Hertz = crate::time::Hertz(32_768);
-
 #[derive(Clone, Copy, Debug, Default, Eq, PartialEq)]
 pub enum LseMode {
     #[default]
