@@ -42,6 +42,8 @@ pub mod crc;
 pub mod dac;
 #[cfg(dma)]
 pub mod dma;
+#[cfg(div)]
+pub mod div;
 pub mod flash;
 pub mod gpio;
 pub mod i2c;
