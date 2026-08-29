@@ -65,6 +65,27 @@ macro_rules! pin_trait_impl {
     };
 }
 
+macro_rules! trigger_trait {
+    ($signal:ident, $instance:path$(, $mode:path)?) => {
+        #[doc = concat!(stringify!($signal), " trigger trait")]
+        pub trait $signal<T: $instance $(, M: $mode)?> {
+            #[doc = concat!("Get the signal number needed to use this trigger as `", stringify!($signal), "`.")]
+            fn signal(&self) -> u8;
+        }
+    };
+}
+
+#[allow(unused)]
+macro_rules! trigger_trait_impl {
+    (crate::$mod:ident::$trait:ident$(<$mode:ident>)?, $instance:ident, $trigger:ident, $signal:expr) => {
+        impl crate::$mod::$trait<crate::peripherals::$instance $(, crate::$mod::$mode)?> for crate::triggers::$trigger {
+            fn signal(&self) -> u8 {
+                $signal
+            }
+        }
+    };
+}
+
 // ====================
 
 #[cfg(dma)]

@@ -1352,6 +1352,58 @@ fn main() {
     }
 
     // ========
+    // Generate trigger_trait_impl!
+
+    let triggers: HashMap<_, _> = [
+        // (kind, signal) => trait
+        (("dac", "DAC_CHX_TRG"), quote!(crate::dac::ChannelTrigger)),
+    ]
+    .into();
+
+    let mut trigger_list: BTreeSet<&str> = BTreeSet::new();
+
+    for p in METADATA.peripherals {
+        if let Some(regs) = &p.registers {
+            for trigger in p.triggers {
+                let signal = trigger
+                    .signal
+                    .trim_end_matches(|c: char| c.is_ascii_digit());
+                let idx: u8 = trigger.signal[signal.len()..]
+                    .parse()
+                    .expect("trigger signal must end in a numeric selector value");
+
+                trigger_list.insert(trigger.source);
+
+                if let Some(tr) = triggers.get(&(regs.kind, signal)) {
+                    let peri = format_ident!("{}", p.name);
+                    let source = format_ident!("{}", trigger.source);
+
+                    g.extend(quote! {
+                        trigger_trait_impl!(#tr, #peri, #source, #idx);
+                    });
+                }
+            }
+        }
+    }
+
+    let triggers_mod: TokenStream = trigger_list
+        .iter()
+        .map(|trigger| {
+            let trigger = format_ident!("{}", trigger);
+            quote! {
+                #[allow(non_camel_case_types)]
+                pub struct #trigger;
+            }
+        })
+        .collect();
+
+    g.extend(quote! {
+        pub mod triggers {
+            #triggers_mod
+        }
+    });
+
+    // ========
     // Generate Div/Mul impls for RCC prescalers/dividers/multipliers.
     for e in rcc_registers.ir.enums {
         fn is_rcc_name(e: &str) -> bool {
