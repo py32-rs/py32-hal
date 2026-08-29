@@ -200,11 +200,15 @@ pub(crate) unsafe fn init(config: Config) { unsafe {
     //     Hertz(48_000_000)
     // });
 
+    let (lsi, lse) = config.ls.init();
+
     // Configure sysclk
     let sys = match config.sys {
         Sysclk::HSI => unwrap!(hsi_value) / config.hsidiv,
         Sysclk::HSE => unwrap!(hse),
         Sysclk::PLL => unwrap!(pll),
+        Sysclk::LSI => unwrap!(lsi.to_hertz()),
+        Sysclk::LSE => unwrap!(lse.to_hertz()),
         _ => unreachable!(),
     };
 
@@ -265,8 +269,6 @@ pub(crate) unsafe fn init(config: Config) { unsafe {
         }
     };
      */
-
-    let (lsi, lse) = config.ls.init();
 
     config.mux.init();
 
