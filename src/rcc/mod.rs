@@ -20,6 +20,9 @@ use crate::time::Hertz;
 mod _version;
 pub use _version::*;
 
+/// Frequency of the LSI RC oscillator.
+pub const LSI_FREQ: Hertz = Hertz(32_768);
+
 #[derive(Clone, Copy, Debug)]
 #[cfg_attr(feature = "defmt", derive(defmt::Format))]
 pub struct Clocks {

@@ -51,6 +51,8 @@ pub mod rcc;
 pub mod timer;
 pub mod uid;
 pub mod usart;
+#[cfg(any(iwdg, wwdg))]
+pub mod wdg;
 
 #[cfg(any(feature = "embassy-usb-driver-impl", feature = "usb-device-impl"))]
 pub mod usb;
