@@ -77,7 +77,8 @@ pub struct Config {
     pub apb1_pre: APBPrescaler,
     /// Per-peripheral kernel clock selection muxes
     pub mux: super::mux::ClockMux,
-    // pub ls: super::LsConfig,
+    /// Low-speed oscillator (LSI/LSE) configuration
+    pub ls: super::LsConfig,
 }
 
 impl Default for Config {
@@ -90,7 +91,7 @@ impl Default for Config {
             pll: None,
             ahb_pre: AHBPrescaler::DIV1,
             apb1_pre: APBPrescaler::DIV1,
-            // ls: Default::default(),
+            ls: Default::default(),
             mux: Default::default(),
         }
     }
@@ -199,11 +200,15 @@ pub(crate) unsafe fn init(config: Config) { unsafe {
     //     Hertz(48_000_000)
     // });
 
+    let (lsi, lse) = config.ls.init();
+
     // Configure sysclk
     let sys = match config.sys {
         Sysclk::HSI => unwrap!(hsi_value) / config.hsidiv,
         Sysclk::HSE => unwrap!(hse),
         Sysclk::PLL => unwrap!(pll),
+        Sysclk::LSI => unwrap!(lsi.to_hertz()),
+        Sysclk::LSE => unwrap!(lse.to_hertz()),
         _ => unreachable!(),
     };
 
@@ -245,7 +250,6 @@ pub(crate) unsafe fn init(config: Config) { unsafe {
         RCC.cr().modify(|w| w.set_hsion(false));
     }
 
-    // let rtc = config.ls.init();
 
     /*
     TODO: Maybe add something like this to clock_mux? How can we autogenerate the data for this?
@@ -287,7 +291,8 @@ pub(crate) unsafe fn init(config: Config) { unsafe {
         pclk1_tim: Some(pclk1_tim).into(),
         sys: Some(sys).into(),
         hsi: hsi_value.into(),
-        lse: None.into(),
+        lsi,
+        lse,
         pll: pll.into(),
     };
     crate::rcc::set_freqs(clocks);
