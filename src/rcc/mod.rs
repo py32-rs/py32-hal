@@ -77,6 +77,34 @@ pub struct LsConfig {
     pub lse: Option<LseConfig>,
 }
 
+/// ~100 ms of spinning at the highest supported core clock.
+const READY_TIMEOUT: u32 = 5_000_000;
+
+fn wait_ready(mut ready: impl FnMut() -> bool, name: &str) {
+    for _ in 0..READY_TIMEOUT {
+        if ready() {
+            return;
+        }
+    }
+    panic!("{} did not become ready", name);
+}
+
+/// Disable RTC/backup domain write protection.
+#[cfg(any(pwr_f030, pwr_f072))]
+fn unlock_backup_domain() {
+    use crate::pac::PWR;
+
+    // PWR is unclocked out of reset, so CR1 is not writable yet.
+    RCC.apbenr1().modify(|w| w.set_pwren(true));
+
+    PWR.cr1().modify(|w| w.set_dbp(true));
+    wait_ready(|| PWR.cr1().read().dbp(), "backup domain");
+}
+
+
+#[cfg(not(any(pwr_f030, pwr_f072)))]
+fn unlock_backup_domain() {}
+
 impl LsConfig {
     pub const fn default_lsi() -> Self {
         Self { lsi: true, lse: None }
@@ -94,32 +122,22 @@ impl LsConfig {
     }
 
     pub(crate) fn init(&self) -> (crate::time::MaybeHertz, crate::time::MaybeHertz) {
-        use crate::pac::RCC;
-
-        // ~100 ms of spinning at the highest supported core clock.
-        const READY_TIMEOUT: u32 = 5_000_000;
-
-        fn wait(mut ready: impl FnMut() -> bool, name: &str) {
-            for _ in 0..READY_TIMEOUT {
-                if ready() {
-                    return;
-                }
-            }
-            panic!("{} did not become ready", name);
-        }
 
         if self.lsi {
             RCC.csr().modify(|w| w.set_lsion(true));
-            wait(|| RCC.csr().read().lsirdy(), "LSI");
+            wait_ready(|| RCC.csr().read().lsirdy(), "LSI");
         }
 
         let lse = self.lse.map(|cfg| {
+            // Has to happen before RCC_BDCR is written.
+            unlock_backup_domain();
+
             // LSEBYP must be set together with (or before) LSEON.
             RCC.bdcr().modify(|w| {
                 w.set_lsebyp(matches!(cfg.mode, LseMode::Bypass));
                 w.set_lseon(true);
             });
-            wait(|| RCC.bdcr().read().lserdy(), "LSE");
+            wait_ready(|| RCC.bdcr().read().lserdy(), "LSE");
             cfg.frequency
         });
 
