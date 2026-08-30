@@ -39,7 +39,7 @@ async fn main(_spawner: Spawner) {
     let p = py32_hal::init(cfg);
 
     let mut adc = Adc::new_async(p.ADC1, Irqs);
-    adc.set_sample_time(SampleTime::CYCLES71_5);
+    adc.set_sample_time(SampleTime::CYCLES134_5);
     let pin = p.PA7;
     let vrefint = adc.enable_vrefint();
 
