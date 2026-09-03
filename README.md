@@ -26,6 +26,7 @@ Keypoints:
 - All-in-one HAL crate, no need to create a new crate for each chip
 - Async drivers, with async/await support, DMA(TODO) support
 - Write once, run on all supported chips(should be)
+- RTIC compatible
 
 ## Supported Devices and Peripherals
 
