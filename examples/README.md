@@ -25,6 +25,9 @@ Examples compatible with the following MCU series:
 - PY32M070
 - PY32MD410
 
+## rtic-f072
+RTIC examples for PY32F072.
+
 ## heap-alloc-f030
 Demonstrates heap allocation using the [embedded-alloc](https://github.com/rust-embedded/embedded-alloc) crate with either LLFF or TLSF heap implementations.
 

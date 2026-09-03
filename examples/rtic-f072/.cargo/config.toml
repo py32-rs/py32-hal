@@ -1,0 +1,8 @@
+[target.thumbv6m-none-eabi]
+runner = "probe-rs run --chip PY32F072xB"
+
+[build]
+target = "thumbv6m-none-eabi"
+
+[env]
+DEFMT_LOG = "trace"
