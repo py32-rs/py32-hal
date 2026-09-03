@@ -68,7 +68,7 @@ mod app {
         dm: Peri<'static, PA11>,
     ) {
         let mut adc = Adc::new_async(adc1, Irqs);
-        adc.set_sample_time(SampleTime::CYCLES71_5);
+        adc.set_sample_time(SampleTime::CYCLES134_5);
         let vrefint = adc.enable_vrefint();
 
         let driver = Driver::new(usb, Irqs, dp, dm);
