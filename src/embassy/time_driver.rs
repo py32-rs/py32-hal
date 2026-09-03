@@ -5,14 +5,14 @@
 // Special thanks to the Embassy Project and its contributors for their work!
 
 use core::cell::{Cell, RefCell};
-use core::sync::atomic::{compiler_fence, AtomicU32, Ordering};
+use core::sync::atomic::{AtomicU32, Ordering, compiler_fence};
 
 use critical_section::CriticalSection;
-use embassy_sync::blocking_mutex::raw::CriticalSectionRawMutex;
 use embassy_sync::blocking_mutex::Mutex;
+use embassy_sync::blocking_mutex::raw::CriticalSectionRawMutex;
 use embassy_time_driver::{Driver, TICK_HZ};
 use embassy_time_queue_utils::Queue;
-use py32_metapac::timer::{regs, TimGp16};
+use py32_metapac::timer::{TimGp16, regs};
 
 use crate::interrupt::typelevel::Interrupt;
 use crate::pac::timer::vals;
@@ -273,27 +273,54 @@ impl RtcDriver {
         let r = regs_gp16();
 
         critical_section::with(|cs| {
-            let sr = r.sr().read();
-            let dier = r.dier().read();
+            // Loop: after handling the flags we already read, re-read to shrink the
+            // read-SR -> clear-SR race window. If the clear based on a stale SR wipes
+            // a flag set while we were handling the previous flags, that half/overflow
+            // period is lost forever (the NVIC re-entry reads the flag as 0), the
+            // period undercounts -> the timebase drifts periodically -> display
+            // scan-frame timing jumps (flicker).
+            loop {
+                let sr = r.sr().read();
+                let dier = r.dier().read();
 
-            // Clear all interrupt flags. Bits in SR are "write 0 to clear", so write the bitwise NOT.
-            // Other approaches such as writing all zeros, or RMWing won't work, they can
-            // miss interrupts.
-            r.sr().write_value(regs::SrGp16(!sr.0));
+                if sr.uif() || sr.ccif(0) || (sr.ccif(1) && dier.ccie(1)) {
+                    // Clear all interrupt flags. Bits in SR are "write 0 to clear", so write the bitwise NOT.
+                    // Other approaches such as writing all zeros, or RMWing won't work, they can
+                    // miss interrupts.
+                    r.sr().write_value(regs::SrGp16(!sr.0));
 
-            // Overflow
-            if sr.uif() {
-                self.next_period();
+                    // Overflow
+                    if sr.uif() {
+                        self.next_period();
+                    }
+
+                    // Half overflow
+                    if sr.ccif(0) {
+                        self.next_period();
+                    }
+
+                    let n = 0;
+                    if sr.ccif(n + 1) && dier.ccie(n + 1) {
+                        self.trigger_alarm(cs);
+                    }
+                } else {
+                    break;
+                }
             }
 
-            // Half overflow
-            if sr.ccif(0) {
-                self.next_period();
-            }
-
-            let n = 0;
-            if sr.ccif(n + 1) && dier.ccie(n + 1) {
-                self.trigger_alarm(cs);
+            // Phase safety net: the hardware counter never loses counts, so use it to
+            // validate the period parity constraint (even period => counter in
+            // [0x0000, 0x7FFF]; odd => [0x8000, 0xFFFF]). A mismatch means one
+            // half/overflow was lost (interrupt latency / flag mis-clear); self-heal
+            // by adding +1. The loop's runtime (µs scale) is far shorter than a half
+            // period (32768 ticks), so when cnt is read the counter is still within
+            // the half that triggered, avoiding a false positive.
+            let cnt = r.cnt().read().cnt();
+            let period = self.period.load(Ordering::Relaxed);
+            if (period & 1) != u32::from(cnt >= 0x8000) {
+                self.period.store(period + 1, Ordering::Relaxed);
+                #[cfg(feature = "defmt")]
+                defmt::warn!("time period corrected (period={}, cnt={})", period, cnt);
             }
         })
     }
