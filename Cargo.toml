@@ -85,10 +85,22 @@ default-target = "thumbv6m-none-eabi"
 features = ["py32f072c1b", "embassy-usb-driver-impl"]
 
 [features]
-default = ["rt", "memory-x", "defmt", "time", "exti"]
+default = [
+    "rt",
+    "memory-x",
+    "defmt",
+    "time",
+    "exti",
+    "interrupts-reset-on-startup",
+]
 
 # --- Core ---
-rt = ["py32-metapac/rt"]
+rt = [
+    "py32-metapac/rt",
+    "cortex-m-rt/set-sp",
+    "cortex-m-rt/set-vtor",
+]
+interrupts-reset-on-startup = []
 memory-x = ["py32-metapac/memory-x"]
 
 # --- Debug / logging ---
