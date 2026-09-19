@@ -15,9 +15,9 @@ use cortex_m::singleton;
 use defmt::*;
 use embassy_executor::Spawner;
 use embassy_time::Instant;
-use py32_hal::adc::{Adc, RingBufferedAdc, SampleTime, Sequence};
-use py32_hal::rcc::{HsiFs, Pll, PllMul, PllSource, Sysclk};
 use py32_hal::Peripherals;
+use py32_hal::adc::{Adc, AdcChannel, RingBufferedAdc, SampleTime};
+use py32_hal::rcc::{HsiFs, Pll, PllMul, PllSource, Sysclk};
 use {defmt_rtt as _, panic_probe as _};
 
 #[embassy_executor::main]
@@ -35,22 +35,24 @@ async fn main(spawner: Spawner) {
 }
 
 #[embassy_executor::task]
-async fn adc_task(mut p: Peripherals) {
+async fn adc_task(p: Peripherals) {
     const ADC_BUF_SIZE: usize = 512;
     let adc_data: &mut [u16; ADC_BUF_SIZE] =
         singleton!(ADCDAT : [u16; ADC_BUF_SIZE] = [0u16; ADC_BUF_SIZE]).unwrap();
 
     let adc = Adc::new_with_prediv(p.ADC1, py32_hal::adc::Prescaler::Div8);
-    let mut vrefint = adc.enable_vrefint();
+    let vrefint = adc.enable_vrefint();
 
+    let sequence = [
+        (p.PA0.degrade_adc(), SampleTime::CYCLES239_5),
+        (p.PA2.degrade_adc(), SampleTime::CYCLES239_5),
+        (p.PA1.degrade_adc(), SampleTime::CYCLES239_5),
+        (p.PA3.degrade_adc(), SampleTime::CYCLES239_5),
+        (vrefint.degrade_adc(), SampleTime::CYCLES239_5),
+    ]
+    .into_iter();
     let mut adc: RingBufferedAdc<py32_hal::peripherals::ADC1> =
-        adc.into_ring_buffered(p.DMA1_CH1, adc_data);
-
-    adc.set_sample_sequence(Sequence::One, &mut p.PA0, SampleTime::CYCLES239_5);
-    adc.set_sample_sequence(Sequence::Two, &mut p.PA2, SampleTime::CYCLES239_5);
-    adc.set_sample_sequence(Sequence::Three, &mut p.PA1, SampleTime::CYCLES239_5);
-    adc.set_sample_sequence(Sequence::Four, &mut p.PA3, SampleTime::CYCLES239_5);
-    adc.set_sample_sequence(Sequence::Five, &mut vrefint, SampleTime::CYCLES239_5);
+        adc.into_ring_buffered(p.DMA1_CH1, adc_data, sequence);
 
     // Note that overrun is a big consideration in this implementation. Whatever task is running the adc.read() calls absolutely must circle back around
     // to the adc.read() call before the DMA buffer is wrapped around > 1 time. At this point, the overrun is so significant that the context of
