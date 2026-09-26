@@ -13,13 +13,66 @@ use crate::adc::{Adc, AdcChannel, Instance, Resolution, SampleTime};
 use crate::interrupt::typelevel::Interrupt;
 use crate::mode::{Async, Blocking, Mode};
 use crate::pac::RCC;
+use crate::pac::adc::regs::{Sqr1, Sqr2, Sqr3};
 use crate::pac::adc::vals::Extsel;
 use crate::peripherals::ADC1;
 use crate::time::Hertz;
 use crate::{interrupt, rcc};
 
 mod ringbuffered_v2;
-pub use ringbuffered_v2::{RingBufferedAdc, Sequence};
+pub use ringbuffered_v2::RingBufferedAdc;
+
+fn configure_sequence<T: Instance>(sequence: impl ExactSizeIterator<Item = (u8, SampleTime)>) {
+    let len = sequence.len();
+    assert!(
+        (1..=16).contains(&len),
+        "ADC sequence length must be between 1 and 16"
+    );
+
+    let r = T::regs();
+    let was_on = r.cr2().read().adon();
+    if was_on {
+        r.cr2().modify(|reg| reg.set_adon(false));
+        while r.cr2().read().adon() {}
+    }
+
+    let mut sqr1 = Sqr1::default();
+    let mut sqr2 = Sqr2::default();
+    let mut sqr3 = Sqr3::default();
+    let mut smpr1 = r.smpr1().read();
+    let mut smpr2 = r.smpr2().read();
+    let mut smpr3 = r.smpr3().read();
+
+    sqr1.set_l((len - 1).try_into().unwrap());
+
+    for (i, (channel, sample_time)) in sequence.enumerate() {
+        match i {
+            0..=5 => sqr3.set_sq(i, channel),
+            6..=11 => sqr2.set_sq(i - 6, channel),
+            12..=15 => sqr1.set_sq(i - 12, channel),
+            _ => unreachable!(),
+        }
+
+        match channel {
+            0..=9 => smpr3.set_smp(channel as usize, sample_time),
+            10..=19 => smpr2.set_smp(channel as usize - 10, sample_time),
+            20..=23 => smpr1.set_smp(channel as usize - 20, sample_time),
+            _ => panic!("Invalid ADC channel"),
+        }
+    }
+
+    r.sqr1().write_value(sqr1);
+    r.sqr2().write_value(sqr2);
+    r.sqr3().write_value(sqr3);
+    r.smpr1().write_value(smpr1);
+    r.smpr2().write_value(smpr2);
+    r.smpr3().write_value(smpr3);
+
+    if was_on {
+        r.cr2().modify(|reg| reg.set_adon(true));
+        blocking_delay_us(3);
+    }
+}
 
 /// Default VREF voltage used for sample conversion to millivolts.
 pub const VREF_DEFAULT_MV: u32 = 3300;
@@ -156,12 +209,8 @@ where
 
         // Configure ADC
         let channel = channel.channel();
-
-        // Select channel
-        T::regs().sqr3().write(|reg| reg.set_sq(0, channel));
-
         // Configure channel
-        Self::set_channel_sample_time(channel, self.sample_time);
+        configure_sequence::<T>(core::iter::once((channel, self.sample_time)));
 
         self.convert()
     }
@@ -225,13 +274,8 @@ where
         channel.setup();
 
         let channel = channel.channel();
-
-        // Select a single-channel regular sequence.
-        T::regs().sqr1().modify(|reg| reg.set_l(0));
-        T::regs().sqr3().write(|reg| reg.set_sq(0, channel));
-
         // Configure channel
-        Self::set_channel_sample_time(channel, self.sample_time);
+        configure_sequence::<T>(core::iter::once((channel, self.sample_time)));
 
         self.convert_async().await
     }
@@ -307,21 +351,6 @@ where
 
     //     Vbat {}
     // }
-
-    fn set_channel_sample_time(ch: u8, sample_time: SampleTime) {
-        let sample_time = sample_time.into();
-        match ch {
-            ..=9 => T::regs()
-                .smpr3()
-                .modify(|reg| reg.set_smp(ch as _, sample_time)),
-            ..=19 => T::regs()
-                .smpr2()
-                .modify(|reg| reg.set_smp((ch - 10) as _, sample_time)),
-            _ => T::regs()
-                .smpr3()
-                .modify(|reg| reg.set_smp((ch - 20) as _, sample_time)),
-        }
-    }
 
     /// Perform ADC automatic self-calibration
     pub fn calibrate() {
