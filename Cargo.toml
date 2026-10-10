@@ -45,7 +45,7 @@ embassy-hal-internal = { version = "0.5", features = [
 embassy-sync = "0.8"
 embassy-futures = "0.1"
 embassy-time-driver = { version = "0.2", optional = true }
-embassy-time = { version = "0.5", optional = true }
+embassy-time = { version = "0.5", optional = true, default-features = false }
 embassy-time-queue-utils = { version = "0.3", optional = true }
 embassy-embedded-hal = { version = "0.6", default-features = false }
 embassy-usb-driver = { version = "0.2", optional = true }
