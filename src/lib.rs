@@ -6,6 +6,33 @@
 mod fmt;
 include!(concat!(env!("OUT_DIR"), "/_macros.rs"));
 
+// A bootloader can jump to the app with inherited NVIC/SysTick state, unlike a hardware reset.
+#[cfg(feature = "interrupts-reset-on-startup")]
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn __pre_init() {
+    use cortex_m::peripheral::{NVIC, SCB, SYST};
+
+    unsafe {
+        let systick = &*SYST::PTR;
+        systick.csr.write(0);
+        systick.rvr.write(0);
+        systick.cvr.write(0);
+
+        let nvic = &*NVIC::PTR;
+        nvic.icer[0].write(u32::MAX);
+        nvic.icpr[0].write(u32::MAX);
+        for priority in &nvic.ipr {
+            priority.write(0);
+        }
+    }
+
+    SCB::clear_pendsv();
+    SCB::clear_pendst();
+
+    cortex_m::asm::dsb();
+    cortex_m::asm::isb();
+}
+
 mod macros;
 #[cfg(dma)]
 use embassy_hal_internal::interrupt::Priority;
