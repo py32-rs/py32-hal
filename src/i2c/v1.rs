@@ -45,7 +45,7 @@ pub unsafe fn on_interrupt<T: Instance>() {
     });
 }
 
-impl<'d, M: PeriMode> I2c<'d, M> {
+impl<'d, M: PeriMode, IM: MasterMode> I2c<'d, M, IM> {
     pub(crate) fn init(&mut self, freq: Hertz, _config: Config) {
         self.info.regs.cr1().modify(|reg| {
             reg.set_pe(false);
@@ -374,7 +374,7 @@ impl<'d, M: PeriMode> I2c<'d, M> {
 }
 
 #[cfg(dma)]
-impl<'d> I2c<'d, Async> {
+impl<'d, IM: MasterMode> I2c<'d, Async, IM> {
     async fn write_frame(
         &mut self,
         address: u8,
@@ -850,7 +850,7 @@ impl Timings {
     }
 }
 
-impl<'d, M: PeriMode> SetConfig for I2c<'d, M> {
+impl<'d, M: PeriMode, IM: MasterMode> SetConfig for I2c<'d, M, IM> {
     type Config = Hertz;
     type ConfigError = ();
     fn set_config(&mut self, config: &Self::Config) -> Result<(), ()> {
