@@ -4,15 +4,12 @@
 // https://github.com/embassy-rs/embassy/tree/main/embassy-stm32
 // Special thanks to the Embassy Project and its contributors for their work!
 
-#[cfg(dma)]
 use core::future::poll_fn;
-#[cfg(dma)]
 use core::task::Poll;
 
 use embassy_embedded_hal::SetConfig;
 #[cfg(dma)]
 use embassy_futures::select::{select, Either};
-#[cfg(dma)]
 use embassy_hal_internal::drop::OnDrop;
 use embedded_hal_1::i2c::Operation;
 
@@ -39,6 +36,7 @@ pub unsafe fn on_interrupt<T: Instance>() {
     critical_section::with(|_| {
         // Clear event interrupt flag.
         regs.cr2().modify(|w| {
+            w.set_itbufen(false);
             w.set_itevten(false);
             w.set_iterren(false);
         });
@@ -365,10 +363,14 @@ impl<'d, M: PeriMode, IM: MasterMode> I2c<'d, M, IM> {
     // Async
     #[cfg(dma)]
     #[inline] // pretty sure this should always be inlined
-    fn enable_interrupts(info: &'static Info) -> () {
-        info.regs.cr2().modify(|w| {
-            w.set_iterren(true);
-            w.set_itevten(true);
+    fn enable_interrupts(info: &'static Info) {
+        // The interrupt handler disables interrupts globally, so we need to re-enable them
+        // This must be done in a critical section to avoid races
+        critical_section::with(|_| {
+            info.regs.cr2().modify(|w| {
+                w.set_iterren(true);
+                w.set_itevten(true);
+            });
         });
     }
 
@@ -810,6 +812,15 @@ enum ReceiveResult {
     Restarted,
 }
 
+/// Phase of an interrupt-driven slave transmit operation.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+enum SlaveTransmitPhase {
+    /// Waiting for `TxE` to load the next byte.
+    WaitTxE,
+    /// Waiting for `BTF` to confirm that the loaded byte was clocked out.
+    WaitBtf,
+}
+
 impl<'d, M: PeriMode> I2c<'d, M, Master> {
     /// Configure the I2C driver for slave operations, allowing for the driver to be used as a slave and a master (multimaster)
     pub fn into_slave_multimaster(self, slave_addr_config: SlaveAddrConfig) -> I2c<'d, M, MultiMaster> {
@@ -1219,9 +1230,34 @@ impl<'d, M: PeriMode> I2c<'d, M, MultiMaster> {
     /// Disable I2C event and error interrupts for blocking operations
     fn disable_i2c_interrupts(&mut self) {
         self.info.regs.cr2().modify(|w| {
-            w.set_itbufen(false);
             w.set_itevten(false);
             w.set_iterren(false);
+        });
+    }
+
+    /// Enable the interrupts of the peripheral for a slave transfer.
+    #[inline]
+    fn enable_slave_interrupts(info: &'static Info) {
+        // The interrupt handler disables interrupts globally, so we need to re-enable them
+        // This must be done in a critical section to avoid races
+        critical_section::with(|_| {
+            info.regs.cr2().modify(|w| {
+                w.set_itbufen(true);
+                w.set_iterren(true);
+                w.set_itevten(true);
+            });
+        });
+    }
+
+    /// Disable DMA and interrupts in a critical section
+    fn disable_dma_and_interrupts(info: &'static Info) {
+        critical_section::with(|_| {
+            info.regs.cr2().modify(|w| {
+                w.set_dmaen(false);
+                w.set_itbufen(false);
+                w.set_iterren(false);
+                w.set_itevten(false);
+            });
         });
     }
 
@@ -1238,6 +1274,246 @@ impl<'d, M: PeriMode> I2c<'d, M, MultiMaster> {
         if info.regs.sr1().read().rxne() {
             let _ = info.regs.dr().read();
         }
+    }
+}
+
+impl<'d> I2c<'d, Async, MultiMaster> {
+    /// Async listen for incoming I2C messages using interrupts
+    ///
+    /// Waits for a master to address this slave and returns the command type
+    /// (Read/Write) and the matched address. This method will suspend until
+    /// an address match occurs.
+    pub async fn listen(&mut self) -> Result<SlaveCommand, Error> {
+        trace!("I2C slave: starting async listen for address match");
+        let state = self.state;
+        let info = self.info;
+
+        Self::enable_slave_interrupts(info);
+
+        let on_drop = OnDrop::new(|| {
+            Self::disable_dma_and_interrupts(info);
+        });
+
+        let result = poll_fn(|cx| {
+            state.waker.register(cx.waker());
+
+            loop {
+                let sr1 = match Self::read_status_and_handle_errors(info) {
+                    Ok(sr1) => sr1,
+                    Err(e) => {
+                        error!("I2C slave: error during listen: {:?}", e);
+                        return Poll::Ready(Err(e));
+                    }
+                };
+
+                if sr1.addr() {
+                    let sr2 = info.regs.sr2().read();
+                    let direction = if sr2.tra() {
+                        SlaveCommandKind::Read
+                    } else {
+                        SlaveCommandKind::Write
+                    };
+
+                    if sr1.stopf() && sr2.busy() {
+                        // The STOP belongs to the previous transaction.
+                        Self::clear_stop_flag(info);
+                    }
+
+                    let matched_address = match Self::decode_matched_address(sr2, info) {
+                        Ok(addr) => {
+                            trace!(
+                                "I2C slave: address matched, direction={:?}, addr={:?}",
+                                direction, addr
+                            );
+                            addr
+                        }
+                        Err(e) => {
+                            error!("I2C slave: failed to decode matched address: {:?}", e);
+                            return Poll::Ready(Err(e));
+                        }
+                    };
+
+                    Self::discard_stale_byte(info);
+
+                    return Poll::Ready(Ok(SlaveCommand {
+                        kind: direction,
+                        address: matched_address,
+                    }));
+                }
+
+                if sr1.stopf() {
+                    Self::clear_stop_flag(info);
+                    continue;
+                }
+
+                // No address match yet, consume a received byte
+                if sr1.rxne() {
+                    let _ = info.regs.dr().read();
+                    continue;
+                }
+
+                // Wait for the next event
+                Self::enable_slave_interrupts(info);
+                return Poll::Pending;
+            }
+        })
+        .await;
+
+        drop(on_drop);
+        trace!("I2C slave: listen complete, result={:?}", result);
+        result
+    }
+
+    /// Async respond to write command
+    ///
+    /// Receives data from the master into the provided buffer using the
+    /// interrupts of the peripheral. If the master sends more bytes than the
+    /// buffer can hold, excess bytes are acknowledged but discarded to
+    /// prevent interrupt flooding.
+    ///
+    /// Returns the number of bytes stored in the buffer (not total received).
+    pub async fn respond_to_write(&mut self, buffer: &mut [u8]) -> Result<usize, Error> {
+        trace!("I2C slave: starting respond_to_write, buffer_len={}", buffer.len());
+
+        let state = self.state;
+        let info = self.info;
+
+        let on_drop = OnDrop::new(|| {
+            Self::disable_dma_and_interrupts(info);
+        });
+
+        let mut stored = 0usize;
+
+        let result = poll_fn(|cx| {
+            state.waker.register(cx.waker());
+
+            loop {
+                let sr1 = match Self::read_status_and_handle_errors(info) {
+                    Ok(sr1) => sr1,
+                    Err(e) => {
+                        error!("I2C slave: error during receive transfer: {:?}", e);
+                        return Poll::Ready(Err(e));
+                    }
+                };
+
+                if sr1.rxne() {
+                    let byte = info.regs.dr().read().dr();
+                    if stored < buffer.len() {
+                        buffer[stored] = byte;
+                        stored += 1;
+                    }
+
+                    let _ = info.regs.sr1().read();
+                    continue;
+                }
+
+                if sr1.stopf() {
+                    Self::clear_stop_flag(info);
+                    return Poll::Ready(Ok(stored));
+                }
+
+                if sr1.addr() {
+                    return Poll::Ready(Ok(stored));
+                }
+
+                // Nothing to consume; wait for the next event.
+                Self::enable_slave_interrupts(info);
+                return Poll::Pending;
+            }
+        })
+        .await;
+
+        drop(on_drop);
+        trace!("I2C slave: respond_to_write complete, result={:?}", result);
+        result
+    }
+
+    /// Async respond to read command
+    ///
+    /// Transmits data to the master using the interrupts of the peripheral.
+    /// If the master requests more bytes than available in the data buffer,
+    /// padding bytes (0x00) are sent until the master terminates the
+    /// transaction with NACK, STOP, or RESTART.
+    ///
+    /// Returns the total number of bytes transmitted (data + padding).
+    pub async fn respond_to_read(&mut self, data: &[u8]) -> Result<usize, Error> {
+        trace!("I2C slave: starting respond_to_read, data_len={}", data.len());
+
+        let state = self.state;
+        let info = self.info;
+
+        let on_drop = OnDrop::new(|| {
+            Self::disable_dma_and_interrupts(info);
+        });
+
+        let mut sent = 0usize;
+        let mut phase = SlaveTransmitPhase::WaitTxE;
+
+        let result = poll_fn(|cx| {
+            state.waker.register(cx.waker());
+
+            loop {
+                // Check for I2C errors first
+                let sr1 = match Self::check_and_clear_error_flags(info) {
+                    Err(Error::Nack) => {
+                        if phase == SlaveTransmitPhase::WaitBtf {
+                            sent += 1;
+                        }
+                        return Poll::Ready(Ok(sent));
+                    }
+                    Err(e) => {
+                        error!("I2C slave: error during transmit transfer: {:?}", e);
+                        return Poll::Ready(Err(e));
+                    }
+                    Ok(sr1) => sr1,
+                };
+
+                match phase {
+                    SlaveTransmitPhase::WaitTxE => {
+                        if sr1.stopf() {
+                            Self::clear_stop_flag(info);
+                            return Poll::Ready(Ok(sent));
+                        }
+
+                        if sr1.addr() {
+                            return Poll::Ready(Ok(sent));
+                        }
+
+                        if sr1.txe() {
+                            let byte = if sent < data.len() { data[sent] } else { 0x00 };
+                            info.regs.dr().write(|reg| reg.set_dr(byte));
+                            phase = SlaveTransmitPhase::WaitBtf;
+                            continue;
+                        }
+                    }
+                    SlaveTransmitPhase::WaitBtf => {
+                        if sr1.btf() {
+                            sent += 1;
+                            phase = SlaveTransmitPhase::WaitTxE;
+                            continue;
+                        }
+
+                        if sr1.stopf() {
+                            Self::clear_stop_flag(info);
+                            return Poll::Ready(Ok(sent));
+                        }
+
+                        if sr1.addr() {
+                            return Poll::Ready(Ok(sent));
+                        }
+                    }
+                }
+
+                // Neither condition met, enable interrupts and wait
+                Self::enable_slave_interrupts(info);
+                return Poll::Pending;
+            }
+        })
+        .await;
+
+        drop(on_drop);
+        trace!("I2C slave: respond_to_read complete, result={:?}", result);
+        result
     }
 }
 
