@@ -194,6 +194,8 @@ pub struct I2c<'d, M: Mode, IM: MasterMode> {
     tx_dma: Option<ChannelAndRequest<'d>>,
     #[cfg(dma)]
     rx_dma: Option<ChannelAndRequest<'d>>,
+    #[cfg(dma)]
+    slave_dma: bool,
     #[cfg(feature = "time")]
     timeout: Duration,
     _marker: PhantomData<M>,
@@ -295,6 +297,8 @@ impl<'d, M: Mode> I2c<'d, M, Master> {
             tx_dma,
             #[cfg(dma)]
             rx_dma,
+            #[cfg(dma)]
+            slave_dma: false,
             #[cfg(feature = "time")]
             timeout: config.timeout,
             _marker: PhantomData,
