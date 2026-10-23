@@ -47,20 +47,32 @@ pub enum Error {
     ZeroLengthTransfer,
 }
 
+impl core::fmt::Display for Error {
+    fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
+        let message = match self {
+            Self::Bus => "Bus Error",
+            Self::Arbitration => "Arbitration Lost",
+            Self::Nack => "ACK Not Received",
+            Self::Timeout => "Request Timed Out",
+            Self::Crc => "CRC Mismatch",
+            Self::Overrun => "Buffer Overrun",
+            Self::ZeroLengthTransfer => "Zero-Length Transfers are not allowed",
+        };
+
+        write!(f, "{}", message)
+    }
+}
+
+impl core::error::Error for Error {}
+
 /// I2C config
 #[non_exhaustive]
 #[derive(Copy, Clone)]
 pub struct Config {
-    // /// Enable internal pullup on SDA.
-    // ///
-    // /// Using external pullup resistors is recommended for I2C. If you do
-    // /// have external pullups you should not enable this.
-    // pub sda_pullup: bool,
-    // /// Enable internal pullup on SCL.
-    // ///
-    // /// Using external pullup resistors is recommended for I2C. If you do
-    // /// have external pullups you should not enable this.
-    // pub scl_pullup: bool,
+    /// Bus frequency.
+    pub frequency: Hertz,
+    /// GPIO speed of the SCL and SDA pins.
+    pub gpio_speed: Speed,
     /// Timeout.
     #[cfg(feature = "time")]
     pub timeout: embassy_time::Duration,
@@ -69,8 +81,8 @@ pub struct Config {
 impl Default for Config {
     fn default() -> Self {
         Self {
-            // sda_pullup: false,
-            // scl_pullup: false,
+            frequency: Hertz::khz(100),
+            gpio_speed: Speed::Medium,
             #[cfg(feature = "time")]
             timeout: embassy_time::Duration::from_millis(1000),
         }
@@ -79,27 +91,11 @@ impl Default for Config {
 
 impl Config {
     fn scl_af(&self) -> AfType {
-        return AfType::output(OutputType::OpenDrain, Speed::Medium);
-        // return AfType::output_pull(
-        //     OutputType::OpenDrain,
-        //     Speed::Medium,
-        //     match self.scl_pullup {
-        //         true => Pull::Up,
-        //         false => Pull::None,
-        //     },
-        // );
+        AfType::output(OutputType::OpenDrain, self.gpio_speed)
     }
 
     fn sda_af(&self) -> AfType {
-        return AfType::output(OutputType::OpenDrain, Speed::Medium);
-        // return AfType::output_pull(
-        //     OutputType::OpenDrain,
-        //     Speed::Medium,
-        //     match self.sda_pullup {
-        //         true => Pull::Up,
-        //         false => Pull::None,
-        //     },
-        // );
+        AfType::output(OutputType::OpenDrain, self.gpio_speed)
     }
 }
 
@@ -194,8 +190,6 @@ pub struct I2c<'d, M: Mode, IM: MasterMode> {
     tx_dma: Option<ChannelAndRequest<'d>>,
     #[cfg(dma)]
     rx_dma: Option<ChannelAndRequest<'d>>,
-    #[cfg(dma)]
-    slave_dma: bool,
     #[cfg(feature = "time")]
     timeout: Duration,
     _marker: PhantomData<M>,
@@ -212,7 +206,6 @@ impl<'d> I2c<'d, Async, Master> {
         _irq: impl interrupt::typelevel::Binding<T::GlobalInterrupt, GlobalInterruptHandler<T>> + 'd,
         #[cfg(dma)] tx_dma: Peri<'d, impl TxDma<T>>,
         #[cfg(dma)] rx_dma: Peri<'d, impl RxDma<T>>,
-        freq: Hertz,
         config: Config,
     ) -> Self {
         unsafe { T::GlobalInterrupt::enable() };
@@ -225,18 +218,20 @@ impl<'d> I2c<'d, Async, Master> {
             new_dma!(tx_dma),
             #[cfg(dma)]
             new_dma!(rx_dma),
-            freq,
             config,
         )
     }
 
-    /// Create a new I2C driver.
+    /// Create a new I2C driver that does not use DMA.
+    ///
+    /// This is the constructor to use on chips without a DMA peripheral, or
+    /// when the DMA channels are needed for something else.
+    /// On chips without a DMA peripheral this is identical to [`I2c::new`],
     pub fn new_no_dma<T: Instance>(
         peri: Peri<'d, T>,
         scl: Peri<'d, impl SclPin<T>>,
         sda: Peri<'d, impl SdaPin<T>>,
         _irq: impl interrupt::typelevel::Binding<T::GlobalInterrupt, GlobalInterruptHandler<T>> + 'd,
-        freq: Hertz,
         config: Config,
     ) -> Self {
         unsafe { T::GlobalInterrupt::enable() };
@@ -249,7 +244,6 @@ impl<'d> I2c<'d, Async, Master> {
             None,
             #[cfg(dma)]
             None,
-            freq,
             config,
         )
     }
@@ -261,7 +255,6 @@ impl<'d> I2c<'d, Blocking, Master> {
         peri: Peri<'d, T>,
         scl: Peri<'d, impl SclPin<T>>,
         sda: Peri<'d, impl SdaPin<T>>,
-        freq: Hertz,
         config: Config,
     ) -> Self {
         Self::new_inner(
@@ -272,7 +265,6 @@ impl<'d> I2c<'d, Blocking, Master> {
             None,
             #[cfg(dma)]
             None,
-            freq,
             config,
         )
     }
@@ -286,7 +278,6 @@ impl<'d, M: Mode> I2c<'d, M, Master> {
         _sda: Option<Peri<'d, AnyPin>>,
         #[cfg(dma)] tx_dma: Option<ChannelAndRequest<'d>>,
         #[cfg(dma)] rx_dma: Option<ChannelAndRequest<'d>>,
-        freq: Hertz,
         config: Config,
     ) -> Self {
         let mut this = Self {
@@ -297,8 +288,6 @@ impl<'d, M: Mode> I2c<'d, M, Master> {
             tx_dma,
             #[cfg(dma)]
             rx_dma,
-            #[cfg(dma)]
-            slave_dma: false,
             #[cfg(feature = "time")]
             timeout: config.timeout,
             _marker: PhantomData,
@@ -309,13 +298,13 @@ impl<'d, M: Mode> I2c<'d, M, Master> {
                 _sda,
             },
         };
-        this.enable_and_init(freq, config);
+        this.enable_and_init(config);
         this
     }
 
-    fn enable_and_init(&mut self, freq: Hertz, config: Config) {
+    fn enable_and_init(&mut self, config: Config) {
         self.info.rcc.enable_and_reset();
-        self.init(freq, config);
+        self.init(config);
     }
 }
 
@@ -403,9 +392,9 @@ pub struct GlobalInterruptHandler<T: Instance> {
 }
 
 impl<T: Instance> interrupt::typelevel::Handler<T::GlobalInterrupt> for GlobalInterruptHandler<T> {
-    unsafe fn on_interrupt() { unsafe {
-        v1::on_interrupt::<T>()
-    }}
+    unsafe fn on_interrupt() {
+        unsafe { v1::on_interrupt::<T>() }
+    }
 }
 
 foreach_peripheral!(
@@ -507,7 +496,6 @@ impl<'d, M: Mode, IM: MasterMode> embedded_hal_1::i2c::I2c for I2c<'d, M, IM> {
     }
 }
 
-#[cfg(dma)]
 impl<'d, IM: MasterMode> embedded_hal_async::i2c::I2c for I2c<'d, Async, IM> {
     async fn read(&mut self, address: u8, read: &mut [u8]) -> Result<(), Self::Error> {
         self.read(address, read).await
