@@ -466,7 +466,7 @@ impl<'d, IM: MasterMode> I2c<'d, Async, IM> {
             return self.read_frame_dma(address, read_buffer, frame).await;
         }
 
-        self.read_frame_irq(address, read_buffer, frame).await
+        self.read_frames_irq(address, &mut [Operation::Read(read_buffer)], frame.send_stop()).await
     }
 
     /// Write a frame without DMA, driven by the peripheral interrupts.
@@ -528,88 +528,107 @@ impl<'d, IM: MasterMode> I2c<'d, Async, IM> {
         Ok(())
     }
 
-    /// Read a frame without DMA, driven by the peripheral interrupts.
-    async fn read_frame_irq(&mut self, address: u8, read_buffer: &mut [u8], frame: FrameOptions) -> Result<(), Error> {
-        if read_buffer.is_empty() {
+    /// Read frames without DMA, driven by the peripheral interrupts.
+    async fn read_frames_irq(&mut self, address: u8, operations: &mut [Operation<'_>], send_stop: bool) -> Result<(), Error> {
+        let len = operations
+            .iter()
+            .map(|op| match op {
+                Operation::Read(buffer) => buffer.len(),
+                Operation::Write(_) => 0,
+            })
+            .sum::<usize>();
+        if len == 0 {
             return Err(Error::Overrun);
         }
 
-        // Some branches below depend on whether the buffer contains only a single byte.
-        let single_byte = read_buffer.len() == 1;
+        // Destination bytes in order
+        let mut dst = operations
+            .iter_mut()
+            .filter_map(|op| match op {
+                Operation::Read(buffer) => Some(buffer.iter_mut()),
+                Operation::Write(_) => None,
+            })
+            .flatten();
 
         let info = self.info;
 
         // Sentinel to disable the interrupts when an error occurs or the future is canceled.
         let on_drop = OnDrop::new(|| {
             Self::disable_dma_and_interrupts(info);
+            info.regs.cr1().modify(|reg| reg.set_pos(i2c::vals::Pos::CURRENT));
         });
 
         // Make sure the peripheral does not hand the data over to the DMA controller.
         self.info.regs.cr2().modify(|w| w.set_dmaen(false));
 
-        if frame.send_start() {
-            // Send a START condition and set ACK bit
-            self.info.regs.cr1().modify(|reg| {
-                reg.set_start(true);
-                reg.set_ack(true);
-            });
-
-            // Wait until START condition was generated
-            self.wait_sr1(|sr1| sr1.start()).await?;
-
-            // Check if we were the ones to generate START
-            if self.info.regs.cr1().read().start() || !self.info.regs.sr2().read().msl() {
-                return Err(Error::Arbitration);
-            }
-
-            // Set up current address we're trying to talk to
-            self.info
-                .regs
-                .dr()
-                .write(|reg| reg.set_dr((address << 1) + 1));
-
-            // Wait for the address to be acknowledged
-            self.wait_sr1(|sr1| sr1.addr()).await?;
-
-            // 18.3.8: When a single byte must be received: the NACK must be programmed during EV6
-            // event, i.e. program ACK=0 when ADDR=1, before clearing ADDR flag.
-            if frame.send_nack() && single_byte {
-                self.info.regs.cr1().modify(|w| {
-                    w.set_ack(false);
-                });
-            }
-
-            // Clear condition by reading SR2
-            self.info.regs.sr2().read();
-        } else {
-            // Before starting reception of single byte (but without START condition, i.e. in case
-            // of continued frame), program NACK to emit at end of this byte.
-            if frame.send_nack() && single_byte {
-                self.info.regs.cr1().modify(|w| {
-                    w.set_ack(false);
-                });
-            }
-        }
-
-        // Receive all but the last byte. The last one is received after the NACK and the STOP
-        // condition have been programmed.
-        let (last, rest) = read_buffer.split_last_mut().expect("buffer is not empty");
-        for byte in rest {
-            *byte = self.recv_byte_irq().await?;
-        }
-
-        // Prepare to send NACK then STOP after next byte
+        // Send a START condition and set ACK bit. For two bytes, POS makes ACK control the second
+        // byte: ACK the first one, NACK the last.
         self.info.regs.cr1().modify(|reg| {
-            if frame.send_nack() {
-                reg.set_ack(false);
-            }
-            if frame.send_stop() {
-                reg.set_stop(true);
-            }
+            reg.set_start(true);
+            reg.set_ack(true);
+            reg.set_pos(if len == 2 {
+                i2c::vals::Pos::NEXT
+            } else {
+                i2c::vals::Pos::CURRENT
+            });
         });
 
-        // Receive last byte
-        *last = self.recv_byte_irq().await?;
+        // Wait until START condition was generated
+        self.wait_sr1(|sr1| sr1.start()).await?;
+
+        // Check if we were the ones to generate START
+        if self.info.regs.cr1().read().start() || !self.info.regs.sr2().read().msl() {
+            return Err(Error::Arbitration);
+        }
+
+        // Set up current address we're trying to talk to
+        self.info.regs.dr().write(|reg| reg.set_dr((address << 1) + 1));
+
+        // Wait for the address to be acknowledged
+        self.wait_sr1(|sr1| sr1.addr()).await?;
+
+        // The bus is stalled only at ADDR or BTF, so the NACK is programmed there.
+        match len {
+            1 => {
+                self.info.regs.cr1().modify(|reg| reg.set_ack(false));
+                self.info.regs.sr2().read();
+                if send_stop {
+                    self.info.regs.cr1().modify(|reg| reg.set_stop(true));
+                }
+                *dst.next().unwrap() = self.recv_byte_irq().await?;
+            }
+            2 => {
+                self.info.regs.sr2().read();
+                self.info.regs.cr1().modify(|reg| reg.set_ack(false));
+
+                // DR contains byte 1, the shift register contains the NACKed byte 2.
+                self.wait_sr1(|sr1| sr1.btf()).await?;
+                if send_stop {
+                    self.info.regs.cr1().modify(|reg| reg.set_stop(true));
+                }
+                *dst.next().unwrap() = self.info.regs.dr().read().dr();
+                *dst.next().unwrap() = self.info.regs.dr().read().dr();
+            }
+            _ => {
+                self.info.regs.sr2().read();
+                for _ in 0..len - 3 {
+                    *dst.next().unwrap() = self.recv_byte_irq().await?;
+                }
+
+                // DR contains byte N-2, the shift register contains byte N-1.
+                self.wait_sr1(|sr1| sr1.btf()).await?;
+                self.info.regs.cr1().modify(|reg| reg.set_ack(false));
+                *dst.next().unwrap() = self.info.regs.dr().read().dr();
+
+                // DR contains byte N-1, the shift register contains the NACKed byte N.
+                self.wait_sr1(|sr1| sr1.btf()).await?;
+                if send_stop {
+                    self.info.regs.cr1().modify(|reg| reg.set_stop(true));
+                }
+                *dst.next().unwrap() = self.info.regs.dr().read().dr();
+                *dst.next().unwrap() = self.recv_byte_irq().await?;
+            }
+        }
 
         drop(on_drop);
 
@@ -971,10 +990,37 @@ impl<'d, IM: MasterMode> I2c<'d, Async, IM> {
         address: u8,
         operations: &mut [Operation<'_>],
     ) -> Result<(), Error> {
-        for (op, frame) in operation_frames(operations)? {
-            match op {
-                Operation::Read(read_buffer) => self.read_frame(address, read_buffer, frame).await?,
-                Operation::Write(write_buffer) => self.write_frame(address, write_buffer, frame).await?,
+        // Check empty read buffers before starting the transaction.
+        if operations.iter().any(|op| matches!(op, Operation::Read(read) if read.is_empty())) {
+            return Err(Error::Overrun);
+        }
+
+        let mut index = 0;
+        while index < operations.len() {
+            let operations = &mut operations[index..];
+            let is_read = matches!(operations[0], Operation::Read(_));
+            let run = operations
+                .iter()
+                .position(|op| matches!(op, Operation::Read(_)) != is_read)
+                .unwrap_or(operations.len());
+            index += run;
+
+            #[cfg(dma)]
+            let merge_reads = is_read && self.rx_dma.is_none();
+            #[cfg(not(dma))]
+            let merge_reads = is_read;
+
+            if merge_reads {
+                let send_stop = run == operations.len();
+                self.read_frames_irq(address, &mut operations[..run], send_stop).await?;
+                continue;
+            }
+
+            for (op, frame) in operation_frames(operations)?.into_iter().take(run) {
+                match op {
+                    Operation::Read(read_buffer) => self.read_frame(address, read_buffer, frame).await?,
+                    Operation::Write(write_buffer) => self.write_frame(address, write_buffer, frame).await?,
+                }
             }
         }
 
