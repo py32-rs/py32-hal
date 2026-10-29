@@ -1250,9 +1250,6 @@ impl<'d, M: PeriMode> I2c<'d, M, MultiMaster> {
                     direction, matched_address
                 );
 
-                // Drop a byte left in DR by an earlier transaction
-                Self::discard_stale_byte(self.info);
-
                 return Ok(SlaveCommand {
                     kind: direction,
                     address: matched_address,
@@ -1529,13 +1526,6 @@ impl<'d, M: PeriMode> I2c<'d, M, MultiMaster> {
             reg.set_af(false);
         });
     }
-
-    /// Discard a byte left in DR by an earlier transaction.
-    fn discard_stale_byte(info: &'static Info) {
-        if info.regs.sr1().read().rxne() {
-            let _ = info.regs.dr().read();
-        }
-    }
 }
 
 impl<'d> I2c<'d, Async, MultiMaster> {
@@ -1594,8 +1584,6 @@ impl<'d> I2c<'d, Async, MultiMaster> {
                         }
                     };
 
-                    Self::discard_stale_byte(info);
-
                     return Poll::Ready(Ok(SlaveCommand {
                         kind: direction,
                         address: matched_address,
@@ -1627,12 +1615,18 @@ impl<'d> I2c<'d, Async, MultiMaster> {
 
     /// Async respond to write command
     ///
-    /// Receives data from the master into the provided buffer. If the master
-    /// sends more bytes than the buffer can hold, excess bytes are acknowledged
-    /// but discarded to prevent interrupt flooding.
+    /// Receives data from the master into the provided buffer.
+    /// If the master sends more bytes than the buffer can hold, excess bytes
+    /// are acknowledged but discarded to prevent interrupt flooding.
     ///
     /// The data is moved by the RX DMA when the driver owns the DMA channels (see [`I2c::new`])
     /// and by the interrupts of the peripheral otherwise (see [`I2c::new_no_dma`]).
+    ///
+    /// Note: the master starts sending data as soon as [`listen`](Self::listen) returns, so the RX
+    /// DMA is started while bytes are already arriving. If it starts later than about two byte times
+    /// after the address phase, the DMA misses a request and the transfer hangs. This happens, for
+    /// example, at 400 kHz with the default 8 MHz system clock. Call this method right after
+    /// `listen()` and use a faster system clock, or use the driver without DMA in that case.
     ///
     /// Returns the number of bytes stored in the buffer (not total received).
     pub async fn respond_to_write(&mut self, buffer: &mut [u8]) -> Result<usize, Error> {
@@ -1857,12 +1851,14 @@ impl<'d> I2c<'d, Async, MultiMaster> {
                 Err(e) => return Poll::Ready(Err(e)),
             };
 
-            if sr1.rxne() {
-                return Poll::Ready(Ok(true));
-            }
-
+            // A transfer that has already ended is left to the CPU. Reading DR while the next
+            // ADDR is set releases the bus, so the DMA would also take the next transfer's data.
             if sr1.stopf() || sr1.addr() {
                 return Poll::Ready(Ok(false));
+            }
+
+            if sr1.rxne() {
+                return Poll::Ready(Ok(true));
             }
 
             Self::enable_buffer_interrupts(info);
@@ -1876,20 +1872,29 @@ impl<'d> I2c<'d, Async, MultiMaster> {
             return self.respond_to_write_no_dma(buffer).await;
         }
 
-        // DMA carries the data; buffer interrupts must stay disabled.
-        self.setup_slave_dma_base();
-
         let _on_drop = OnDrop::new(|| {
             Self::disable_dma_and_interrupts(info);
         });
+
+        // Read bytes until the stall is released, keeping at least one byte in DR for the DMA,
+        // and start the DMA before the next byte is received.
+        let restore_state = unsafe { critical_section::acquire() };
+        let mut offset = 0;
+        while offset + 1 < total_len && info.regs.sr1().read().btf() {
+            buffer[offset] = info.regs.dr().read().dr();
+            offset += 1;
+        }
+
+        self.setup_slave_dma_base();
 
         let mut dma_transfer = unsafe {
             let src = info.regs.dr().as_ptr() as *mut u8;
             self.rx_dma
                 .as_mut()
                 .unwrap()
-                .read(src, buffer, Default::default())
+                .read(src, &mut buffer[offset..], Default::default())
         };
+        unsafe { critical_section::release(restore_state) };
 
         // Track whether transfer was terminated by I2C event (STOP/RESTART) vs DMA completion.
         // We only need to handle excess bytes if DMA completed (buffer full) and master
