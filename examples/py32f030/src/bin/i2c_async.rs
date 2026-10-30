@@ -3,7 +3,7 @@
 
 use defmt::*;
 use embassy_executor::Spawner;
-use py32_hal::i2c::I2c;
+use py32_hal::i2c::{Config, I2c};
 use py32_hal::time::Hertz;
 use py32_hal::{bind_interrupts, i2c, peripherals};
 use {defmt_rtt as _, panic_probe as _};
@@ -19,16 +19,10 @@ async fn main(_spawner: Spawner) {
     info!("Hello world!");
     let p = py32_hal::init(Default::default());
 
-    let mut i2c = I2c::new(
-        p.I2C1,
-        p.PA3,
-        p.PA2,
-        Irqs,
-        p.DMA1_CH2,
-        p.DMA1_CH1,
-        Hertz(100_000),
-        Default::default(),
-    );
+    let mut config = Config::default();
+    config.frequency = Hertz(100_000);
+
+    let mut i2c = I2c::new(p.I2C1, p.PA3, p.PA2, Irqs, p.DMA1_CH2, p.DMA1_CH1, config);
 
     loop {
         let write_data = [0xC2, 0x11];
