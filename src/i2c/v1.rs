@@ -1547,70 +1547,110 @@ impl<'d> I2c<'d, Async, MultiMaster> {
 
         let result = poll_fn(|cx| {
             state.waker.register(cx.waker());
-
-            loop {
-                let sr1 = match Self::read_status_and_handle_errors(info) {
-                    Ok(sr1) => sr1,
-                    Err(e) => {
-                        error!("I2C slave: error during listen: {:?}", e);
-                        return Poll::Ready(Err(e));
-                    }
-                };
-
-                if sr1.addr() {
-                    let sr2 = info.regs.sr2().read();
-                    let direction = if sr2.tra() {
-                        SlaveCommandKind::Read
-                    } else {
-                        SlaveCommandKind::Write
-                    };
-
-                    if sr1.stopf() && sr2.busy() {
-                        // The STOP belongs to the previous transaction.
-                        Self::clear_stop_flag(info);
-                    }
-
-                    let matched_address = match Self::decode_matched_address(sr2, info) {
-                        Ok(addr) => {
-                            trace!(
-                                "I2C slave: address matched, direction={:?}, addr={:?}",
-                                direction, addr
-                            );
-                            addr
-                        }
-                        Err(e) => {
-                            error!("I2C slave: failed to decode matched address: {:?}", e);
-                            return Poll::Ready(Err(e));
-                        }
-                    };
-
-                    return Poll::Ready(Ok(SlaveCommand {
-                        kind: direction,
-                        address: matched_address,
-                    }));
-                }
-
-                if sr1.stopf() {
-                    Self::clear_stop_flag(info);
-                    continue;
-                }
-
-                // No address match yet, consume a received byte
-                if sr1.rxne() {
-                    let _ = info.regs.dr().read();
-                    continue;
-                }
-
-                // Wait for the next event
-                Self::enable_buffer_interrupts(info);
-                return Poll::Pending;
-            }
+            Self::poll_listen(info, false)
         })
         .await;
 
         drop(on_drop);
         trace!("I2C slave: listen complete, result={:?}", result);
         result
+    }
+
+    /// Async listen, receiving a master write into `buffer`
+    ///
+    /// A Write command is received completely, so [`respond_to_write`](Self::respond_to_write)
+    /// must not be called after it. A read is answered with [`respond_to_read`](Self::respond_to_read).
+    ///
+    /// Returns the command and the number of bytes stored in the buffer (0 for a Read command).
+    pub async fn listen_and_receive(&mut self, buffer: &mut [u8]) -> Result<(SlaveCommand, usize), Error> {
+        #[cfg(dma)]
+        {
+            if self.rx_dma.is_some() && !buffer.is_empty() && buffer.len() <= u16::MAX as usize {
+                let state = self.state;
+                let info = self.info;
+                let (command, len) = self
+                    .execute_slave_receive_transfer(buffer, state, info, true)
+                    .await?;
+                return Ok((command.unwrap(), len));
+            }
+        }
+
+        let command = self.listen().await?;
+        let len = match command.kind {
+            SlaveCommandKind::Write => self.respond_to_write(buffer).await?,
+            SlaveCommandKind::Read => 0,
+        };
+        Ok((command, len))
+    }
+
+    /// Poll for an address match.
+    fn poll_listen(info: &'static Info, start_rx_dma: bool) -> Poll<Result<SlaveCommand, Error>> {
+        loop {
+            let sr1 = match Self::read_status_and_handle_errors(info) {
+                Ok(sr1) => sr1,
+                Err(e) => {
+                    error!("I2C slave: error during listen: {:?}", e);
+                    return Poll::Ready(Err(e));
+                }
+            };
+
+            if sr1.addr() {
+                let sr2 = critical_section::with(|_| {
+                    let sr2 = info.regs.sr2().read();
+                    if start_rx_dma && !sr2.tra() {
+                        info.regs.cr2().modify(|w| {
+                            w.set_itbufen(false);
+                            w.set_dmaen(true);
+                        });
+                    }
+                    sr2
+                });
+                let direction = if sr2.tra() {
+                    SlaveCommandKind::Read
+                } else {
+                    SlaveCommandKind::Write
+                };
+
+                if sr1.stopf() && sr2.busy() {
+                    // The STOP belongs to the previous transaction.
+                    Self::clear_stop_flag(info);
+                }
+
+                let matched_address = match Self::decode_matched_address(sr2, info) {
+                    Ok(addr) => {
+                        trace!(
+                            "I2C slave: address matched, direction={:?}, addr={:?}",
+                            direction, addr
+                        );
+                        addr
+                    }
+                    Err(e) => {
+                        error!("I2C slave: failed to decode matched address: {:?}", e);
+                        return Poll::Ready(Err(e));
+                    }
+                };
+
+                return Poll::Ready(Ok(SlaveCommand {
+                    kind: direction,
+                    address: matched_address,
+                }));
+            }
+
+            if sr1.stopf() {
+                Self::clear_stop_flag(info);
+                continue;
+            }
+
+            // No address match yet, consume a received byte
+            if sr1.rxne() {
+                let _ = info.regs.dr().read();
+                continue;
+            }
+
+            // Wait for the next event
+            Self::enable_buffer_interrupts(info);
+            return Poll::Pending;
+        }
     }
 
     /// Async respond to write command
@@ -1625,8 +1665,8 @@ impl<'d> I2c<'d, Async, MultiMaster> {
     /// Note: the master starts sending data as soon as [`listen`](Self::listen) returns, so the RX
     /// DMA is started while bytes are already arriving. If it starts later than about two byte times
     /// after the address phase, the DMA misses a request and the transfer hangs. This happens, for
-    /// example, at 400 kHz with the default 8 MHz system clock. Call this method right after
-    /// `listen()` and use a faster system clock, or use the driver without DMA in that case.
+    /// example, at 400 kHz with the default 8 MHz system clock.
+    /// Use [`listen_and_receive`](Self::listen_and_receive) in that case.
     ///
     /// Returns the number of bytes stored in the buffer (not total received).
     pub async fn respond_to_write(&mut self, buffer: &mut [u8]) -> Result<usize, Error> {
@@ -1638,8 +1678,9 @@ impl<'d> I2c<'d, Async, MultiMaster> {
                 let state = self.state;
                 let info = self.info;
                 return self
-                    .execute_slave_receive_transfer(buffer, state, info)
-                    .await;
+                    .execute_slave_receive_transfer(buffer, state, info, false)
+                    .await
+                    .map(|(_, len)| len);
             }
         }
 
@@ -1830,46 +1871,54 @@ impl<'d> I2c<'d, Async, MultiMaster> {
     // === Private Transfer Execution Methods ===
 
     /// Execute complete slave receive transfer with excess byte handling
+    ///
+    /// With `listen`, the DMA is started first and the address match is awaited; the command is
+    /// returned, and nothing is received for a read.
     #[cfg(dma)]
     async fn execute_slave_receive_transfer(
         &mut self,
         buffer: &mut [u8],
         state: &'static State,
         info: &'static Info,
-    ) -> Result<usize, Error> {
+        listen: bool,
+    ) -> Result<(Option<SlaveCommand>, usize), Error> {
         let total_len = buffer.len();
+        let mut command = None;
+        let mut offset = 0;
 
-        // Wait for the first data byte before the RX DMA is armed.
-        let wait_drop = OnDrop::new(|| {
-            Self::disable_dma_and_interrupts(info);
-        });
-        let first = poll_fn(|cx| {
-            state.waker.register(cx.waker());
+        if !listen {
+            // Wait for the first data byte before the RX DMA is armed.
+            let wait_drop = OnDrop::new(|| {
+                Self::disable_dma_and_interrupts(info);
+            });
+            let first = poll_fn(|cx| {
+                state.waker.register(cx.waker());
 
-            let sr1 = match Self::read_status_and_handle_errors(info) {
-                Ok(sr1) => sr1,
-                Err(e) => return Poll::Ready(Err(e)),
-            };
+                let sr1 = match Self::read_status_and_handle_errors(info) {
+                    Ok(sr1) => sr1,
+                    Err(e) => return Poll::Ready(Err(e)),
+                };
 
-            // A transfer that has already ended is left to the CPU. Reading DR while the next
-            // ADDR is set releases the bus, so the DMA would also take the next transfer's data.
-            if sr1.stopf() || sr1.addr() {
-                return Poll::Ready(Ok(false));
+                // A transfer that has already ended is left to the CPU. Reading DR while the next
+                // ADDR is set releases the bus, so the DMA would also take the next transfer's data.
+                if sr1.stopf() || sr1.addr() {
+                    return Poll::Ready(Ok(false));
+                }
+
+                if sr1.rxne() {
+                    return Poll::Ready(Ok(true));
+                }
+
+                Self::enable_buffer_interrupts(info);
+                Poll::Pending
+            })
+            .await;
+            drop(wait_drop);
+
+            if !first? {
+                // Nothing for the DMA to do: a zero-length write, or a bare repeated START
+                return self.respond_to_write_no_dma(buffer).await.map(|len| (None, len));
             }
-
-            if sr1.rxne() {
-                return Poll::Ready(Ok(true));
-            }
-
-            Self::enable_buffer_interrupts(info);
-            Poll::Pending
-        })
-        .await;
-        drop(wait_drop);
-
-        if !first? {
-            // Nothing for the DMA to do: a zero-length write, or a bare repeated START
-            return self.respond_to_write_no_dma(buffer).await;
         }
 
         let _on_drop = OnDrop::new(|| {
@@ -1879,13 +1928,26 @@ impl<'d> I2c<'d, Async, MultiMaster> {
         // Read bytes until the stall is released, keeping at least one byte in DR for the DMA,
         // and start the DMA before the next byte is received.
         let restore_state = unsafe { critical_section::acquire() };
-        let mut offset = 0;
-        while offset + 1 < total_len && info.regs.sr1().read().btf() {
-            buffer[offset] = info.regs.dr().read().dr();
-            offset += 1;
-        }
+        if !listen {
+            while offset + 1 < total_len && info.regs.sr1().read().btf() {
+                buffer[offset] = info.regs.dr().read().dr();
+                offset += 1;
+            }
 
-        self.setup_slave_dma_base();
+            self.setup_slave_dma_base();
+        } else {
+            // Clear pending DMA request
+            let src = 0u8;
+            let mut dst = [0u8; 1];
+            let _flush = unsafe {
+                self.rx_dma
+                    .as_mut()
+                    .unwrap()
+                    .read(&src as *const u8 as *mut u8, &mut dst, Default::default())
+            };
+            info.regs.cr2().modify(|w| w.set_dmaen(true));
+            info.regs.cr2().modify(|w| w.set_dmaen(false));
+        }
 
         let mut dma_transfer = unsafe {
             let src = info.regs.dr().as_ptr() as *mut u8;
@@ -1895,6 +1957,19 @@ impl<'d> I2c<'d, Async, MultiMaster> {
                 .read(src, &mut buffer[offset..], Default::default())
         };
         unsafe { critical_section::release(restore_state) };
+
+        if listen {
+            Self::enable_buffer_interrupts(info);
+            let c = poll_fn(|cx| {
+                state.waker.register(cx.waker());
+                Self::poll_listen(info, true)
+            })
+            .await?;
+            if let SlaveCommandKind::Read = c.kind {
+                return Ok((Some(c), 0));
+            }
+            command = Some(c);
+        }
 
         // Track whether transfer was terminated by I2C event (STOP/RESTART) vs DMA completion.
         // We only need to handle excess bytes if DMA completed (buffer full) and master
@@ -1999,7 +2074,7 @@ impl<'d> I2c<'d, Async, MultiMaster> {
             }
         }
 
-        result
+        result.map(|len| (command, len))
     }
 
     /// Execute complete slave transmit transfer with padding byte handling

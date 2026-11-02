@@ -31,17 +31,15 @@ async fn main(_spawner: Spawner) {
     let tx = *b"hello from py32";
 
     loop {
-        match i2c.listen().await {
-            Ok(cmd) => {
+        // A master Write is received by `listen_and_receive`.
+        match i2c.listen_and_receive(&mut rx).await {
+            Ok((cmd, n)) => {
                 info!(
                     "matched address 0x{:02x}, direction {:?}",
                     cmd.address, cmd.kind
                 );
                 match cmd.kind {
-                    SlaveCommandKind::Write => match i2c.respond_to_write(&mut rx).await {
-                        Ok(n) => info!("received {} bytes: {}", n, &rx[..n]),
-                        Err(e) => error!("slave write failed: {:?}", e),
-                    },
+                    SlaveCommandKind::Write => info!("received {} bytes: {}", n, &rx[..n]),
                     SlaveCommandKind::Read => match i2c.respond_to_read(&tx).await {
                         Ok(sent) => info!("sent {} bytes to the master", sent),
                         Err(e) => error!("slave read failed: {:?}", e),
