@@ -3,7 +3,7 @@
 
 use defmt::*;
 use embassy_executor::Spawner;
-use py32_hal::i2c::{Config, I2c, SlaveAddrConfig, SlaveCommandKind};
+use py32_hal::i2c::{Config, I2c, ListenEvent, SlaveAddrConfig};
 use py32_hal::time::Hertz;
 use py32_hal::{bind_interrupts, i2c, peripherals};
 use {defmt_rtt as _, panic_probe as _};
@@ -31,21 +31,17 @@ async fn main(_spawner: Spawner) {
     let tx = *b"hello from py32";
 
     loop {
-        // A master Write is received by `listen_and_receive`.
+        // `listen_and_receive()` initiates RX DMA before the address phase and fully receives
+        // a write operation from master. With `listen()` followed by `respond_to_write()`,
+        // the RX DMA can start too late, for example at 400 kHz with 8 MHz SYSCLK.
         match i2c.listen_and_receive(&mut rx).await {
-            Ok((cmd, n)) => {
-                info!(
-                    "matched address 0x{:02x}, direction {:?}",
-                    cmd.address, cmd.kind
-                );
-                match cmd.kind {
-                    SlaveCommandKind::Write => info!("received {} bytes: {}", n, &rx[..n]),
-                    SlaveCommandKind::Read => match i2c.respond_to_read(&tx).await {
-                        Ok(sent) => info!("sent {} bytes to the master", sent),
-                        Err(e) => error!("slave read failed: {:?}", e),
-                    },
-                }
+            Ok(ListenEvent::Received { address, len }) => {
+                info!("address 0x{:02x}: received {} bytes: {}", address, len, &rx[..len])
             }
+            Ok(ListenEvent::Read { address }) => match i2c.respond_to_read(&tx).await {
+                Ok(sent) => info!("address 0x{:02x}: sent {} bytes to the master", address, sent),
+                Err(e) => error!("slave read failed: {:?}", e),
+            },
             Err(e) => error!("listen failed: {:?}", e),
         }
     }

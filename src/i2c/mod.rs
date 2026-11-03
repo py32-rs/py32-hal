@@ -139,6 +139,37 @@ pub struct SlaveCommand {
     pub address: u8,
 }
 
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[cfg_attr(feature = "defmt", derive(defmt::Format))]
+pub enum ListenEvent {
+    /// The master wrote data; it is already in the rx buffer
+    Received {
+        /// The address that the slave matched
+        address: u8,
+        /// The number of bytes stored in the buffer
+        len: usize,
+    },
+    /// The master wants to read; answer with [`I2c::respond_to_read`]
+    Read {
+        /// The address that the slave matched
+        address: u8,
+    },
+}
+
+impl ListenEvent {
+    fn new(command: SlaveCommand, len: usize) -> Self {
+        match command.kind {
+            SlaveCommandKind::Write => Self::Received {
+                address: command.address,
+                len,
+            },
+            SlaveCommandKind::Read => Self::Read {
+                address: command.address,
+            },
+        }
+    }
+}
+
 /// Slave address configuration.
 ///
 /// PY32 I2C v1 has a single 7-bit own-address register and an optional

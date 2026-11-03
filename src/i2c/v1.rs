@@ -1561,8 +1561,9 @@ impl<'d> I2c<'d, Async, MultiMaster> {
     /// A Write command is received completely, so [`respond_to_write`](Self::respond_to_write)
     /// must not be called after it. A read is answered with [`respond_to_read`](Self::respond_to_read).
     ///
-    /// Returns the command and the number of bytes stored in the buffer (0 for a Read command).
-    pub async fn listen_and_receive(&mut self, buffer: &mut [u8]) -> Result<(SlaveCommand, usize), Error> {
+    /// Returns [`ListenEvent::Received`] with the number of bytes stored in the rx buffer for a
+    /// Write command, and [`ListenEvent::Read`] for a Read command.
+    pub async fn listen_and_receive(&mut self, buffer: &mut [u8]) -> Result<ListenEvent, Error> {
         #[cfg(dma)]
         {
             if self.rx_dma.is_some() && !buffer.is_empty() && buffer.len() <= u16::MAX as usize {
@@ -1571,7 +1572,7 @@ impl<'d> I2c<'d, Async, MultiMaster> {
                 let (command, len) = self
                     .execute_slave_receive_transfer(buffer, state, info, true)
                     .await?;
-                return Ok((command.unwrap(), len));
+                return Ok(ListenEvent::new(command.unwrap(), len));
             }
         }
 
@@ -1580,7 +1581,7 @@ impl<'d> I2c<'d, Async, MultiMaster> {
             SlaveCommandKind::Write => self.respond_to_write(buffer).await?,
             SlaveCommandKind::Read => 0,
         };
-        Ok((command, len))
+        Ok(ListenEvent::new(command, len))
     }
 
     /// Poll for an address match.
