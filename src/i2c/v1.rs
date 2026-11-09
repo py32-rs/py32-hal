@@ -43,6 +43,10 @@ pub unsafe fn on_interrupt<T: Instance>() {
             w.set_itbufen(false);
             w.set_itevten(false);
             w.set_iterren(false);
+            // Stop the DMA requests before the master can address the slave again.
+            if regs.sr1().read().af() {
+                w.set_dmaen(false);
+            }
         });
     });
 }
@@ -100,10 +104,15 @@ impl<'d, M: PeriMode, IM: MasterMode> I2c<'d, M, IM> {
     }
 
     fn check_and_clear_error_flags(info: &'static Info) -> Result<i2c::regs::Sr1, Error> {
+        Self::clear_error_flags(info, info.regs.sr1().read())
+    }
+
+    fn clear_error_flags(
+        info: &'static Info,
+        sr1: i2c::regs::Sr1,
+    ) -> Result<i2c::regs::Sr1, Error> {
         // Note that flags should only be cleared once they have been registered. If flags are
         // cleared otherwise, there may be an inherent race condition and flags may be missed.
-        let sr1 = info.regs.sr1().read();
-
         if sr1.pecerr() {
             info.regs.sr1().write(|reg| {
                 reg.0 = !0;
@@ -2099,6 +2108,8 @@ impl<'d> I2c<'d, Async, MultiMaster> {
             self.tx_dma.as_mut().unwrap().write(data, dst, Default::default())
         };
 
+        Self::enable_interrupts(info);
+
         // Track whether transfer was terminated by I2C event (STOP/RESTART/NACK) vs DMA completion.
         // We only need to handle padding bytes if DMA completed and master wants more data.
         let mut terminated_by_i2c_event = false;
@@ -2122,17 +2133,14 @@ impl<'d> I2c<'d, Async, MultiMaster> {
             let sr1 = info.regs.sr1().read();
 
             // Check for I2C errors first (NACK is expected for read termination).
-            // A NACK received after `sr1` was read is reported by `check_and_clear_error_flags`.
-            let nack = sr1.af()
-                || match Self::check_and_clear_error_flags(info) {
-                    Err(Error::Nack) => true,
-                    Err(e) => {
-                        error!("I2C slave: error during transmit transfer: {:?}", e);
-                        return Poll::Ready(Err(e));
-                    }
-                    Ok(_) => false,
-                };
-            if nack {
+            let mut errors = sr1;
+            errors.set_af(false);
+            if let Err(e) = Self::clear_error_flags(info, errors) {
+                error!("I2C slave: error during transmit transfer: {:?}", e);
+                return Poll::Ready(Err(e));
+            }
+
+            if sr1.af() {
                 // NACK is normal - master doesn't want more data.
                 Self::disable_dma_and_interrupts(info);
                 dma_transfer.request_stop();
