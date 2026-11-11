@@ -157,6 +157,32 @@ impl<'d, M: PeriMode, IM: MasterMode> I2c<'d, M, IM> {
         Ok(sr1)
     }
 
+    /// Flush a pending RX DMA request with a dummy transfer, so the next read gets no stale byte.
+    #[cfg(dma)]
+    fn clear_rx_dma_request(&mut self) {
+        let mut src = 0u8;
+        let mut dst = [0u8; 1];
+        let _flush = unsafe {
+            self.rx_dma
+                .as_mut()
+                .unwrap()
+                .read(&raw mut src, &mut dst, Default::default())
+        };
+        self.info.regs.cr2().modify(|w| w.set_dmaen(true));
+        self.info.regs.cr2().modify(|w| w.set_dmaen(false));
+    }
+
+    /// Check whether START was generated.
+    ///
+    /// Drops a byte received after the previous read, it would stall the next transfer.
+    fn check_start(info: &'static Info) -> Result<bool, Error> {
+        let sr1 = Self::check_and_clear_error_flags(info)?;
+        if sr1.rxne() {
+            info.regs.dr().read();
+        }
+        Ok(sr1.start())
+    }
+
     fn write_bytes(
         &mut self,
         addr: u8,
@@ -172,7 +198,7 @@ impl<'d, M: PeriMode, IM: MasterMode> I2c<'d, M, IM> {
             });
 
             // Wait until START condition was generated
-            while !Self::check_and_clear_error_flags(self.info)?.start() {
+            while !Self::check_start(self.info)? {
                 timeout.check()?;
             }
 
@@ -273,7 +299,7 @@ impl<'d, M: PeriMode, IM: MasterMode> I2c<'d, M, IM> {
             });
 
             // Wait until START condition was generated
-            while !Self::check_and_clear_error_flags(self.info)?.start() {
+            while !Self::check_start(self.info)? {
                 timeout.check()?;
             }
 
@@ -435,6 +461,24 @@ impl<'d, M: PeriMode, IM: MasterMode> I2c<'d, M, IM> {
         .await
     }
 
+    /// Wait for START, see [`Self::check_start`].
+    async fn wait_start(&self) -> Result<(), Error> {
+        poll_fn(|cx| {
+            self.state.waker.register(cx.waker());
+
+            match Self::check_start(self.info) {
+                Err(e) => Poll::Ready(Err(e)),
+                Ok(true) => Poll::Ready(Ok(())),
+                Ok(false) => {
+                    // When pending, (re-)enable interrupts to wake us up.
+                    Self::enable_buffer_interrupts(self.info);
+                    Poll::Pending
+                }
+            }
+        })
+        .await
+    }
+
     /// Check the conditions that terminate a slave transfer.
     fn check_termination(sr1: &i2c::regs::Sr1) -> Option<SlaveTermination> {
         if sr1.stopf() {
@@ -497,7 +541,7 @@ impl<'d, IM: MasterMode> I2c<'d, Async, IM> {
             });
 
             // Wait until START condition was generated
-            self.wait_sr1(|sr1| sr1.start()).await?;
+            self.wait_start().await?;
 
             // Check if we were the ones to generate START
             if self.info.regs.cr1().read().start() || !self.info.regs.sr2().read().msl() {
@@ -583,7 +627,7 @@ impl<'d, IM: MasterMode> I2c<'d, Async, IM> {
         });
 
         // Wait until START condition was generated
-        self.wait_sr1(|sr1| sr1.start()).await?;
+        self.wait_start().await?;
 
         // Check if we were the ones to generate START
         if self.info.regs.cr1().read().start() || !self.info.regs.sr2().read().msl() {
@@ -682,23 +726,7 @@ impl<'d, IM: MasterMode> I2c<'d, Async, IM> {
             });
 
             // Wait until START condition was generated
-            poll_fn(|cx| {
-                self.state.waker.register(cx.waker());
-
-                match Self::check_and_clear_error_flags(self.info) {
-                    Err(e) => Poll::Ready(Err(e)),
-                    Ok(sr1) => {
-                        if sr1.start() {
-                            Poll::Ready(Ok(()))
-                        } else {
-                            // When pending, (re-)enable interrupts to wake us up.
-                            Self::enable_interrupts(self.info);
-                            Poll::Pending
-                        }
-                    }
-                }
-            })
-            .await?;
+            self.wait_start().await?;
 
             // Check if we were the ones to generate START
             if self.info.regs.cr1().read().start() || !self.info.regs.sr2().read().msl() {
@@ -852,23 +880,7 @@ impl<'d, IM: MasterMode> I2c<'d, Async, IM> {
             });
 
             // Wait until START condition was generated
-            poll_fn(|cx| {
-                self.state.waker.register(cx.waker());
-
-                match Self::check_and_clear_error_flags(self.info) {
-                    Err(e) => Poll::Ready(Err(e)),
-                    Ok(sr1) => {
-                        if sr1.start() {
-                            Poll::Ready(Ok(()))
-                        } else {
-                            // When pending, (re-)enable interrupts to wake us up.
-                            Self::enable_interrupts(self.info);
-                            Poll::Pending
-                        }
-                    }
-                }
-            })
-            .await?;
+            self.wait_start().await?;
 
             // Check if we were the ones to generate START
             if self.info.regs.cr1().read().start() || !self.info.regs.sr2().read().msl() {
@@ -907,9 +919,6 @@ impl<'d, IM: MasterMode> I2c<'d, Async, IM> {
                     w.set_ack(false);
                 });
             }
-
-            // Clear condition by reading SR2
-            self.info.regs.sr2().read();
         } else {
             // Before starting reception of single byte (but without START condition, i.e. in case
             // of continued frame), program NACK to emit at end of this byte.
@@ -920,6 +929,22 @@ impl<'d, IM: MasterMode> I2c<'d, Async, IM> {
             }
         }
 
+        // Arm the DMA before clearing ADDR, it must be ready for the first byte (RM 25.3.8).
+        self.clear_rx_dma_request();
+        self.info.regs.cr2().modify(|w| w.set_dmaen(true));
+        let dma_transfer = unsafe {
+            // Set the I2C_DR register address in the DMA_SxPAR register. The data will be moved
+            // from this address from the memory after each RxE event.
+            let src = self.info.regs.dr().as_ptr() as *mut u8;
+
+            self.rx_dma.as_mut().unwrap().read(src, read_buffer, Default::default())
+        };
+
+        if frame.send_start() {
+            // Clear condition by reading SR2
+            self.info.regs.sr2().read();
+        }
+
         // 18.3.8: When a single byte must be received: [snip] Then the user can program the STOP
         // condition either after clearing ADDR flag, or in the DMA Transfer Complete interrupt
         // routine.
@@ -928,14 +953,6 @@ impl<'d, IM: MasterMode> I2c<'d, Async, IM> {
                 w.set_stop(true);
             });
         }
-
-        let dma_transfer = unsafe {
-            // Set the I2C_DR register address in the DMA_SxPAR register. The data will be moved
-            // from this address from the memory after each RxE event.
-            let src = self.info.regs.dr().as_ptr() as *mut u8;
-
-            self.rx_dma.as_mut().unwrap().read(src, read_buffer, Default::default())
-        };
 
         // Wait for bytes to be received, or an error to occur.
         let poll_error = poll_fn(|cx| {
@@ -1015,7 +1032,7 @@ impl<'d, IM: MasterMode> I2c<'d, Async, IM> {
             index += run;
 
             #[cfg(dma)]
-            let merge_reads = is_read && self.rx_dma.is_none();
+            let merge_reads = is_read && (self.rx_dma.is_none() || operations.len() > 1);
             #[cfg(not(dma))]
             let merge_reads = is_read;
 
@@ -1946,17 +1963,7 @@ impl<'d> I2c<'d, Async, MultiMaster> {
 
             self.setup_slave_dma_base();
         } else {
-            // Clear pending DMA request
-            let src = 0u8;
-            let mut dst = [0u8; 1];
-            let _flush = unsafe {
-                self.rx_dma
-                    .as_mut()
-                    .unwrap()
-                    .read(&src as *const u8 as *mut u8, &mut dst, Default::default())
-            };
-            info.regs.cr2().modify(|w| w.set_dmaen(true));
-            info.regs.cr2().modify(|w| w.set_dmaen(false));
+            self.clear_rx_dma_request();
         }
 
         let mut dma_transfer = unsafe {
