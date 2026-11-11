@@ -51,7 +51,7 @@ impl super::SealedAdcChannel<ADC1> for Vref {
     fn channel(&self) -> u8 {
         // TODO: move to py32-metapac
         cfg_if::cfg_if! {
-            if #[cfg(py32f002b)] {
+            if #[cfg(adc_v1b)] {
                 9
             } else {
                 12
@@ -66,7 +66,7 @@ impl super::SealedAdcChannel<ADC1> for Temperature {
     fn channel(&self) -> u8 {
         // TODO: move to py32-metapac
         cfg_if::cfg_if! {
-            if #[cfg(py32f002b)] {
+            if #[cfg(adc_v1b)] {
                 8
             } else {
                 11
