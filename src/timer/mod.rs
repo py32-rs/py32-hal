@@ -50,7 +50,7 @@ impl Channel {
 pub enum TimerBits {
     /// 16 bits.
     Bits16,
-    #[cfg(any(py32f071, py32f072))]
+    #[cfg(any(py32f031, py32f040, py32f071, py32f072, py32m031, py32m070, py32md410, py32md420))]
     /// 32 bits.
     Bits32,
 }

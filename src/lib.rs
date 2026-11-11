@@ -35,6 +35,7 @@ pub mod mode {
     impl_mode!(Async);
 }
 
+#[cfg(adc)]
 pub mod adc;
 #[cfg(crc)]
 pub mod crc;
