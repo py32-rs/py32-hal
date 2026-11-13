@@ -15,7 +15,7 @@ cortex-m = { version = "0.7.7", features = [
     "critical-section-single-core",
     "critical-section",
 ] }
-cortex-m-rt = "0.7.5"
+cortex-m-rt = "0.7.7"
 embassy-time = { version = "0.5", features = ["defmt", "defmt-timestamp-uptime", "generic-queue-8", "tick-hz-32_768"] }
 embassy-usb = { version = "0.5", features = ["defmt"] }
 heapless = "0.9"

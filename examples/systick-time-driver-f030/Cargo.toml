@@ -16,9 +16,7 @@ cortex-m = { version = "0.7.7", features = [
     "critical-section-single-core",
     "critical-section",
 ] }
-cortex-m-rt = "0.7.5"
-cortex-m-semihosting = "0.5"
-panic-probe = { version = "1.0", features = ["print-defmt"] }
+cortex-m-rt = "0.7.7"
 
 embassy-sync = { version = "0.8", features = ["defmt"] }
 embassy-executor = { version = "0.10", features = ["platform-cortex-m", "executor-thread", "defmt"] }
