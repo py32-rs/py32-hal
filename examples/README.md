@@ -6,6 +6,7 @@ This directory contains various examples demonstrating the usage of `py32-hal` w
 Examples compatible with the following MCU series:
 - PY32F002B
 - PY32L020
+- PY32M010A
 - PY32C642/C641
 
 ## py32f030
@@ -14,16 +15,28 @@ Examples compatible with the following MCU series:
 - PY32F003
 - PY32F002A
 - PY32C613
+- PY32M020
 - PY32M030
+- PY32MD310
+- PY32MD320
+
+## py32f031
+Examples compatible with the following MCU series:
+- PY32F031
+- PY32M031
+- PY32MD410
+- PY32MD420
+
+## py32f040
+Examples compatible with the following MCU series:
+- PY32F040
 
 ## py32f072
 Examples compatible with the following MCU series:
 - PY32F072
 - PY32F071
 - PY32F040
-- PY32F031
 - PY32M070
-- PY32MD410
 
 ## rtic-f072
 RTIC examples for PY32F072.
