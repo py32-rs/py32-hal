@@ -38,6 +38,10 @@ Examples compatible with the following MCU series:
 - PY32F040
 - PY32M070
 
+## ms32c001
+Examples compatible with the following MCU series:
+- MS32C001
+
 ## rtic-f072
 RTIC examples for PY32F072.
 
