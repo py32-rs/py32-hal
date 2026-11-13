@@ -7,17 +7,12 @@ publish = false
 [dependencies]
 py32-hal = { path = "../../", features = [ "time-driver-tim3", "py32f030f16"]}
 
-# This is necessary because `py32-hal` uses `portable-atomic`,
-# but Cortex-M0 does not provide Atomic (CAS) support.
-portable-atomic = { version = "1", features = ["critical-section"] }
-
 panic-halt = "1.0"
 cortex-m = { version = "0.7.7", features = [
     "critical-section-single-core",
     "critical-section",
 ] }
-cortex-m-rt = "0.7.5"
-cortex-m-semihosting = "0.5"
+cortex-m-rt = "0.7.7"
 panic-probe = { version = "1.0", features = ["print-defmt"] }
 
 embassy-sync = { version = "0.8", features = ["defmt"] }
