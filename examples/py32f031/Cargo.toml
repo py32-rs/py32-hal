@@ -15,4 +15,4 @@ embedded-io = "0.7"
 embedded-io-async = "0.7"
 heapless = "0.9"
 panic-halt = "1.0"
-py32-hal = { version = "0.4.1", path = "../..", features = ["time-driver-tim1", "py32f031c18"] }
+py32-hal = { path = "../..", features = ["time-driver-tim1", "py32f031c18"] }
