@@ -47,10 +47,12 @@ pub mod dma;
 pub mod div;
 pub mod flash;
 pub mod gpio;
+#[cfg(i2c)]
 pub mod i2c;
 pub mod rcc;
 pub mod timer;
 pub mod uid;
+#[cfg(usart)]
 pub mod usart;
 #[cfg(any(iwdg, wwdg))]
 pub mod wdg;

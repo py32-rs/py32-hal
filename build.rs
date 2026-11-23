@@ -26,12 +26,12 @@ fn main() {
 
     let chip_name = match env::vars()
         .map(|(a, _)| a)
-        .filter(|x| x.starts_with("CARGO_FEATURE_PY32"))
+        .filter(|x| x.starts_with("CARGO_FEATURE_PY32") || x.starts_with("CARGO_FEATURE_MS32"))
         .get_one()
     {
         Ok(x) => x,
-        Err(GetOneError::None) => panic!("No py32xx Cargo feature enabled"),
-        Err(GetOneError::Multiple) => panic!("Multiple py32xx Cargo features enabled"),
+        Err(GetOneError::None) => panic!("No py32xx/ms32xx Cargo feature enabled"),
+        Err(GetOneError::Multiple) => panic!("Multiple py32xx/ms32xx Cargo features enabled"),
     }
     .strip_prefix("CARGO_FEATURE_")
     .unwrap()

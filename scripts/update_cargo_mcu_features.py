@@ -52,7 +52,7 @@ def main():
             if line.startswith("[") and in_features:
                 break
             # Features typically look like `py32f030x6 = []`
-            if in_features and line.startswith("py32"):
+            if in_features and (line.startswith("py32") or line.startswith("ms32")):
                 chip = line.split("=")[0].strip()
                 chips.append(chip)
                 

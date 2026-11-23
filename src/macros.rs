@@ -4,6 +4,7 @@
 // https://github.com/embassy-rs/embassy/tree/main/embassy-stm32
 // Special thanks to the Embassy Project and its contributors for their work!
 
+#[allow(unused)]
 macro_rules! peri_trait {
     (
         $(irqs: [$($irq:ident),*],)?
@@ -125,6 +126,7 @@ macro_rules! new_dma {
     }};
 }
 
+#[allow(unused)]
 macro_rules! new_pin {
     ($name:ident, $af_type:expr) => {{
         $name.set_as_af($name.af_num(), $af_type);
