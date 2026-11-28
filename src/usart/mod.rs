@@ -8,7 +8,7 @@
 
 use core::future::poll_fn;
 use core::marker::PhantomData;
-use core::sync::atomic::{compiler_fence, AtomicU8, Ordering};
+use core::sync::atomic::{AtomicU8, Ordering, compiler_fence};
 use core::task::Poll;
 
 use embassy_embedded_hal::SetConfig;
@@ -17,11 +17,11 @@ use embassy_hal_internal::drop::OnDrop;
 use embassy_hal_internal::{Peri, PeripheralType};
 use embassy_sync::waitqueue::AtomicWaker;
 #[cfg(dma)]
-use futures_util::future::{select, Either};
+use futures_util::future::{Either, select};
 
+use crate::pac::usart::Usart as Regs;
 #[cfg(dma)]
 use crate::pac::usart::regs::Sr;
-use crate::pac::usart::Usart as Regs;
 use crate::pac::usart::{regs, vals};
 
 #[cfg(dma)]
@@ -41,9 +41,9 @@ pub struct InterruptHandler<T: Instance> {
 }
 
 impl<T: Instance> interrupt::typelevel::Handler<T::Interrupt> for InterruptHandler<T> {
-    unsafe fn on_interrupt() { unsafe {
-        on_interrupt(T::info().regs, T::state())
-    }}
+    unsafe fn on_interrupt() {
+        unsafe { on_interrupt(T::info().regs, T::state()) }
+    }
 }
 
 unsafe fn on_interrupt(r: Regs, s: &'static State) {
@@ -358,34 +358,36 @@ impl<'d, M: Mode> SetConfig for UartRx<'d, M> {
 #[cfg(dma)]
 impl<'d> UartTx<'d, Async> {
     /// Useful if you only want Uart Tx. It saves 1 pin and consumes a little less power.
-    pub fn new<T: Instance>(
+    pub fn new<T: Instance, D1: TxDma<T>>(
         peri: Peri<'d, T>,
         tx: Peri<'d, impl TxPin<T>>,
-        tx_dma: Peri<'d, impl TxDma<T>>,
+        _irq: impl interrupt::typelevel::Binding<D1::Interrupt, crate::dma::InterruptHandler<D1>> + 'd,
+        tx_dma: Peri<'d, D1>,
         config: Config,
     ) -> Result<Self, ConfigError> {
         Self::new_inner(
             peri,
             new_pin!(tx, AfType::output(OutputType::PushPull, Speed::Medium)),
             None,
-            new_dma!(tx_dma),
+            new_dma!(tx_dma, _irq),
             config,
         )
     }
 
     /// Create a new tx-only UART with a clear-to-send pin
-    pub fn new_with_cts<T: Instance>(
+    pub fn new_with_cts<T: Instance, D1: TxDma<T>>(
         peri: Peri<'d, T>,
         tx: Peri<'d, impl TxPin<T>>,
         cts: Peri<'d, impl CtsPin<T>>,
-        tx_dma: Peri<'d, impl TxDma<T>>,
+        _irq: impl interrupt::typelevel::Binding<D1::Interrupt, crate::dma::InterruptHandler<D1>> + 'd,
+        tx_dma: Peri<'d, D1>,
         config: Config,
     ) -> Result<Self, ConfigError> {
         Self::new_inner(
             peri,
             new_pin!(tx, AfType::output(OutputType::PushPull, Speed::Medium)),
             new_pin!(cts, AfType::input(Pull::None)),
-            new_dma!(tx_dma),
+            new_dma!(tx_dma, _irq),
             config,
         )
     }
@@ -583,36 +585,40 @@ impl<'d> UartRx<'d, Async> {
     /// Create a new rx-only UART with no hardware flow control.
     ///
     /// Useful if you only want Uart Rx. It saves 1 pin and consumes a little less power.
-    pub fn new<T: Instance>(
+    pub fn new<T: Instance, D2: RxDma<T>>(
         peri: Peri<'d, T>,
-        _irq: impl interrupt::typelevel::Binding<T::Interrupt, InterruptHandler<T>> + 'd,
+        _irq: impl interrupt::typelevel::Binding<T::Interrupt, InterruptHandler<T>>
+        + interrupt::typelevel::Binding<D2::Interrupt, crate::dma::InterruptHandler<D2>>
+        + 'd,
         rx: Peri<'d, impl RxPin<T>>,
-        rx_dma: Peri<'d, impl RxDma<T>>,
+        rx_dma: Peri<'d, D2>,
         config: Config,
     ) -> Result<Self, ConfigError> {
         Self::new_inner(
             peri,
             new_pin!(rx, AfType::input(config.rx_pull)),
             None,
-            new_dma!(rx_dma),
+            new_dma!(rx_dma, _irq),
             config,
         )
     }
 
     /// Create a new rx-only UART with a request-to-send pin
-    pub fn new_with_rts<T: Instance>(
+    pub fn new_with_rts<T: Instance, D2: RxDma<T>>(
         peri: Peri<'d, T>,
-        _irq: impl interrupt::typelevel::Binding<T::Interrupt, InterruptHandler<T>> + 'd,
+        _irq: impl interrupt::typelevel::Binding<T::Interrupt, InterruptHandler<T>>
+        + interrupt::typelevel::Binding<D2::Interrupt, crate::dma::InterruptHandler<D2>>
+        + 'd,
         rx: Peri<'d, impl RxPin<T>>,
         rts: Peri<'d, impl RtsPin<T>>,
-        rx_dma: Peri<'d, impl RxDma<T>>,
+        rx_dma: Peri<'d, D2>,
         config: Config,
     ) -> Result<Self, ConfigError> {
         Self::new_inner(
             peri,
             new_pin!(rx, AfType::input(config.rx_pull)),
             new_pin!(rts, AfType::output(OutputType::PushPull, Speed::Medium)),
-            new_dma!(rx_dma),
+            new_dma!(rx_dma, _irq),
             config,
         )
     }
@@ -1026,13 +1032,16 @@ fn drop_tx_rx(info: &Info, state: &State) {
 #[cfg(dma)]
 impl<'d> Uart<'d, Async> {
     /// Create a new bidirectional UART
-    pub fn new<T: Instance>(
+    pub fn new<T: Instance, D1: TxDma<T>, D2: RxDma<T>>(
         peri: Peri<'d, T>,
         rx: Peri<'d, impl RxPin<T>>,
         tx: Peri<'d, impl TxPin<T>>,
-        _irq: impl interrupt::typelevel::Binding<T::Interrupt, InterruptHandler<T>> + 'd,
-        #[cfg(dma)] tx_dma: Peri<'d, impl TxDma<T>>,
-        rx_dma: Peri<'d, impl RxDma<T>>,
+        _irq: impl interrupt::typelevel::Binding<T::Interrupt, InterruptHandler<T>>
+        + interrupt::typelevel::Binding<D1::Interrupt, crate::dma::InterruptHandler<D1>>
+        + interrupt::typelevel::Binding<D2::Interrupt, crate::dma::InterruptHandler<D2>>
+        + 'd,
+        #[cfg(dma)] tx_dma: Peri<'d, D1>,
+        rx_dma: Peri<'d, D2>,
         config: Config,
     ) -> Result<Self, ConfigError> {
         Self::new_inner(
@@ -1042,22 +1051,25 @@ impl<'d> Uart<'d, Async> {
             None,
             None,
             None,
-            new_dma!(tx_dma),
-            new_dma!(rx_dma),
+            new_dma!(tx_dma, _irq),
+            new_dma!(rx_dma, _irq),
             config,
         )
     }
 
     /// Create a new bidirectional UART with request-to-send and clear-to-send pins
-    pub fn new_with_rtscts<T: Instance>(
+    pub fn new_with_rtscts<T: Instance, D1: TxDma<T>, D2: RxDma<T>>(
         peri: Peri<'d, T>,
         rx: Peri<'d, impl RxPin<T>>,
         tx: Peri<'d, impl TxPin<T>>,
-        _irq: impl interrupt::typelevel::Binding<T::Interrupt, InterruptHandler<T>> + 'd,
+        _irq: impl interrupt::typelevel::Binding<T::Interrupt, InterruptHandler<T>>
+        + interrupt::typelevel::Binding<D1::Interrupt, crate::dma::InterruptHandler<D1>>
+        + interrupt::typelevel::Binding<D2::Interrupt, crate::dma::InterruptHandler<D2>>
+        + 'd,
         rts: Peri<'d, impl RtsPin<T>>,
         cts: Peri<'d, impl CtsPin<T>>,
-        tx_dma: Peri<'d, impl TxDma<T>>,
-        rx_dma: Peri<'d, impl RxDma<T>>,
+        tx_dma: Peri<'d, D1>,
+        rx_dma: Peri<'d, D2>,
         config: Config,
     ) -> Result<Self, ConfigError> {
         Self::new_inner(
@@ -1067,8 +1079,8 @@ impl<'d> Uart<'d, Async> {
             new_pin!(rts, AfType::output(OutputType::PushPull, Speed::Medium)),
             new_pin!(cts, AfType::input(Pull::None)),
             None,
-            new_dma!(tx_dma),
-            new_dma!(rx_dma),
+            new_dma!(tx_dma, _irq),
+            new_dma!(rx_dma, _irq),
             config,
         )
     }
@@ -1085,12 +1097,15 @@ impl<'d> Uart<'d, Async> {
     /// Apart from this, the communication protocol is similar to normal USART mode. Any conflict
     /// on the line must be managed by software (for instance by using a centralized arbiter).
     #[doc(alias("HDSEL"))]
-    pub fn new_half_duplex<T: Instance>(
+    pub fn new_half_duplex<T: Instance, D1: TxDma<T>, D2: RxDma<T>>(
         peri: Peri<'d, T>,
         tx: Peri<'d, impl TxPin<T>>,
-        _irq: impl interrupt::typelevel::Binding<T::Interrupt, InterruptHandler<T>> + 'd,
-        tx_dma: Peri<'d, impl TxDma<T>>,
-        rx_dma: Peri<'d, impl RxDma<T>>,
+        _irq: impl interrupt::typelevel::Binding<T::Interrupt, InterruptHandler<T>>
+        + interrupt::typelevel::Binding<D1::Interrupt, crate::dma::InterruptHandler<D1>>
+        + interrupt::typelevel::Binding<D2::Interrupt, crate::dma::InterruptHandler<D2>>
+        + 'd,
+        tx_dma: Peri<'d, D1>,
+        rx_dma: Peri<'d, D2>,
         mut config: Config,
         half_duplex: HalfDuplexConfig,
     ) -> Result<Self, ConfigError> {
@@ -1103,8 +1118,8 @@ impl<'d> Uart<'d, Async> {
             None,
             None,
             None,
-            new_dma!(tx_dma),
-            new_dma!(rx_dma),
+            new_dma!(tx_dma, _irq),
+            new_dma!(rx_dma, _irq),
             config,
         )
     }

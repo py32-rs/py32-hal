@@ -1661,16 +1661,25 @@ fn main() {
         }
     }
 
-    for (ch_idx, ch) in METADATA.dma_channels.iter().enumerate() {
+    let mut dma_ch_to_irq: BTreeMap<&str, &str> = BTreeMap::new();
+    for (irq, channels) in &dma_irqs {
+        for channel in channels {
+            dma_ch_to_irq.insert(channel.as_str(), irq);
+        }
+    }
+
+    for ch in METADATA.dma_channels.iter() {
         // Some H7 chips have BDMA1 hardcoded for DFSDM, ie no DMAMUX. It's unsupported, skip it.
         if has_dmamux && ch.dmamux.is_none() {
             continue;
         }
 
         let name = format_ident!("{}", ch.name);
-        let idx = ch_idx as u8;
 
-        g.extend(quote!(dma_channel_impl!(#name, #idx);));
+        let irq_name = dma_ch_to_irq.get(ch.name)
+            .unwrap_or_else(|| panic!("missing DMA interrupt for {}", ch.name));
+        let irq = format_ident!("{}", irq_name);
+        g.extend(quote!(dma_channel_impl!(#name, crate::interrupt::typelevel::#irq);));
 
         let dma = format_ident!("{}", ch.dma);
         let ch_num = ch.channel as usize;
@@ -1715,29 +1724,17 @@ fn main() {
         });
     }
 
-    // ========
-    // Generate DMA IRQs.
-
-    let dma_irqs: TokenStream = dma_irqs
+    let ch_names = METADATA
+        .dma_channels
         .iter()
-        .map(|(irq, channels)| {
-            let irq = format_ident!("{}", irq);
-
-            let channels = channels.iter().map(|c| format_ident!("{}", c));
-
-            quote! {
-                #[cfg(feature = "rt")]
-                #[crate::interrupt]
-                unsafe fn #irq () {
-                    #(
-                        unsafe { <crate::peripherals::#channels as crate::dma::ChannelInterrupt>::on_irq(); }
-                    )*
-                }
-            }
-        })
-        .collect();
-
-    g.extend(dma_irqs);
+        .map(|ch| format_ident!("{}", ch.name));
+    g.extend(quote! {
+        #[cfg(dma)]
+        #[derive(Copy, Clone)]
+        #[repr(u8)]
+        #[allow(non_camel_case_types)]
+        pub(crate) enum DmaChannel { #(#ch_names),* }
+    });
 
     g.extend(quote! {
         #[cfg(dma)]

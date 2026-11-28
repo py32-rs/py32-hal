@@ -15,10 +15,14 @@ use cortex_m::singleton;
 use defmt::*;
 use embassy_executor::Spawner;
 use embassy_time::Instant;
-use py32_hal::Peripherals;
+use py32_hal::{bind_interrupts, peripherals, Peripherals};
 use py32_hal::adc::{Adc, AdcChannel, RingBufferedAdc, SampleTime};
 use py32_hal::rcc::{HsiFs, Pll, PllMul, PllSource, Sysclk};
 use {defmt_rtt as _, panic_probe as _};
+
+bind_interrupts!(struct Irqs {
+    DMA1_CHANNEL1 => py32_hal::dma::InterruptHandler<peripherals::DMA1_CH1>;
+});
 
 #[embassy_executor::main]
 async fn main(spawner: Spawner) {
@@ -52,7 +56,7 @@ async fn adc_task(p: Peripherals) {
     ]
     .into_iter();
     let mut adc: RingBufferedAdc<py32_hal::peripherals::ADC1> =
-        adc.into_ring_buffered(p.DMA1_CH1, adc_data, sequence);
+        adc.into_ring_buffered(p.DMA1_CH1, Irqs, adc_data, sequence);
 
     // Note that overrun is a big consideration in this implementation. Whatever task is running the adc.read() calls absolutely must circle back around
     // to the adc.read() call before the DMA buffer is wrapped around > 1 time. At this point, the overrun is so significant that the context of

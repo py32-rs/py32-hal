@@ -11,7 +11,9 @@ use py32_hal::{bind_interrupts, peripherals, usart};
 use {defmt_rtt as _, panic_probe as _};
 
 bind_interrupts!(struct Irqs {
-    USART1 => usart::InterruptHandler<peripherals::USART1>;
+    DMA_CHANNEL1 => py32_hal::dma::InterruptHandler<peripherals::DMA1_CH1>;
+    DMA_CHANNEL2_3 => py32_hal::dma::InterruptHandler<peripherals::DMA1_CH3>;
+    USART2 => usart::InterruptHandler<peripherals::USART2>;
 });
 
 #[embassy_executor::main]
@@ -21,7 +23,7 @@ async fn main(_spawner: Spawner) {
 
     let config = Config::default();
     let mut usart =
-        Uart::new(p.USART1, p.PA3, p.PA2, Irqs, p.DMA1_CH3, p.DMA1_CH1, config).unwrap();
+        Uart::new(p.USART2, p.PA1, p.PA0, Irqs, p.DMA1_CH3, p.DMA1_CH1, config).unwrap();
 
     for n in 0u32.. {
         let mut s: String<128> = String::new();

@@ -13,6 +13,8 @@ use {defmt_rtt as _, panic_probe as _};
 const DMA_BUF_SIZE: usize = 256;
 
 bind_interrupts!(struct Irqs {
+    DMA1_CHANNEL1 => py32_hal::dma::InterruptHandler<peripherals::DMA1_CH1>;
+    DMA1_CHANNEL2_3 => py32_hal::dma::InterruptHandler<peripherals::DMA1_CH3>;
     USART1 => usart::InterruptHandler<peripherals::USART1>;
 });
 

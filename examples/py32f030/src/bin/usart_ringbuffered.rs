@@ -13,7 +13,9 @@ use {defmt_rtt as _, panic_probe as _};
 const DMA_BUF_SIZE: usize = 256;
 
 bind_interrupts!(struct Irqs {
-    USART1 => usart::InterruptHandler<peripherals::USART1>;
+    DMA_CHANNEL1 => py32_hal::dma::InterruptHandler<peripherals::DMA1_CH1>;
+    DMA_CHANNEL2_3 => py32_hal::dma::InterruptHandler<peripherals::DMA1_CH3>;
+    USART2 => usart::InterruptHandler<peripherals::USART2>;
 });
 
 #[embassy_executor::main]
@@ -22,7 +24,7 @@ async fn main(spawner: Spawner) {
     info!("Hello World!");
 
     let config = Config::default();
-    let usart = Uart::new(p.USART1, p.PA3, p.PA2, Irqs, p.DMA1_CH3, p.DMA1_CH1, config).unwrap();
+    let usart = Uart::new(p.USART2, p.PA1, p.PA0, Irqs, p.DMA1_CH3, p.DMA1_CH1, config).unwrap();
 
     let (tx, rx) = usart.split();
     static mut DMA_BUF: [u8; DMA_BUF_SIZE] = [0; DMA_BUF_SIZE];

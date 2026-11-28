@@ -40,9 +40,11 @@ impl<'d, T: Instance> Adc<'d, T, Blocking> {
     /// It is critical to call `read` frequently to prevent DMA buffer overrun.
     ///
     /// [`read`]: #method.read
-    pub fn into_ring_buffered(
+    pub fn into_ring_buffered<D: RxDma<T>>(
         self,
-        dma: Peri<'d, impl RxDma<T>>,
+        dma: Peri<'d, D>,
+        irqs: impl crate::interrupt::typelevel::Binding<D::Interrupt, crate::dma::InterruptHandler<D>>
+        + 'd,
         dma_buf: &'d mut [u16],
         sequence: impl ExactSizeIterator<Item = (AnyAdcChannel<T>, SampleTime)>,
     ) -> RingBufferedAdc<'d, T> {
@@ -62,7 +64,15 @@ impl<'d, T: Instance> Adc<'d, T, Blocking> {
         let rx_src = T::regs().dr().as_ptr() as *mut u16;
         let request = dma.request();
 
-        let ring_buf = unsafe { ReadableRingBuffer::new(dma, request, rx_src, dma_buf, opts) };
+        let ring_buf = unsafe {
+            ReadableRingBuffer::new(
+                crate::dma::Channel::new(dma, irqs),
+                request,
+                rx_src,
+                dma_buf,
+                opts,
+            )
+        };
 
         // Don't disable the clock
         mem::forget(self);
@@ -99,7 +109,7 @@ impl<'d, T: Instance> RingBufferedAdc<'d, T> {
     /// [`start`]: #method.start
     pub fn teardown_adc(&mut self) {
         // Stop the DMA transfer
-        self.ring_buf.request_pause();
+        self.ring_buf.stop();
 
         let r = T::regs();
 
@@ -234,7 +244,7 @@ impl<'d, T: Instance> RingBufferedAdc<'d, T> {
     ///     (p.PA2.degrade_adc(), SampleTime::CYCLES239_5),
     /// ]
     /// .into_iter();
-    /// let mut adc = adc.into_ring_buffered(p.DMA1_CH1, &mut adc_dma_buf, sequence);
+    /// let mut adc = adc.into_ring_buffered(p.DMA1_CH1, Irqs, &mut adc_dma_buf, sequence);
     ///
     /// let mut measurements = [0u16; DMA_BUF_LEN / 2];
     /// loop {

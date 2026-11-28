@@ -11,6 +11,8 @@ use {defmt_rtt as _, panic_probe as _};
 const ADDRESS: u8 = 0x42;
 
 bind_interrupts!(struct Irqs {
+    DMA_CHANNEL1 => py32_hal::dma::InterruptHandler<peripherals::DMA1_CH1>;
+    DMA_CHANNEL2_3 => py32_hal::dma::InterruptHandler<peripherals::DMA1_CH2>;
     I2C1 => i2c::GlobalInterruptHandler<peripherals::I2C1>;
 });
 
@@ -24,7 +26,7 @@ async fn main(_spawner: Spawner) {
     let mut config = Config::default();
     config.frequency = Hertz(400_000);
 
-    let mut i2c = I2c::new(p.I2C1, p.PA11, p.PA12, Irqs, p.DMA1_CH2, p.DMA1_CH1, config)
+    let mut i2c = I2c::new(p.I2C1, p.PA3, p.PA2, Irqs, p.DMA1_CH2, p.DMA1_CH1, config)
         .into_slave_multimaster(SlaveAddrConfig::basic(ADDRESS));
 
     let mut rx = [0u8; 32];

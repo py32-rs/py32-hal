@@ -2013,7 +2013,7 @@ impl<'d> I2c<'d, Async, MultiMaster> {
                         match termination {
                             SlaveTermination::Stop | SlaveTermination::Restart => {
                                 // Freeze the DMA counter before measuring.
-                                dma_transfer.request_stop();
+                                dma_transfer.request_reset();
                                 while dma_transfer.is_running() {}
 
                                 // Get DMA remaining count
@@ -2150,7 +2150,7 @@ impl<'d> I2c<'d, Async, MultiMaster> {
             if sr1.af() {
                 // NACK is normal - master doesn't want more data.
                 Self::disable_dma_and_interrupts(info);
-                dma_transfer.request_stop();
+                dma_transfer.request_reset();
                 while dma_transfer.is_running() {}
 
                 info.regs.sr1().write(|reg| {

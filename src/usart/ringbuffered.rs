@@ -6,16 +6,16 @@
 
 use core::future::poll_fn;
 use core::mem;
-use core::sync::atomic::{compiler_fence, Ordering};
+use core::sync::atomic::{Ordering, compiler_fence};
 use core::task::Poll;
 
 use embassy_embedded_hal::SetConfig;
 use embassy_hal_internal::Peri;
 use embedded_io_async::ReadReady;
-use futures_util::future::{select, Either};
+use futures_util::future::{Either, select};
 
 use super::{
-    clear_interrupt_flags, rdr, reconfigure, sr, Config, ConfigError, Error, Info, State, UartRx,
+    Config, ConfigError, Error, Info, State, UartRx, clear_interrupt_flags, rdr, reconfigure, sr,
 };
 #[cfg(dma)]
 use crate::dma::ReadableRingBuffer;
@@ -115,7 +115,7 @@ impl<'d> RingBufferedUartRx<'d> {
 
     /// Stop DMA backed UART receiver
     fn stop_uart(&mut self) {
-        self.ring_buf.request_pause();
+        self.ring_buf.stop();
 
         let r = self.info.regs;
         // clear all interrupts and DMA Rx Request
@@ -277,15 +277,7 @@ impl embedded_io_async::Read for RingBufferedUartRx<'_> {
 impl ReadReady for RingBufferedUartRx<'_> {
     fn read_ready(&mut self) -> Result<bool, Self::Error> {
         let len = self.ring_buf.len().map_err(|e| match e {
-            crate::dma::ringbuffer::Error::Overrun => Self::Error::Overrun,
-            crate::dma::ringbuffer::Error::DmaUnsynced => {
-                error!(
-                    "Ringbuffer error: DmaUNsynced, driver implementation is
-                    probably bugged please open an issue"
-                );
-                // we report this as overrun since its recoverable in the same way
-                Self::Error::Overrun
-            }
+            crate::dma::RingBufferError::Overrun => Self::Error::Overrun,
         })?;
         Ok(len > 0)
     }

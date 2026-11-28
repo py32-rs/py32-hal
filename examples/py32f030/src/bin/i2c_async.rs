@@ -11,6 +11,8 @@ use {defmt_rtt as _, panic_probe as _};
 const ADDRESS: u8 = 0x42;
 
 bind_interrupts!(struct Irqs {
+    DMA_CHANNEL1 => py32_hal::dma::InterruptHandler<peripherals::DMA1_CH1>;
+    DMA_CHANNEL2_3 => py32_hal::dma::InterruptHandler<peripherals::DMA1_CH2>;
     I2C1 => i2c::GlobalInterruptHandler<peripherals::I2C1>;
 });
 

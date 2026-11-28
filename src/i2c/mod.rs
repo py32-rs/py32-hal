@@ -230,13 +230,17 @@ pub struct I2c<'d, M: Mode, IM: MasterMode> {
 
 impl<'d> I2c<'d, Async, Master> {
     /// Create a new I2C driver.
-    pub fn new<T: Instance>(
+    #[cfg(dma)]
+    pub fn new<T: Instance, D1: TxDma<T>, D2: RxDma<T>>(
         peri: Peri<'d, T>,
         scl: Peri<'d, impl SclPin<T>>,
         sda: Peri<'d, impl SdaPin<T>>,
-        _irq: impl interrupt::typelevel::Binding<T::GlobalInterrupt, GlobalInterruptHandler<T>> + 'd,
-        #[cfg(dma)] tx_dma: Peri<'d, impl TxDma<T>>,
-        #[cfg(dma)] rx_dma: Peri<'d, impl RxDma<T>>,
+        _irq: impl interrupt::typelevel::Binding<T::GlobalInterrupt, GlobalInterruptHandler<T>>
+        + interrupt::typelevel::Binding<D1::Interrupt, crate::dma::InterruptHandler<D1>>
+        + interrupt::typelevel::Binding<D2::Interrupt, crate::dma::InterruptHandler<D2>>
+        + 'd,
+        tx_dma: Peri<'d, D1>,
+        rx_dma: Peri<'d, D2>,
         config: Config,
     ) -> Self {
         unsafe { T::GlobalInterrupt::enable() };
@@ -245,12 +249,22 @@ impl<'d> I2c<'d, Async, Master> {
             peri,
             new_pin!(scl, config.scl_af()),
             new_pin!(sda, config.sda_af()),
-            #[cfg(dma)]
-            new_dma!(tx_dma),
-            #[cfg(dma)]
-            new_dma!(rx_dma),
+            new_dma!(tx_dma, _irq),
+            new_dma!(rx_dma, _irq),
             config,
         )
+    }
+
+    /// Create a new I2C driver on chips without DMA.
+    #[cfg(not(dma))]
+    pub fn new<T: Instance>(
+        peri: Peri<'d, T>,
+        scl: Peri<'d, impl SclPin<T>>,
+        sda: Peri<'d, impl SdaPin<T>>,
+        irq: impl interrupt::typelevel::Binding<T::GlobalInterrupt, GlobalInterruptHandler<T>> + 'd,
+        config: Config,
+    ) -> Self {
+        Self::new_no_dma(peri, scl, sda, irq, config)
     }
 
     /// Create a new I2C driver that does not use DMA.

@@ -1,12 +1,11 @@
-//! Direct Memory Access (DMA)
-
-// The following code is modified from embassy-stm32
+// Adapted from embassy-stm32.
 // https://github.com/embassy-rs/embassy/tree/main/embassy-stm32
-// Special thanks to the Embassy Project and its contributors for their work!
 
+//! Direct Memory Access (DMA)
 #![macro_use]
 
 mod dma;
+
 pub use dma::*;
 
 mod util;
@@ -15,104 +14,143 @@ pub(crate) use util::*;
 pub(crate) mod ringbuffer;
 pub mod word;
 
-use embassy_hal_internal::{impl_peripheral, PeripheralType};
+use core::marker::PhantomData;
 
+use embassy_hal_internal::{Peri, PeripheralType};
+
+use crate::_generated::DmaChannel;
 use crate::interrupt;
 
+/// The direction of a DMA transfer.
 #[derive(Debug, Copy, Clone, PartialEq, Eq)]
 #[cfg_attr(feature = "defmt", derive(defmt::Format))]
-enum Dir {
+pub enum Dir {
+    /// Transfer from memory to a peripheral.
     MemoryToPeripheral,
+    /// Transfer from a peripheral to memory.
     PeripheralToMemory,
+    /// Transfer from memory to another memory address.
+    MemoryToMemory,
 }
 
-/// DMA request type alias. (also known as DMA channel number in some chips)
+/// Which pointer in the transfer to increment.
+#[derive(Debug, Copy, Clone, PartialEq, Eq)]
+#[cfg_attr(feature = "defmt", derive(defmt::Format))]
+pub enum Increment {
+    /// DMA will not increment either of the addresses.
+    None,
+    /// DMA will increment the peripheral address.
+    Peripheral,
+    /// DMA will increment the memory address.
+    Memory,
+    /// DMA will increment both peripheral and memory addresses simultaneously.
+    Both,
+}
+
+/// DMA request selected through the PY32 SYSCFG routing registers.
 pub type Request = u8;
-// pub type Request = ();
 
-pub(crate) trait SealedChannel {
-    fn id(&self) -> u8;
+/// Ring buffer error.
+#[derive(Debug, Eq, PartialEq, Copy, Clone)]
+#[cfg_attr(feature = "defmt", derive(defmt::Format))]
+#[non_exhaustive]
+pub enum RingBufferError {
+    /// Overrun error
+    Overrun,
 }
 
-pub(crate) trait ChannelInterrupt {
-    #[cfg_attr(not(feature = "rt"), allow(unused))]
-    unsafe fn on_irq();
+impl From<ringbuffer::Error> for RingBufferError {
+    fn from(e: ringbuffer::Error) -> Self {
+        if e == ringbuffer::Error::DmaUnsynced {
+            error!("Ring buffer broken invariants detected!");
+        }
+        Self::Overrun
+    }
+}
+
+/// DMA channel driver
+pub struct Channel<'d> {
+    pub(crate) channel: DmaChannel,
+    phantom: PhantomData<&'d ()>,
+}
+
+impl<'d> Channel<'d> {
+    /// Create a new DMA channel driver.
+    pub fn new<T: ChannelInstance>(
+        _ch: Peri<'d, T>,
+        _irq: impl interrupt::typelevel::Binding<T::Interrupt, crate::dma::InterruptHandler<T>> + 'd,
+    ) -> Self {
+        Self {
+            channel: T::CHANNEL,
+            phantom: PhantomData,
+        }
+    }
+
+    /// Reborrow the channel, allowing it to be used in multiple places.
+    pub fn reborrow(&mut self) -> Channel<'_> {
+        Channel {
+            channel: self.channel,
+            phantom: PhantomData,
+        }
+    }
+
+    pub(crate) unsafe fn clone_unchecked(&self) -> Channel<'d> {
+        Channel {
+            channel: self.channel,
+            phantom: PhantomData,
+        }
+    }
+}
+
+pub(crate) trait SealedChannelInstance {
+    const CHANNEL: DmaChannel;
 }
 
 /// DMA channel.
 #[allow(private_bounds)]
-pub trait Channel: SealedChannel + PeripheralType + Into<AnyChannel> + 'static {
-    /// Type-erase (degrade) this pin into an `AnyChannel`.
-    ///
-    /// This converts DMA channel singletons (`DMA1_CH3`, `DMA2_CH1`, ...), which
-    /// are all different types, into the same type. It is useful for
-    /// creating arrays of channels, or avoiding generics.
-    #[inline]
-    fn degrade(self) -> AnyChannel {
-        AnyChannel { id: self.id() }
+pub trait ChannelInstance: SealedChannelInstance + PeripheralType + 'static {
+    /// The interrupt type for this DMA channel.
+    type Interrupt: interrupt::typelevel::Interrupt;
+}
+
+/// DMA interrupt handler.
+#[allow(private_bounds)]
+pub struct InterruptHandler<T: ChannelInstance> {
+    _marker: PhantomData<T>,
+}
+
+impl<T: ChannelInstance> interrupt::typelevel::Handler<T::Interrupt> for InterruptHandler<T> {
+    unsafe fn on_interrupt() {
+        on_irq(T::CHANNEL)
     }
 }
 
 macro_rules! dma_channel_impl {
-    ($channel_peri:ident, $index:expr) => {
-        impl crate::dma::SealedChannel for crate::peripherals::$channel_peri {
-            fn id(&self) -> u8 {
-                $index
-            }
-        }
-        impl crate::dma::ChannelInterrupt for crate::peripherals::$channel_peri {
-            unsafe fn on_irq() { unsafe {
-                crate::dma::AnyChannel { id: $index }.on_irq();
-            }}
+    ($channel_peri:ident, $irq:ty) => {
+        impl crate::dma::SealedChannelInstance for crate::peripherals::$channel_peri {
+            const CHANNEL: crate::_generated::DmaChannel =
+                crate::_generated::DmaChannel::$channel_peri;
         }
 
-        impl crate::dma::Channel for crate::peripherals::$channel_peri {}
-
-        impl From<crate::peripherals::$channel_peri> for crate::dma::AnyChannel {
-            fn from(x: crate::peripherals::$channel_peri) -> Self {
-                crate::dma::Channel::degrade(x)
-            }
+        impl crate::dma::ChannelInstance for crate::peripherals::$channel_peri {
+            type Interrupt = $irq;
         }
     };
 }
 
-/// Type-erased DMA channel.
-pub struct AnyChannel {
-    pub(crate) id: u8,
-}
-impl_peripheral!(AnyChannel);
-
-impl AnyChannel {
-    fn info(&self) -> &ChannelInfo {
-        &crate::_generated::DMA_CHANNELS[self.id as usize]
-    }
-}
-
-impl SealedChannel for AnyChannel {
-    fn id(&self) -> u8 {
-        self.id
-    }
-}
-impl Channel for AnyChannel {}
-
 const CHANNEL_COUNT: usize = crate::_generated::DMA_CHANNELS.len();
 static STATE: [ChannelState; CHANNEL_COUNT] = [ChannelState::NEW; CHANNEL_COUNT];
 
-/// "No DMA" placeholder.
-///
-/// You may pass this in place of a real DMA channel when creating a driver
-/// to indicate it should not use DMA.
-///
-/// This often causes async functionality to not be available on the instance,
-/// leaving only blocking functionality.
-pub struct NoDma;
+pub(crate) fn info(channel: DmaChannel) -> &'static ChannelInfo {
+    &crate::_generated::DMA_CHANNELS[channel as usize]
+}
 
-impl_peripheral!(NoDma);
-
-// safety: must be called only once at startup
+// Safety: called only once during HAL initialization.
 pub(crate) unsafe fn init(
     cs: critical_section::CriticalSection,
     dma_priority: interrupt::Priority,
-) { unsafe {
-    dma::init(cs, dma_priority);
-}}
+) {
+    unsafe {
+        dma::init(cs, dma_priority);
+    }
+}
